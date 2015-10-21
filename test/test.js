@@ -14,8 +14,6 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			console.log( 'generated.code', generated.code )
-
 			var fn = new Function ( 'module', generated.code );
 			var module = {};
 

@@ -13,7 +13,8 @@ export default function commonjs ( options = {} ) {
 
 			const magicString = new MagicString( code );
 
-			let required = [];
+			let required = {};
+			let uid = 0;
 			let hasEs6ImportOrExport = false;
 			let hasCommonJsExports = false;
 
@@ -44,26 +45,46 @@ export default function commonjs ( options = {} ) {
 
 					const source = node.arguments[0].value;
 
-					let index = required.indexOf( source );
+					let existing = required[ source ];
+					let name;
 
-					if ( !~index ) {
-						index = required.length;
-						required.push( source );
+					if ( !existing ) {
+						if ( !depth && parent.type === 'VariableDeclarator' ) {
+							name = parent.id.name;
+							parent._remove = true;
+						} else {
+							name = `require$$${uid++}`;
+						}
+
+						required[ source ] = { source, name };
+					} else {
+						name = required[ source ].name;
 					}
 
-					magicString.overwrite( node.start, node.end, `require$$${index}` );
+					magicString.overwrite( node.start, node.end, name );
 				},
 
-				leave ( node ) {
+				leave ( node, parent ) {
 					if ( /Function/.test( node.type ) ) depth -= 1;
+
+					if ( node.type === 'VariableDeclarator' && node._remove ) {
+						magicString.remove( node.start, node.end );
+						parent.declarations.splice( parent.declarations.indexOf( node ), 1 );
+					}
+
+					if ( node.type === 'VariableDeclaration' && !node.declarations.length ) {
+						magicString.remove( node.start, node.end );
+					}
 				}
 			});
 
-			if ( !required.length && !hasCommonJsExports ) return null;
+			const sources = Object.keys( required );
+
+			if ( !sources.length && !hasCommonJsExports ) return null;
 			if ( hasEs6ImportOrExport ) throw new Error( 'Cannot mix and match CommonJS and ES2015 imports/exports' );
 
-			const importBlock = required.length ?
-				required.map( ( source, i ) => `import require$$${i} from '${source}';` ).join( '\n' ) :
+			const importBlock = sources.length ?
+				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
 			const intro = `let exports = {}, module = { exports: exports };`;
