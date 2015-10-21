@@ -14,6 +14,11 @@
     "pretest": "npm run build",
     "build": "gobble build -f dist"
   },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "acorn": "^2.4.0",
     "estree-walker": "^0.1.3",
