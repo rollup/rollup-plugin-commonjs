@@ -22,7 +22,6 @@ export default function commonjs ( options = {} ) {
 
 			let required = {};
 			let uid = 0;
-			let hasEs6ImportOrExport = false;
 			let hasCommonJsExports = false;
 
 			// TODO handle shadowed `require` calls
@@ -41,7 +40,6 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( /^(Import|Export)/.test( node.type ) ) {
-						hasEs6ImportOrExport = true;
 						return;
 					}
 
@@ -93,13 +91,12 @@ export default function commonjs ( options = {} ) {
 			const sources = Object.keys( required );
 
 			if ( !sources.length && !hasCommonJsExports ) return null;
-			if ( hasEs6ImportOrExport ) throw new Error( 'Cannot mix and match CommonJS and ES2015 imports/exports' );
 
 			const importBlock = sources.length ?
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `let exports = {}, module = { exports: exports };`;
+			const intro = `var exports = {}, module = { 'exports': exports };`;
 			const outro = `export default module.exports;`;
 
 			magicString
