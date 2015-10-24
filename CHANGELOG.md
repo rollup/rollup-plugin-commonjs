@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 0.2.1
+
+* Allow mixed CommonJS/ES6 imports/exports
+* Use `var` instead of `let`
+
 ## 0.2.0
 
 * Sourcemap support
