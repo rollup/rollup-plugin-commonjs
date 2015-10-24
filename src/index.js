@@ -92,13 +92,7 @@ export default function commonjs ( options = {} ) {
 					let name;
 
 					if ( !existing ) {
-						if ( !depth && parent.type === 'VariableDeclarator' ) {
-							name = parent.id.name;
-							parent._remove = true;
-						} else {
-							name = `require$$${uid++}`;
-						}
-
+						name = `require$$${uid++}`;
 						required[ source ] = { source, name };
 					} else {
 						name = required[ source ].name;
@@ -107,17 +101,8 @@ export default function commonjs ( options = {} ) {
 					magicString.overwrite( node.start, node.end, name );
 				},
 
-				leave ( node, parent ) {
+				leave ( node ) {
 					if ( /Function/.test( node.type ) ) depth -= 1;
-
-					if ( node.type === 'VariableDeclarator' && node._remove ) {
-						magicString.remove( node.start, node.end );
-						parent.declarations.splice( parent.declarations.indexOf( node ), 1 );
-					}
-
-					if ( node.type === 'VariableDeclaration' && !node.declarations.length ) {
-						magicString.remove( node.start, node.end );
-					}
 				}
 			});
 
