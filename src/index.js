@@ -1,11 +1,18 @@
 import { parse } from 'acorn/src/index.js';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
+import { createFilter } from 'rollup-pluginutils';
+
+var firstpass = /\b(?:require|module|exports)\b/;
 
 export default function commonjs ( options = {} ) {
+	var filter = createFilter( options.include, options.exclude );
+
 	return {
 		transform ( code, id ) {
-			// TODO skip non-CommonJS modules
+			if ( !filter( id ) ) return null;
+			if ( !firstpass.test( code ) ) return null;
+
 			const ast = parse( code, {
 				ecmaVersion: 6,
 				sourceType: 'module'
@@ -23,6 +30,11 @@ export default function commonjs ( options = {} ) {
 
 			walk( ast, {
 				enter ( node, parent ) {
+					if ( options.sourceMap ) {
+						magicString.addSourcemapLocation( node.start );
+						magicString.addSourcemapLocation( node.end );
+					}
+
 					if ( /Function/.test( node.type ) ) {
 						depth += 1;
 						return;
@@ -88,17 +100,16 @@ export default function commonjs ( options = {} ) {
 				'';
 
 			const intro = `let exports = {}, module = { exports: exports };`;
-
 			const outro = `export default module.exports;`;
 
 			magicString
 				.prepend( importBlock + intro )
 				.append( outro );
 
-			return {
-				code: magicString.toString(),
-				map: magicString.generateMap()
-			};
+			code = magicString.toString();
+			const map = options.sourceMap ? magicString.generateMap() : null;
+
+			return { code, map };
 		}
 	};
 }
