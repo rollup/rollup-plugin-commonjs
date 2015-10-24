@@ -78,15 +78,43 @@ describe( 'rollup-plugin-commonjs', function () {
 
 			var smc = new SourceMapConsumer( generated.map );
 
-			var loc = smc.originalPositionFor({ line: 3, column: 10 }); // 42
+			var loc = smc.originalPositionFor({ line: 3, column: 17 }); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			var loc = smc.originalPositionFor({ line: 7, column: 8 });
+			loc = smc.originalPositionFor({ line: 8, column: 8 });
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
+		});
+	});
+
+	it( 'finds index.js files', function () {
+		return rollup.rollup({
+			entry: 'samples/index/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
+		});
+	});
+
+	it( 'handles reassignments to imports', function () {
+		return rollup.rollup({
+			entry: 'samples/reassignment/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
 		});
 	});
 });
