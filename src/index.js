@@ -1,7 +1,9 @@
+import { statSync } from 'fs';
+import { dirname, extname, resolve, sep } from 'path';
 import { parse } from 'acorn/src/index.js';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { createFilter } from 'rollup-pluginutils';
+import { addExtension, createFilter } from 'rollup-pluginutils';
 
 var firstpass = /\b(?:require|module|exports)\b/;
 
@@ -9,14 +11,45 @@ export default function commonjs ( options = {} ) {
 	var filter = createFilter( options.include, options.exclude );
 
 	return {
+		resolveId ( importee, importer ) {
+			if ( importee[0] !== '.' ) return; // not our problem
+
+			let withExtension = addExtension( importee );
+			let resolved = resolve( dirname( importer ), withExtension );
+
+			// look for `foo.js`...
+			try {
+				statSync( resolved );
+				return resolved;
+			} catch ( err ) {}
+
+			// ...then `foo/index.js`
+			if ( importee !== withExtension ) {
+				try {
+					resolved = resolved.replace( /\.js$/, `${sep}index.js` );
+
+					statSync( resolved );
+					return resolved;
+				} catch ( err ) {}
+			}
+		},
+
 		transform ( code, id ) {
 			if ( !filter( id ) ) return null;
+			if ( extname( id ) !== '.js' ) return null;
 			if ( !firstpass.test( code ) ) return null;
 
-			const ast = parse( code, {
-				ecmaVersion: 6,
-				sourceType: 'module'
-			});
+			let ast;
+
+			try {
+				ast = parse( code, {
+					ecmaVersion: 6,
+					sourceType: 'module'
+				});
+			} catch ( err ) {
+				err.message += ` in ${id}`;
+				throw err;
+			}
 
 			const magicString = new MagicString( code );
 
@@ -96,10 +129,10 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `var exports = {}, module = { 'exports': exports };`;
-			const outro = `export default module.exports;`;
+			const intro = `var exports = {}, module = { 'exports': exports };\n`;
+			const outro = `\nexport default module.exports;`;
 
-			magicString
+			magicString.trim()
 				.prepend( importBlock + intro )
 				.append( outro );
 
