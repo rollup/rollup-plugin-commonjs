@@ -5,5 +5,5 @@ module.exports = gobble( 'src' )
 		entry: 'index.js',
 		dest: 'rollup-plugin-commonjs.js',
 		format: 'cjs',
-		external: [ 'rollup-pluginutils' ]
+		external: [ 'rollup-pluginutils', 'fs', 'path' ]
 	});
