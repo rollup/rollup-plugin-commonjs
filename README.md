@@ -1,7 +1,5 @@
 # rollup-plugin-commonjs
 
-**experimental – depends on an unreleased version of Rollup**
-
 Convert CommonJS modules to ES6, so they can be included in a Rollup bundle
 
 
