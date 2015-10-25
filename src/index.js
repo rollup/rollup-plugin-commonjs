@@ -1,6 +1,6 @@
 import { statSync } from 'fs';
 import { dirname, extname, resolve, sep } from 'path';
-import { parse } from 'acorn/src/index.js';
+import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { addExtension, createFilter } from 'rollup-pluginutils';
@@ -42,7 +42,7 @@ export default function commonjs ( options = {} ) {
 			let ast;
 
 			try {
-				ast = parse( code, {
+				ast = acorn.parse( code, {
 					ecmaVersion: 6,
 					sourceType: 'module'
 				});

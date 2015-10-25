@@ -117,4 +117,20 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( {}, assert );
 		});
 	});
+
+	it( 'handles imports with a trailing slash', function () {
+		// yes this actually happens. Not sure why someone would do this
+		// https://github.com/nodejs/readable-stream/blob/077681f08e04094f087f11431dc64ca147dda20f/lib/_stream_readable.js#L125
+		return rollup.rollup({
+			entry: 'samples/trailing-slash/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
+		});
+	});
 });

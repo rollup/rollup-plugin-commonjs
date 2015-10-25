@@ -1,9 +1,22 @@
 var gobble = require( 'gobble' );
+var babel = require( 'rollup-plugin-babel' );
 
-module.exports = gobble( 'src' )
-	.transform( 'rollup-babel', {
+var external = Object.keys( require( './package.json' ).dependencies ).concat([ 'fs', 'path' ]);
+
+module.exports = gobble([
+	gobble( 'src' ).transform( 'rollup', {
 		entry: 'index.js',
-		dest: 'rollup-plugin-commonjs.js',
+		dest: 'rollup-plugin-commonjs.cjs.js',
+		plugins: [ babel() ],
 		format: 'cjs',
-		external: [ 'rollup-pluginutils', 'fs', 'path' ]
-	});
+		external: external
+	}),
+
+	gobble( 'src' ).transform( 'rollup', {
+		entry: 'index.js',
+		dest: 'rollup-plugin-commonjs.es6.js',
+		plugins: [ babel() ],
+		format: 'es6',
+		external: external
+	})
+]);
