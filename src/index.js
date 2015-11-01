@@ -14,22 +14,17 @@ export default function commonjs ( options = {} ) {
 		resolveId ( importee, importer ) {
 			if ( importee[0] !== '.' ) return; // not our problem
 
-			let withExtension = addExtension( importee );
-			let resolved = resolve( dirname( importer ), withExtension );
+			const resolved = resolve( dirname( importer ), importee );
+			const candidates = [
+				resolved,
+				resolved + '.js',
+				resolved + `${sep}index.js`
+			];
 
-			// look for `foo.js`...
-			try {
-				statSync( resolved );
-				return resolved;
-			} catch ( err ) {}
-
-			// ...then `foo/index.js`
-			if ( importee !== withExtension ) {
+			for ( let i = 0; i < candidates.length; i += 1 ) {
 				try {
-					resolved = resolved.replace( /\.js$/, `${sep}index.js` );
-
-					statSync( resolved );
-					return resolved;
+					const stats = statSync( candidates[i] );
+					if ( stats.isFile() ) return candidates[i];
 				} catch ( err ) {}
 			}
 		},
