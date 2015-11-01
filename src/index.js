@@ -114,11 +114,12 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `var exports = {}, module = { 'exports': exports };\n`;
-			const outro = `\nexport default module.exports;`;
+			const intro = `\n\nexport default (function (module) {\nvar exports = module.exports;\n`;
+			const outro = `\nreturn module.exports;\n})({exports:{}});`;
 
 			magicString.trim()
 				.prepend( importBlock + intro )
+				.trim()
 				.append( outro );
 
 			code = magicString.toString();
