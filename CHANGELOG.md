@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 1.2.0
+
+* Generate named exports where possible ([#5](https://github.com/rollup/rollup-plugin-commonjs/issues/5))
+* Handle shadowed `require`/`module`/`exports`
+
 ## 1.1.0
 
 * Handle dots in filenames ([#3](https://github.com/rollup/rollup-plugin-commonjs/issues/3))
