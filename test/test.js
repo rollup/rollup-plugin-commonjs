@@ -161,4 +161,18 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( {}, assert );
 		});
 	});
+
+	it( 'identifies named exports', function () {
+		return rollup.rollup({
+			entry: 'samples/named-exports/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
+		});
+	});
 });
