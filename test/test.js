@@ -147,4 +147,18 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( {}, assert );
 		});
 	});
+
+	it( 'handles shadowed require', function () {
+		return rollup.rollup({
+			entry: 'samples/shadowing/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
+		});
+	});
 });

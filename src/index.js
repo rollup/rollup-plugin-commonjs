@@ -3,7 +3,8 @@ import { dirname, extname, resolve, sep } from 'path';
 import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { addExtension, createFilter } from 'rollup-pluginutils';
+import { attachScopes, createFilter } from 'rollup-pluginutils';
+
 
 var firstpass = /\b(?:require|module|exports)\b/;
 
@@ -25,7 +26,7 @@ export default function commonjs ( options = {} ) {
 				try {
 					const stats = statSync( candidates[i] );
 					if ( stats.isFile() ) return candidates[i];
-				} catch ( err ) {}
+				} catch ( err ) { /* noop */ }
 			}
 		},
 
@@ -52,23 +53,15 @@ export default function commonjs ( options = {} ) {
 			let uid = 0;
 			let hasCommonJsExports = false;
 
-			// TODO handle shadowed `require` calls
-			let depth = 0;
+			let scope = attachScopes( ast, 'scope' );
 
 			walk( ast, {
-				enter ( node, parent ) {
+				enter ( node ) {
+					if ( node.scope ) scope = node.scope;
+
 					if ( options.sourceMap ) {
 						magicString.addSourcemapLocation( node.start );
 						magicString.addSourcemapLocation( node.end );
-					}
-
-					if ( /Function/.test( node.type ) ) {
-						depth += 1;
-						return;
-					}
-
-					if ( /^(Import|Export)/.test( node.type ) ) {
-						return;
 					}
 
 					// TODO more accurate check
@@ -78,7 +71,7 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type !== 'CallExpression' ) return;
-					if ( node.callee.name !== 'require' ) return;
+					if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
 					if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
 
 					const source = node.arguments[0].value;
@@ -97,7 +90,7 @@ export default function commonjs ( options = {} ) {
 				},
 
 				leave ( node ) {
-					if ( /Function/.test( node.type ) ) depth -= 1;
+					if ( node.scope ) scope = scope.parent;
 				}
 			});
 
