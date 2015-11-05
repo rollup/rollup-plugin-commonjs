@@ -2,7 +2,7 @@ function foo ( require ) {
 	require( 'not-an-actual-require-statement' );
 }
 
-let result;
+var result;
 
 foo( function ( msg ) {
 	result = msg;
