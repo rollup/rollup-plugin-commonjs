@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 1.3.0
+
+* Handle references to `global` ([#6](https://github.com/rollup/rollup-plugin-commonjs/issues/6))
+
 ## 1.2.0
 
 * Generate named exports where possible ([#5](https://github.com/rollup/rollup-plugin-commonjs/issues/5))

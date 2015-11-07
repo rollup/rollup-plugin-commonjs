@@ -175,4 +175,22 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( {}, assert );
 		});
 	});
+
+	it( 'handles references to `global`', function () {
+		return rollup.rollup({
+			entry: 'samples/global/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var window = {};
+
+			var fn = new Function ( 'window', 'module', generated.code );
+			fn( window, {} );
+
+			assert.equal( window.foo, 'bar', generated.code );
+		});
+	});
 });
