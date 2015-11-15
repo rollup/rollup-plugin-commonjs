@@ -6,7 +6,6 @@ import MagicString from 'magic-string';
 import { attachScopes, createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
 
-
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
@@ -20,6 +19,8 @@ function getName ( id ) {
 export default function commonjs ( options = {} ) {
 	const filter = createFilter( options.include, options.exclude );
 	let bundleUsesGlobal = false;
+
+	const sourceMap = options.sourceMap !== false;
 
 	return {
 		resolveId ( importee, importer ) {
@@ -71,7 +72,7 @@ export default function commonjs ( options = {} ) {
 				enter ( node, parent ) {
 					if ( node.scope ) scope = node.scope;
 
-					if ( options.sourceMap ) {
+					if ( sourceMap ) {
 						magicString.addSourcemapLocation( node.start );
 						magicString.addSourcemapLocation( node.end );
 					}
@@ -144,7 +145,7 @@ export default function commonjs ( options = {} ) {
 				.append( outro );
 
 			code = magicString.toString();
-			const map = options.sourceMap ? magicString.generateMap() : null;
+			const map = sourceMap ? magicString.generateMap() : null;
 
 			if ( usesGlobal ) bundleUsesGlobal = true;
 

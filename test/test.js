@@ -64,11 +64,7 @@ describe( 'rollup-plugin-commonjs', function () {
 	it( 'generates a sourcemap', function () {
 		return rollup.rollup({
 			entry: 'samples/sourcemap/main.js',
-			plugins: [
-				commonjs({
-					sourceMap: true
-				})
-			]
+			plugins: [ commonjs({ sourceMap: true }) ]
 		}).then( function ( bundle ) {
 			var generated = bundle.generate({
 				format: 'cjs',
