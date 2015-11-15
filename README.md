@@ -31,10 +31,7 @@ rollup({
     // specifically include/exclude files
     commonjs({
       include: 'node_modules/**',
-      exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ],
-      
-      // add this if you want to generate sourcemaps later
-      sourceMap: true
+      exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ]
     })
   ]
 }).then(...)
