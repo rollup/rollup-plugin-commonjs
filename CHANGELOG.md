@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 1.4.0
+
+* Generate sourcemaps by default
+
 ## 1.3.0
 
 * Handle references to `global` ([#6](https://github.com/rollup/rollup-plugin-commonjs/issues/6))
