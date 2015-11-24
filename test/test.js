@@ -172,6 +172,20 @@ describe( 'rollup-plugin-commonjs', function () {
 		});
 	});
 
+	it( 'identifies named exports from object literals', function () {
+		return rollup.rollup({
+			entry: 'samples/named-exports-from-object-literal/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'assert', generated.code );
+			fn( {}, assert );
+		});
+	});
+
 	it( 'handles references to `global`', function () {
 		return rollup.rollup({
 			entry: 'samples/global/main.js',
