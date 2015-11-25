@@ -210,6 +210,7 @@ describe( 'rollup-plugin-commonjs', function () {
 	it( 'optimises module.exports statements', function () {
 		return rollup.rollup({
 			entry: 'samples/optimise-module-exports/main.js',
+			external: [ 'global' ],
 			plugins: [ commonjs() ]
 		}).then( function ( bundle ) {
 			var generated = bundle.generate();
@@ -222,6 +223,7 @@ describe( 'rollup-plugin-commonjs', function () {
 	it( 'fails to optimise module.exports statements that `usesModuleOrExports`', function () {
 		return rollup.rollup({
 			entry: 'samples/optimise-module-exports-fail/main.js',
+			external: [ 'augment' ],
 			plugins: [ commonjs() ]
 		}).then( function ( bundle ) {
 			var generated = bundle.generate();
