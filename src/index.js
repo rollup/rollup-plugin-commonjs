@@ -5,7 +5,7 @@ import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
-import { staticObject } from './node-test.js';
+import { staticValue } from './node-test.js';
 
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
@@ -69,6 +69,11 @@ export default function commonjs ( options = {} ) {
 			let usesModuleOrExports;
 			let usesGlobal;
 
+			// identifier start-indicies to ignore when determining
+			// if the module `usesModuleOrExports` or `usesGlobal`
+			const skip = {};
+			const lazyOptimisations = [];
+
 			walk( ast, {
 				enter ( node, parent ) {
 					if ( node.scope ) scope = node.scope;
@@ -90,10 +95,25 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
-						if ( flattened.keypath === 'module.exports' && staticObject( node.right ) ) {
-							return node.right.properties.forEach( prop => {
-								namedExports[ prop.key.name ] = true;
-							});
+						if ( flattened.keypath === 'module.exports' && staticValue( node.right ) ) {
+
+							// we can't optimise object expressions without a function wrapper yet
+							if ( node.right.type === 'ObjectExpression' ) {
+								node.right.properties.forEach( prop => {
+									namedExports[ prop.key.name ] = true;
+								});
+							} else {
+
+								// this usage of `module.exports` doesn't count as `usesModuleOrExports`
+								skip[ node.left.object.start ] = true;
+								skip[ node.left.property.start ] = true;
+
+								// optimise `module.exports =` -> `export default `
+								lazyOptimisations.push( () =>
+									magicString.overwrite( node.left.start, node.right.start, 'export default ' ) );
+							}
+
+							return;
 						}
 
 						if ( match[1] ) namedExports[ match[1] ] = true;
@@ -102,7 +122,7 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name === 'module' || node.name === 'exports' ) && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
+						if ( ( node.name === 'module' || node.name === 'exports' ) && !skip[ node.start ] && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
 						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) usesGlobal = true;
 						return;
 					}
@@ -133,7 +153,8 @@ export default function commonjs ( options = {} ) {
 
 			const sources = Object.keys( required );
 
-			if ( !sources.length && !usesModuleOrExports && !usesGlobal ) return null; // not a CommonJS module
+			// return null if not a CommonJS module
+			if ( !sources.length && !usesModuleOrExports && !usesGlobal && !lazyOptimisations.length ) return null;
 
 			const name = getName( id );
 
@@ -146,10 +167,26 @@ export default function commonjs ( options = {} ) {
 
 			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
 
-			magicString.trim()
-				.prepend( importBlock + intro )
-				.trim()
-				.append( outro );
+			magicString.trim();
+
+			// `intro` and `outro` are only used if
+			// we use `module.exports`, `exports` or `global`
+			if ( usesModuleOrExports || usesGlobal) {
+				magicString.prepend( intro );
+			}
+
+			// the `importBlock` is always used
+			magicString.prepend( importBlock );
+
+			if ( usesModuleOrExports || usesGlobal ) {
+				magicString.append( outro );
+			} else {
+				// if we don't need any of the above globals,
+				// we can do some extra optimisations
+				// console.log( magicString.toString() );
+				lazyOptimisations.forEach( fn => fn() );
+				// console.log( magicString.toString() );
+			}
 
 			code = magicString.toString();
 			const map = sourceMap ? magicString.generateMap() : null;

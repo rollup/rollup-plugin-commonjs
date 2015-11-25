@@ -79,7 +79,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 8, column: 8 });
+			loc = smc.originalPositionFor({ line: 6, column: 8 });
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -181,6 +181,9 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
+			assert.ok( generated.code.indexOf( 'function' ) !== -1,
+				'The generated code should contain a "function" wrapper.' );
+
 			var fn = new Function ( 'module', 'assert', generated.code );
 			fn( {}, assert );
 		});
@@ -202,5 +205,29 @@ describe( 'rollup-plugin-commonjs', function () {
 
 			assert.equal( window.foo, 'bar', generated.code );
 		});
+	});
+
+	it( 'optimises module.exports statements', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'function' ) === -1,
+				'The generated code should not contain a "function" wrapper.' );
+		})
+	});
+
+	it( 'fails to optimise module.exports statements that `usesModuleOrExports`', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports-fail/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'function' ) !== -1,
+				'The generated code should contain a "function" wrapper.' );
+		})
 	});
 });
