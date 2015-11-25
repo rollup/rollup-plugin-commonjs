@@ -5,7 +5,6 @@ import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, createFilter } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
-import { staticObject } from './node-test.js';
 
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
@@ -59,8 +58,13 @@ export default function commonjs ( options = {} ) {
 
 			let scope = attachScopes( ast, 'scope' );
 			let namedExports = {};
-			let usesModuleOrExports;
-			let usesGlobal;
+			let usesModuleOrExports = false;
+			let usesGlobal = false;
+
+			// identifier start-indicies to ignore when determining
+			// if the module `usesModuleOrExports` or `usesGlobal`
+			const skip = {};
+			const lazyOptimisations = [];
 
 			walk( ast, {
 				enter ( node, parent ) {
@@ -83,10 +87,25 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
-						if ( flattened.keypath === 'module.exports' && staticObject( node.right ) ) {
-							return node.right.properties.forEach( prop => {
-								namedExports[ prop.key.name ] = true;
-							});
+						if ( flattened.keypath === 'module.exports' ) {
+
+							// we can't optimise object expressions without a function wrapper yet
+							if ( node.right.type === 'ObjectExpression' ) {
+								node.right.properties.forEach( prop => {
+									namedExports[ prop.key.name ] = true;
+								});
+							} else {
+
+								// this usage of `module.exports` doesn't count as `usesModuleOrExports`
+								skip[ node.left.object.start ] = true;
+								skip[ node.left.property.start ] = true;
+
+								// optimise `module.exports =` -> `export default `
+								lazyOptimisations.push( () =>
+									magicString.overwrite( node.left.start, node.right.start, 'export default ' ) );
+							}
+
+							return;
 						}
 
 						if ( match[1] ) namedExports[ match[1] ] = true;
@@ -95,7 +114,7 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name === 'module' || node.name === 'exports' ) && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
+						if ( ( node.name === 'module' || node.name === 'exports' ) && !skip[ node.start ] && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
 						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) {
 							magicString.overwrite( node.start, node.end, '__commonjs_global' );
 							usesGlobal = true;
@@ -129,7 +148,8 @@ export default function commonjs ( options = {} ) {
 
 			const sources = Object.keys( required );
 
-			if ( !sources.length && !usesModuleOrExports && !usesGlobal ) return null; // not a CommonJS module
+			// return null if not a CommonJS module
+			if ( !sources.length && !usesModuleOrExports && !usesGlobal && !lazyOptimisations.length ) return null;
 
 			const importBlock = sources.length ?
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
@@ -138,12 +158,31 @@ export default function commonjs ( options = {} ) {
 			const intro = `\n\nvar exports = {}, module = { exports: exports };\n`;
 			let outro = `\nexport default module.exports;\n`;
 
-			outro += Object.keys( namedExports ).map( x => `export var ${x} = exports.${x};` ).join( '\n' );
+			const named = Object.keys( namedExports );
 
-			magicString.trim()
-				.prepend( importBlock + intro )
-				.trim()
-				.append( outro );
+			if ( named.length ) {
+				outro += named.map( x => `var export$${x} = module.exports.${x};` ).join( '\n' );
+				outro += `export { ${named.map( x => `export$${x} as ${x}`).join( ', ' )} };`;
+			}
+
+			magicString.trim();
+
+			// `intro` and `outro` are only used if
+			// we use `module.exports`, `exports` or `global`
+			if ( usesModuleOrExports ) {
+				magicString.prepend( intro );
+			}
+
+			// the `importBlock` is always used
+			magicString.prepend( importBlock );
+
+			if ( usesModuleOrExports ) {
+				magicString.append( outro );
+			} else {
+				// if we don't need any of the above globals,
+				// we can do some extra optimisations
+				lazyOptimisations.forEach( fn => fn() );
+			}
 
 			code = magicString.toString();
 			const map = sourceMap ? magicString.generateMap() : null;

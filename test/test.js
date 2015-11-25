@@ -22,7 +22,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( module );
 
 			assert.equal( module.exports, 42 );
-		})
+		});
 	});
 
 	it( 'converts a CommonJS module that mutates exports instead of replacing', function () {
@@ -40,7 +40,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( module );
 
 			assert.equal( module.exports, 'BARBAZ' );
-		})
+		});
 	});
 
 	it( 'converts inline require calls', function () {
@@ -79,7 +79,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 8, column: 8 });
+			loc = smc.originalPositionFor({ line: 6, column: 8 });
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -181,6 +181,9 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
+			assert.ok( generated.code.indexOf( 'module' ) !== -1,
+				'The generated code should contain a "module" variable.' );
+
 			var fn = new Function ( 'module', 'assert', generated.code );
 			fn( {}, assert );
 		});
@@ -201,6 +204,30 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( window, {} );
 
 			assert.equal( window.foo, 'bar', generated.code );
+		});
+	});
+
+	it( 'optimises module.exports statements', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'module' ) === -1,
+				'The generated code should not contain a "module" variable.' );
+		});
+	});
+
+	it( 'fails to optimise module.exports statements that `usesModuleOrExports`', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports-fail/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'module' ) !== -1,
+				'The generated code should contain a "module" variable.' );
 		});
 	});
 });
