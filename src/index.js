@@ -1,20 +1,13 @@
 import { statSync } from 'fs';
-import { basename, dirname, extname, resolve, sep } from 'path';
+import { dirname, extname, resolve, sep } from 'path';
 import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { attachScopes, createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
+import { attachScopes, createFilter } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
 
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
-
-function getName ( id ) {
-	const base = basename( id );
-	const ext = extname( base );
-
-	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
-}
 
 export default function commonjs ( options = {} ) {
 	const filter = createFilter( options.include, options.exclude );
@@ -96,7 +89,10 @@ export default function commonjs ( options = {} ) {
 
 					if ( node.type === 'Identifier' ) {
 						if ( ( node.name === 'module' || node.name === 'exports' ) && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
-						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) usesGlobal = true;
+						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) {
+							magicString.overwrite( node.start, node.end, '__commonjs_global' );
+							usesGlobal = true;
+						}
 						return;
 					}
 
@@ -128,16 +124,14 @@ export default function commonjs ( options = {} ) {
 
 			if ( !sources.length && !usesModuleOrExports && !usesGlobal ) return null; // not a CommonJS module
 
-			const name = getName( id );
-
 			const importBlock = sources.length ?
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `\n\nvar ${name} = (function (module${usesGlobal ? ', global' : ''}) {\nvar exports = module.exports;\n`;
-			let outro = `\nreturn module.exports;\n})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});\n\nexport default ${name};\n`;
+			const intro = `\n\nvar exports = {}, module = { exports: exports };\n`;
+			let outro = `\nexport default module.exports;\n`;
 
-			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
+			outro += Object.keys( namedExports ).map( x => `export var ${x} = exports.${x};` ).join( '\n' );
 
 			magicString.trim()
 				.prepend( importBlock + intro )
