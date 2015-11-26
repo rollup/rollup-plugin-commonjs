@@ -134,10 +134,36 @@ export default function commonjs ( options = {} ) {
 
 					const source = node.arguments[0].value;
 
+					// `require` is called for it's side effects when it's
+					// return value isn't used, for example:
+					//
+					//    require('foo');
+					//
+					//    var a = (require('foo'), require('a'));
+					let calledForSideEffects = parent.type === 'ExpressionStatement' ||
+						( parent.type === 'SequenceExpression' &&
+							parent.expressions[ parent.expressions.length - 1 ] === node );
+
 					let existing = required[ source ];
 					let name;
 
-					if ( !existing ) {
+					if ( calledForSideEffects ) {
+						if ( !existing ) {
+							name = '';
+							required[ source ] = { source, name };
+						}
+
+						// Overwrite with `undefined` to handle both examples. Replacing with
+						// the empty string '' would yield an invalid SequenceExpression.
+						//
+						//   undefined;
+						//
+						//   var a = (undefined, require$$0);
+						magicString.overwrite( node.start, node.end, 'undefined' );
+						return;
+					}
+
+					if ( !existing || !existing.name ) {
 						name = `require$$${uid++}`;
 						required[ source ] = { source, name };
 					} else {
@@ -158,7 +184,7 @@ export default function commonjs ( options = {} ) {
 			if ( !sources.length && !usesModuleOrExports && !usesGlobal && !lazyOptimisations.length ) return null;
 
 			const importBlock = sources.length ?
-				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
+				sources.map( source => `import ${required[ source ].name ? required[ source ].name + ' from ' : ''}'${source}';` ).join( '\n' ) :
 				'';
 
 			const intro = `\n\nvar exports = {}, module = { exports: exports };\n`;
