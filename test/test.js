@@ -261,8 +261,8 @@ describe( 'rollup-plugin-commonjs', function () {
 					}).then( function ( bundle ) {
 						var generated = bundle.generate();
 
-						assert.ok( generated.code.indexOf( 'function' ) === -1,
-							'The generated code should not contain a "function" wrapper.' );
+						assert.ok( generated.code.indexOf( 'module' ) === -1,
+							'The generated code should not contain a "module" variable.' );
 					});
 				});
 			});
@@ -280,8 +280,8 @@ describe( 'rollup-plugin-commonjs', function () {
 					}).then( function ( bundle ) {
 						var generated = bundle.generate();
 
-						assert.ok( generated.code.indexOf( name + ' = (function (module) {' ) !== -1,
-							'The generated code should contain a "function" wrapper.' );
+						assert.ok( generated.code.indexOf( 'module' ) !== -1,
+							'The generated code should contain a "module" variable.' );
 					});
 				});
 			});

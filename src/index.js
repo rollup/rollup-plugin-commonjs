@@ -56,10 +56,15 @@ export default function commonjs ( options = {} ) {
 			let required = {};
 			let uid = 0;
 
+			// Set `topLevel = true` on all top level statements
+			ast.body.forEach( node => node.topLevel = true );
+
 			let scope = attachScopes( ast, 'scope' );
 			let namedExports = {};
 			let usesModuleOrExports = false;
 			let usesGlobal = false;
+
+			let hasOptimisedModuleExports = false;
 
 			// identifier start-indicies to ignore when determining
 			// if the module `usesModuleOrExports` or `usesGlobal`
@@ -87,7 +92,8 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
-						if ( flattened.keypath === 'module.exports' ) {
+						if ( !hasOptimisedModuleExports && flattened.keypath === 'module.exports' && parent.topLevel ) {
+							hasOptimisedModuleExports = true;
 
 							// we can't optimise object expressions without a function wrapper yet
 							if ( node.right.type === 'ObjectExpression' ) {
