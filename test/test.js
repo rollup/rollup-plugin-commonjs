@@ -196,6 +196,20 @@ describe( 'rollup-plugin-commonjs', function () {
 		});
 	});
 
+	it( 'handles bare requires', function () {
+		return rollup.rollup({
+			entry: 'samples/bare/main.js',
+			external: './side-effects',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'es6'
+			});
+
+			assert.equal( generated.code, 'import \'./side-effects\';');
+		});
+	});
+
 	it( 'optimises module.exports statements', function () {
 		return rollup.rollup({
 			entry: 'samples/optimise-module-exports/main.js',
