@@ -20,6 +20,7 @@ function getName ( id ) {
 export default function commonjs ( options = {} ) {
 	const filter = createFilter( options.include, options.exclude );
 	let bundleUsesGlobal = false;
+	let bundleRequiresWrappers = false;
 
 	const sourceMap = options.sourceMap !== false;
 
@@ -129,7 +130,10 @@ export default function commonjs ( options = {} ) {
 
 					if ( node.type === 'Identifier' ) {
 						if ( ( node.name === 'module' || node.name === 'exports' ) && !skip[ node.start ] && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
-						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) usesGlobal = true;
+						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) {
+							magicString.overwrite( node.start, node.end, '__commonjs_global' );
+							usesGlobal = true;
+						}
 						return;
 					}
 
@@ -194,8 +198,8 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name ? required[ source ].name + ' from ' : ''}'${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `\n\nvar ${name} = (function (module${usesGlobal ? ', global' : ''}) {\nvar exports = module.exports;\n`;
-			let outro = `\nreturn module.exports;\n})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});\n\nexport default ${name};\n`;
+			const intro = `\n\nvar ${name} = __commonjs_wrapper(function (module, exports) {\n`;
+			let outro = `\n});\n\nexport default ${name};\n`;
 
 			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
 
@@ -204,6 +208,7 @@ export default function commonjs ( options = {} ) {
 			// `intro` and `outro` are only used if
 			// we use `module.exports`, `exports` or `global`
 			if ( usesModuleOrExports || usesGlobal) {
+				bundleRequiresWrappers = true;
 				magicString.prepend( intro );
 			}
 
@@ -227,9 +232,17 @@ export default function commonjs ( options = {} ) {
 		},
 
 		intro () {
-			return bundleUsesGlobal ?
-				`var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this;` :
-				'';
+			var intros = [];
+
+			if ( bundleUsesGlobal ) {
+				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this;` );
+			}
+
+			if ( bundleRequiresWrappers ) {
+				intros.push( `function __commonjs_wrapper(fn, module) { return module = { exports: {} }, fn(module, module.exports), module.exports; }` );
+			}
+
+			return intros.join( '\n' );
 		}
 	};
 }

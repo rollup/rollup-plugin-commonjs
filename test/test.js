@@ -245,7 +245,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			assert.ok( generated.code.indexOf( 'main = (function (module) {' ) !== -1,
+			assert.ok( generated.code.indexOf( 'main = __commonjs_wrapper(function (module, exports) {' ) !== -1,
 				'The generated code should contain a "function" wrapper.' );
 
 			var module = execute( generated.code );
@@ -294,7 +294,7 @@ describe( 'rollup-plugin-commonjs', function () {
 					}).then( function ( bundle ) {
 						var generated = bundle.generate();
 
-						assert.ok( generated.code.indexOf( name + ' = (function (module) {' ) !== -1,
+						assert.ok( generated.code.indexOf( name + ' = __commonjs_wrapper(function (module, exports) {' ) !== -1,
 							'The generated code should contain a "function" wrapper.' );
 					});
 				});
