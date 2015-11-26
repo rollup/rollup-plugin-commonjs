@@ -6,6 +6,17 @@ var commonjs = require( '..' );
 
 process.chdir( __dirname );
 
+function execute ( code ) {
+	var module = { exports: {} };
+	var fn = new Function( 'module', 'exports', code );
+	fn( module, module.exports );
+	return module;
+}
+
+function executeAssert ( code ) {
+	new Function( 'module', 'assert', code )( {}, assert );
+}
+
 describe( 'rollup-plugin-commonjs', function () {
 	it( 'converts a basic CommonJS module', function () {
 		return rollup.rollup({
@@ -16,13 +27,8 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports, 42 );
-		})
+			assert.equal( execute( generated.code ).exports, 42 );
+		});
 	});
 
 	it( 'converts a CommonJS module that mutates exports instead of replacing', function () {
@@ -34,13 +40,8 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports, 'BARBAZ' );
-		})
+			assert.equal( execute( generated.code ).exports, 'BARBAZ' );
+		});
 	});
 
 	it( 'converts inline require calls', function () {
@@ -52,12 +53,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports(), 2 );
+			assert.equal( execute( generated.code ).exports(), 2 );
 		});
 	});
 
@@ -79,7 +75,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 8, column: 8 });
+			loc = smc.originalPositionFor({ line: 6, column: 8 });
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -95,8 +91,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
 		});
 	});
 
@@ -109,8 +104,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
 		});
 	});
 
@@ -125,8 +119,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
 		});
 	});
 
@@ -139,8 +132,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
 		});
 	});
 
@@ -153,8 +145,7 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
 		});
 	});
 
@@ -167,8 +158,23 @@ describe( 'rollup-plugin-commonjs', function () {
 				format: 'cjs'
 			});
 
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
+			executeAssert( generated.code );
+		});
+	});
+
+	it( 'identifies named exports from object literals', function () {
+		return rollup.rollup({
+			entry: 'samples/named-exports-from-object-literal/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			assert.ok( generated.code.indexOf( 'function' ) !== -1,
+				'The generated code should contain a "function" wrapper.' );
+
+			executeAssert( generated.code );
 		});
 	});
 
@@ -187,6 +193,112 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( window, {} );
 
 			assert.equal( window.foo, 'bar', generated.code );
+		});
+	});
+
+	it( 'handles bare requires', function () {
+		return rollup.rollup({
+			entry: 'samples/bare/main.js',
+			external: './side-effects',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'es6'
+			});
+
+			assert.equal( generated.code, 'import \'./side-effects\';');
+		});
+	});
+
+	it( 'optimises module.exports statements', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports/main.js',
+			external: [ 'global' ],
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'function' ) === -1,
+				'The generated code should not contain a "function" wrapper.' );
+		});
+	});
+
+	it( 'fails to optimise module.exports statements that `usesModuleOrExports`', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-module-exports-fail/main.js',
+			external: [ 'augment' ],
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate();
+
+			assert.ok( generated.code.indexOf( 'function' ) !== -1,
+				'The generated code should contain a "function" wrapper.' );
+		});
+	});
+
+	it( 'fails to optimise module.exports reassignments', function () {
+		return rollup.rollup({
+			entry: 'samples/cannot-optimise-module-exports-reassign/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			assert.ok( generated.code.indexOf( 'main = __commonjs_wrapper(function (module, exports) {' ) !== -1,
+				'The generated code should contain a "function" wrapper.' );
+
+			var module = execute( generated.code );
+
+			assert.equal( module.exports, 2, generated.code );
+		});
+	});
+
+	describe( 'corejs', function () {
+		var external = [
+			'./_core',
+			'./_uid',
+			'./_hide',
+			'./_global'
+		];
+
+		describe( 'can optimise', function () {
+			[
+				'_html',
+				'_path'
+			].forEach(function ( name ) {
+				it( name, function () {
+					return rollup.rollup({
+						entry: 'samples/corejs/' + name + '.js',
+						external: external,
+						plugins: [ commonjs() ]
+					}).then( function ( bundle ) {
+						var generated = bundle.generate();
+
+						assert.ok( generated.code.indexOf( 'function' ) === -1,
+							'The generated code should not contain a "function" wrapper.' );
+					});
+				});
+			});
+		});
+
+		describe( 'can not optimise', function () {
+			[
+				'_redefine'
+			].forEach(function ( name ) {
+				it( name, function () {
+					return rollup.rollup({
+						entry: 'samples/corejs/' + name + '.js',
+						external: external,
+						plugins: [ commonjs() ]
+					}).then( function ( bundle ) {
+						var generated = bundle.generate();
+
+						assert.ok( generated.code.indexOf( name + ' = __commonjs_wrapper(function (module, exports) {' ) !== -1,
+							'The generated code should contain a "function" wrapper.' );
+					});
+				});
+			});
 		});
 	});
 });
