@@ -134,8 +134,17 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `\n\nvar ${name} = (function (module${usesGlobal ? ', global' : ''}) {\nvar exports = module.exports;\n`;
-			let outro = `\nreturn module.exports;\n})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});\n\nexport default ${name};\n`;
+			const intro = `
+
+var ${name} = (function (module${usesGlobal ? ', global' : ''}) {
+var exports = module.exports;
+`;
+
+			let outro = `
+return module.exports;
+})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});
+
+export default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
 
 			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
 

@@ -189,4 +189,22 @@ describe( 'rollup-plugin-commonjs', function () {
 			assert.equal( window.foo, 'bar', generated.code );
 		});
 	});
+
+	it( 'handles transpiled CommonJS modules', function () {
+		return rollup.rollup({
+			entry: 'samples/corejs/literal-with-default.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var module = {};
+
+			var fn = new Function ( 'module', generated.code );
+			fn( module );
+
+			assert.equal( module.exports, 'foobar', generated.code );
+		});
+	});
 });
