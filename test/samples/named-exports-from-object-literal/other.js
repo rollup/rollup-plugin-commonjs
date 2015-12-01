@@ -3,5 +3,6 @@ var b = 2;
 
 module.exports = {
   a: a,
-  b: b
+  b: b,
+  c: a + b
 };

@@ -5,7 +5,6 @@ import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
-import { staticObject } from './node-test.js';
 
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
@@ -90,9 +89,11 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
-						if ( flattened.keypath === 'module.exports' && staticObject( node.right ) ) {
+						if ( flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression' ) {
 							return node.right.properties.forEach( prop => {
-								namedExports[ prop.key.name ] = true;
+								if ( prop.computed ) return;
+								const name = prop.key.name;
+								if ( name === makeLegalIdentifier( name ) ) namedExports[ name ] = true;
 							});
 						}
 
