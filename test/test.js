@@ -236,6 +236,20 @@ describe( 'rollup-plugin-commonjs', function () {
 		});
 	});
 
+	it( 'optimises `var x = module.exports = ...` statements with reassignments', function () {
+		return rollup.rollup({
+			entry: 'samples/optimise-var-module-exports/main.js',
+			external: [ 'global' ],
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			executeAssert( generated.code );
+		});
+	});
+
 	it( 'fails to optimise module.exports reassignments', function () {
 		return rollup.rollup({
 			entry: 'samples/cannot-optimise-module-exports-reassign/main.js',
@@ -256,13 +270,13 @@ describe( 'rollup-plugin-commonjs', function () {
 
 	describe( 'corejs', function () {
 		var external = [
-			'./_core',
 			'./_uid',
 			'./_hide'
 		];
 
 		describe( 'can optimise', function () {
 			[
+				'_core',
 				'_global',
 				'_html',
 				'_path'
@@ -276,7 +290,7 @@ describe( 'rollup-plugin-commonjs', function () {
 						var generated = bundle.generate();
 
 						assert.ok( generated.code.indexOf( 'module' ) === -1,
-							'The generated code should not contain a "module" variable.' );
+							'The generated code should not contain a "module" variable:\n\n' + generated.code );
 					});
 				});
 			});
@@ -295,7 +309,7 @@ describe( 'rollup-plugin-commonjs', function () {
 						var generated = bundle.generate();
 
 						assert.ok( generated.code.indexOf( 'module' ) !== -1,
-							'The generated code should contain a "module" variable.' );
+							'The generated code should contain a "module" variable:\n\n' + generated.code );
 					});
 				});
 			});

@@ -106,31 +106,27 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
+						// optimise `module.exports`
 						if ( !hasOptimisedModuleExports && flattened.keypath === 'module.exports' && parent.topLevel ) {
 							hasOptimisedModuleExports = true;
 
-							// we can't optimise object expressions without a function wrapper yet
-							if ( node.right.type === 'ObjectExpression' ) {
-								node.right.properties.forEach( prop => {
-									namedExports[ prop.key.name ] = true;
-								});
+							// this usage of `module.exports` doesn't count as `usesModuleOrExports`
+							skip[ node.left.object.start ] = true;
+							skip[ node.left.property.start ] = true;
+
+							// optimise `module.exports =` -> `export default `
+							if ( parent.type === 'VariableDeclarator' ) {
+								optimiseVarDecl( node, parent, magicString, lazyOptimisations );
+							} else if ( node.right.type === 'ObjectExpression' ) {
+								lazyOptimisations.push(
+									() => magicString.overwrite( node.left.start, node.right.start, `var module$exports = ` ),
+									() => magicString.insert( node.end, '\nexport default module$exports;' ),
+									...insertObjectPropeties( magicString, node.end, 'module$exports', node.right.properties )
+								);
 							} else {
-
-								// this usage of `module.exports` doesn't count as `usesModuleOrExports`
-								skip[ node.left.object.start ] = true;
-								skip[ node.left.property.start ] = true;
-
-								// optimise `module.exports =` -> `export default `
-								if ( parent.type === 'VariableDeclarator' ) {
-									lazyOptimisations.push(
-										() => magicString.remove( node.left.start, node.right.start ),
-										() => magicString.insert( parent.parent.end, `export default ${parent.id.name};\n` )
-									);
-								} else {
-									lazyOptimisations.push(
-										() => magicString.overwrite( node.left.start, node.right.start, 'export default ' )
-									);
-								}
+								lazyOptimisations.push(
+									() => magicString.overwrite( node.left.start, node.right.start, 'export default ' )
+								);
 							}
 
 							return;
@@ -254,4 +250,56 @@ export default function commonjs ( options = {} ) {
 				'';
 		}
 	};
+}
+
+// optimise variable declarations like
+//
+//     var a = module.exports = ..., b = ...;`
+//
+// to
+//
+//     var a = ...;
+//     export default a;
+//     var b = ...;
+function optimiseVarDecl ( node, parent, magicString, opts ) {
+	const decls = parent.parent.declarations;
+	const declIndex = decls.indexOf( parent );
+	const isLastDeclarator = declIndex === decls.length - 1;
+	const name = parent.id.name;
+
+	opts.push(
+		// remove `module.exports =` ...
+		() => magicString.remove( node.left.start, node.right.start ),
+		// ... and export.
+		() => magicString.insert( parent.end, `;\nexport default ${name}` )
+	);
+
+	if ( node.right.type === 'ObjectExpression' ) {
+		opts.push( ...insertObjectPropeties( magicString, parent.end, name, node.right.properties ) );
+	}
+
+	if ( !isLastDeclarator ) {
+		opts.push(
+			// Insert a new declaration
+			() => magicString.overwrite( parent.end, decls[ declIndex + 1].start, `;\n${parent.parent.kind} ` )
+		);
+	}
+}
+
+// inserts exports for the given exported object
+//
+//     module.exports = { a: 1, b: 2 };
+//
+//     var module$exports = { a: 1, b: 2 };
+//     var exports$a = module$exports.a;
+//     export { exports$a as a };
+//     var exports$b = module$exports.b;
+//     export { exports$b as b };
+//
+function insertObjectPropeties ( magicString, location, object, properties ) {
+	return properties.filter( prop => !prop.computed && prop.key.type === 'Identifier' ).map( prop => {
+		const key = prop.key.name;
+
+		return () => magicString.insert( location, `;\nvar exports$${key} = ${object}.${key};\nexport { exports$${key} as ${key} }`);
+	});
 }
