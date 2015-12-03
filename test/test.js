@@ -258,12 +258,12 @@ describe( 'rollup-plugin-commonjs', function () {
 		var external = [
 			'./_core',
 			'./_uid',
-			'./_hide',
-			'./_global'
+			'./_hide'
 		];
 
 		describe( 'can optimise', function () {
 			[
+				'_global',
 				'_html',
 				'_path'
 			].forEach(function ( name ) {

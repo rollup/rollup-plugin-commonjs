@@ -57,7 +57,21 @@ export default function commonjs ( options = {} ) {
 			let uid = 0;
 
 			// Set `topLevel = true` on all top level statements
-			ast.body.forEach( node => node.topLevel = true );
+			ast.body.forEach( node => {
+				node.topLevel = true;
+
+				// needed when optimising `var x = module.exports = ...`
+				if ( node.type === 'VariableDeclaration' ) {
+					node.declarations.forEach( declarator => {
+						declarator.topLevel = true;
+
+						Object.defineProperty( declarator, 'parent', {
+							value: node,
+							configurable: true
+						});
+					});
+				}
+			});
 
 			let scope = attachScopes( ast, 'scope' );
 			let namedExports = {};
@@ -107,8 +121,16 @@ export default function commonjs ( options = {} ) {
 								skip[ node.left.property.start ] = true;
 
 								// optimise `module.exports =` -> `export default `
-								lazyOptimisations.push( () =>
-									magicString.overwrite( node.left.start, node.right.start, 'export default ' ) );
+								if ( parent.type === 'VariableDeclarator' ) {
+									lazyOptimisations.push(
+										() => magicString.remove( node.left.start, node.right.start ),
+										() => magicString.insert( parent.parent.end, `export default ${parent.id.name};\n` )
+									);
+								} else {
+									lazyOptimisations.push(
+										() => magicString.overwrite( node.left.start, node.right.start, 'export default ' )
+									);
+								}
 							}
 
 							return;
@@ -197,7 +219,9 @@ export default function commonjs ( options = {} ) {
 				outro += `export { ${named.map( x => `export$${x} as ${x}`).join( ', ' )} };`;
 			}
 
-			magicString.trim();
+			// don't trim the string, since we may want to insert
+			// something in the trailing spaces.
+			// magicString.trim();
 
 			// `intro` and `outro` are only used if
 			// we use `module.exports`, `exports` or `global`
