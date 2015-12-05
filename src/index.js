@@ -19,6 +19,7 @@ function getName ( id ) {
 export default function commonjs ( options = {} ) {
 	const filter = createFilter( options.include, options.exclude );
 	let bundleUsesGlobal = false;
+	let bundleRequiresWrappers = false;
 
 	const sourceMap = options.sourceMap !== false;
 
@@ -65,8 +66,7 @@ export default function commonjs ( options = {} ) {
 
 			let scope = attachScopes( ast, 'scope' );
 			let namedExports = {};
-			let usesModuleOrExports;
-			let usesGlobal;
+			let uses = { module: false, exports: false, global: false };
 
 			walk( ast, {
 				enter ( node, parent ) {
@@ -103,8 +103,7 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name === 'module' || node.name === 'exports' ) && isReference( node, parent ) && !scope.contains( node.name ) ) usesModuleOrExports = true;
-						if ( node.name === 'global' && isReference( node, parent ) && !scope.contains( 'global' ) ) usesGlobal = true;
+						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) uses[ node.name ] = true;
 						return;
 					}
 
@@ -134,7 +133,9 @@ export default function commonjs ( options = {} ) {
 
 			const sources = Object.keys( required );
 
-			if ( !sources.length && !usesModuleOrExports && !usesGlobal ) return null; // not a CommonJS module
+			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) return null; // not a CommonJS module
+
+			bundleRequiresWrappers = true;
 
 			const name = getName( id );
 
@@ -142,8 +143,10 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `\n\nvar ${name} = (function (module${usesGlobal ? ', global' : ''}) {\nvar exports = module.exports;\n`;
-			let outro = `\nreturn module.exports;\n})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});\n\nexport default ${name};\n`;
+			const args = `module${uses.exports || uses.global ? ', exports' : ''}${uses.global ? ', global' : ''}`;
+
+			const intro = `\n\nvar ${name} = __commonjs(function (${args}) {\n`;
+			let outro = `\n});\n\nexport default ${name};\n`;
 
 			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
 
@@ -155,15 +158,23 @@ export default function commonjs ( options = {} ) {
 			code = magicString.toString();
 			const map = sourceMap ? magicString.generateMap() : null;
 
-			if ( usesGlobal ) bundleUsesGlobal = true;
+			if ( uses.global ) bundleUsesGlobal = true;
 
 			return { code, map };
 		},
 
 		intro () {
-			return bundleUsesGlobal ?
-				`var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this;` :
-				'';
+			var intros = [];
+
+			if ( bundleUsesGlobal ) {
+				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this;` );
+			}
+
+			if ( bundleRequiresWrappers ) {
+				intros.push( `function __commonjs(fn, module) { return module = { exports: {} }, fn(module, module.exports${bundleUsesGlobal ? ', __commonjs_global' : ''}), module.exports; }\n` );
+			}
+
+			return intros.join( '\n' );
 		}
 	};
 }
