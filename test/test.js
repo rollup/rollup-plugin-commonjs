@@ -19,15 +19,6 @@ function executeBundle ( bundle ) {
 	return module;
 }
 
-function execute ( code ) {
-	var fn = new Function ( 'module', 'assert', code );
-	var module = {};
-
-	fn( module, assert );
-
-	return module;
-}
-
 describe( 'rollup-plugin-commonjs', function () {
 	it( 'converts a basic CommonJS module', function () {
 		return rollup.rollup({
