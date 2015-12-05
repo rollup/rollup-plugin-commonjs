@@ -6,23 +6,36 @@ var commonjs = require( '..' );
 
 process.chdir( __dirname );
 
+function executeBundle ( bundle ) {
+	var generated = bundle.generate({
+		format: 'cjs'
+	});
+
+	var fn = new Function ( 'module', 'assert', generated.code );
+	var module = {};
+
+	fn( module, assert );
+
+	return module;
+}
+
+function execute ( code ) {
+	var fn = new Function ( 'module', 'assert', code );
+	var module = {};
+
+	fn( module, assert );
+
+	return module;
+}
+
 describe( 'rollup-plugin-commonjs', function () {
 	it( 'converts a basic CommonJS module', function () {
 		return rollup.rollup({
 			entry: 'samples/basic/main.js',
 			plugins: [ commonjs() ]
 		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports, 42 );
-		})
+			assert.equal( executeBundle( bundle ).exports, 42 );
+		});
 	});
 
 	it( 'converts a CommonJS module that mutates exports instead of replacing', function () {
@@ -30,17 +43,8 @@ describe( 'rollup-plugin-commonjs', function () {
 			entry: 'samples/exports/main.js',
 			plugins: [ commonjs() ]
 		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports, 'BARBAZ' );
-		})
+			assert.equal( executeBundle( bundle ).exports, 'BARBAZ' );
+		});
 	});
 
 	it( 'converts inline require calls', function () {
@@ -48,16 +52,7 @@ describe( 'rollup-plugin-commonjs', function () {
 			entry: 'samples/inline/main.js',
 			plugins: [ commonjs() ]
 		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', generated.code );
-			var module = {};
-
-			fn( module );
-
-			assert.equal( module.exports(), 2 );
+			assert.equal( executeBundle( bundle ).exports(), 2 );
 		});
 	});
 
@@ -74,12 +69,12 @@ describe( 'rollup-plugin-commonjs', function () {
 
 			var smc = new SourceMapConsumer( generated.map );
 
-			var loc = smc.originalPositionFor({ line: 3, column: 17 }); // 42
+			var loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 8, column: 8 });
+			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -90,28 +85,14 @@ describe( 'rollup-plugin-commonjs', function () {
 		return rollup.rollup({
 			entry: 'samples/index/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'handles reassignments to imports', function () {
 		return rollup.rollup({
 			entry: 'samples/reassignment/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'handles imports with a trailing slash', function () {
@@ -120,70 +101,35 @@ describe( 'rollup-plugin-commonjs', function () {
 		return rollup.rollup({
 			entry: 'samples/trailing-slash/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'handles imports with a non-extension dot', function () {
 		return rollup.rollup({
 			entry: 'samples/dot/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'handles shadowed require', function () {
 		return rollup.rollup({
 			entry: 'samples/shadowing/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'identifies named exports', function () {
 		return rollup.rollup({
 			entry: 'samples/named-exports/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'identifies named exports from object literals', function () {
 		return rollup.rollup({
 			entry: 'samples/named-exports-from-object-literal/main.js',
 			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'handles references to `global`', function () {
