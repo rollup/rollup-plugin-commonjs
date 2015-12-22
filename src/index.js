@@ -89,6 +89,14 @@ export default function commonjs ( options = {} ) {
 						const match = exportsPattern.exec( flattened.keypath );
 						if ( !match || flattened.keypath === 'exports' ) return;
 
+						if ( flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression' ) {
+							return node.right.properties.forEach( prop => {
+								if ( prop.computed || prop.key.type !== 'Identifier' ) return;
+								const name = prop.key.name;
+								if ( name === makeLegalIdentifier( name ) ) namedExports[ name ] = true;
+							});
+						}
+
 						if ( match[1] ) namedExports[ match[1] ] = true;
 
 						return;
