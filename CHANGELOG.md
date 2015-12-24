@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 2.0.0
+
+* Support for transpiled modules – `exports.default` is used as the default export in place of `module.exports`, if applicable, and `__esModule` is not exported ([#16](https://github.com/rollup/rollup-plugin-commonjs/pull/16))
+
 ## 1.4.0
 
 * Generate sourcemaps by default
