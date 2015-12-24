@@ -172,20 +172,6 @@ describe( 'rollup-plugin-commonjs', function () {
 		});
 	});
 
-	it( 'identifies named exports from object literals', function () {
-		return rollup.rollup({
-			entry: 'samples/named-exports-from-object-literal/main.js',
-			plugins: [ commonjs() ]
-		}).then( function ( bundle ) {
-			var generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			var fn = new Function ( 'module', 'assert', generated.code );
-			fn( {}, assert );
-		});
-	});
-
 	it( 'handles references to `global`', function () {
 		return rollup.rollup({
 			entry: 'samples/global/main.js',
@@ -201,6 +187,42 @@ describe( 'rollup-plugin-commonjs', function () {
 			fn( window, {} );
 
 			assert.equal( window.foo, 'bar', generated.code );
+		});
+	});
+
+	it( 'handles transpiled CommonJS modules', function () {
+		return rollup.rollup({
+			entry: 'samples/corejs/literal-with-default.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var module = { exports: {} };
+
+			var fn = new Function ( 'module', 'exports', generated.code );
+			fn( module, module.exports );
+
+			assert.equal( module.exports, 'foobar', generated.code );
+		});
+	});
+
+	it( 'does not export __esModule', function () {
+		return rollup.rollup({
+			entry: 'samples/__esModule/main.js',
+			plugins: [ commonjs() ]
+		}).then( function ( bundle ) {
+			var generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			var fn = new Function ( 'module', 'exports', generated.code );
+			var module = { exports: {} };
+
+			fn( module, module.exports );
+
+			assert.ok( !module.exports.__esModule );
 		});
 	});
 });

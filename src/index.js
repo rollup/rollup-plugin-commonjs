@@ -9,6 +9,11 @@ import { flatten, isReference } from './ast-utils.js';
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
+var blacklistedExports = {
+	__esModule: true,
+	default: true
+};
+
 function getName ( id ) {
 	const base = basename( id );
 	const ext = extname( base );
@@ -142,10 +147,22 @@ export default function commonjs ( options = {} ) {
 				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
 				'';
 
-			const intro = `\n\nvar ${name} = (function (module${usesGlobal ? ', global' : ''}) {\nvar exports = module.exports;\n`;
-			let outro = `\nreturn module.exports;\n})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});\n\nexport default ${name};\n`;
+			const intro = `
 
-			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
+var ${name} = (function (module${usesGlobal ? ', global' : ''}) {
+var exports = module.exports;
+`;
+
+			let outro = `
+return module.exports;
+})({exports:{}}${usesGlobal ? ', __commonjs_global' : ''});
+
+export default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
+
+			outro += Object.keys( namedExports )
+				.filter( key => !blacklistedExports[ key ] )
+				.map( x => `export var ${x} = ${name}.${x};` )
+				.join( '\n' );
 
 			magicString.trim()
 				.prepend( importBlock + intro )
