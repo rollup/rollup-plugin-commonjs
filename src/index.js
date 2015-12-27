@@ -28,6 +28,13 @@ export default function commonjs ( options = {} ) {
 
 	const sourceMap = options.sourceMap !== false;
 
+	let customNamedExports = {};
+	if ( options.namedExports ) {
+		Object.keys( options.namedExports ).forEach( id => {
+			customNamedExports[ resolve( id ) ] = options.namedExports[ id ];
+		});
+	}
+
 	return {
 		resolveId ( importee, importer ) {
 			if ( importee[0] !== '.' ) return; // not our problem
@@ -70,8 +77,12 @@ export default function commonjs ( options = {} ) {
 			let uid = 0;
 
 			let scope = attachScopes( ast, 'scope' );
-			let namedExports = {};
 			let uses = { module: false, exports: false, global: false };
+
+			let namedExports = {};
+			if ( customNamedExports[ id ] ) {
+				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
+			}
 
 			walk( ast, {
 				enter ( node, parent ) {
@@ -138,7 +149,12 @@ export default function commonjs ( options = {} ) {
 
 			const sources = Object.keys( required );
 
-			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) return null; // not a CommonJS module
+			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
+				if ( Object.keys( customNamedExports ).length ) {
+					throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
+				}
+				return null; // not a CommonJS module
+			}
 
 			bundleRequiresWrappers = true;
 

@@ -169,4 +169,17 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.ok( !module.exports.__esModule );
 		});
 	});
+
+	it( 'allows named exports to be added explicitly via config', () => {
+		return rollup({
+			entry: 'samples/custom-named-exports/main.js',
+			plugins: [
+				commonjs({
+					namedExports: {
+						'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ]
+					}
+				})
+			]
+		}).then( executeBundle );
+	});
 });
