@@ -123,12 +123,18 @@ export default function commonjs ( options = {} ) {
 
 					if ( !existing ) {
 						name = `require$$${uid++}`;
-						required[ source ] = { source, name };
+						required[ source ] = { source, name, importsDefault: false };
 					} else {
 						name = required[ source ].name;
 					}
 
-					magicString.overwrite( node.start, node.end, name );
+					if ( parent.type !== 'ExpressionStatement' ) {
+						required[ source ].importsDefault = true;
+						magicString.overwrite( node.start, node.end, name );
+					} else {
+						// is a bare import, e.g. `require('foo');`
+						magicString.remove( parent.start, parent.end );
+					}
 				},
 
 				leave ( node ) {
@@ -145,7 +151,11 @@ export default function commonjs ( options = {} ) {
 			const name = getName( id );
 
 			const importBlock = sources.length ?
-				sources.map( source => `import ${required[ source ].name} from '${source}';` ).join( '\n' ) :
+				sources.map( source => {
+					const { name, importsDefault } = required[ source ];
+					// return `import ${name} from '${source}';`;
+					return `import ${importsDefault ? `${name} from ` : ``}'${source}';`;
+				}).join( '\n' ) :
 				'';
 
 			const args = `module${uses.exports || uses.global ? ', exports' : ''}${uses.global ? ', global' : ''}`;
