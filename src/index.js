@@ -1,5 +1,6 @@
 import { statSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
+import { sync as nodeResolveSync } from 'resolve';
 import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
@@ -31,7 +32,15 @@ export default function commonjs ( options = {} ) {
 	let customNamedExports = {};
 	if ( options.namedExports ) {
 		Object.keys( options.namedExports ).forEach( id => {
-			customNamedExports[ resolve( id ) ] = options.namedExports[ id ];
+			let resolvedId;
+
+			try {
+				resolvedId = nodeResolveSync( id, { basedir: process.cwd() });
+			} catch ( err ) {
+				resolvedId = resolve( id );
+			}
+
+			customNamedExports[ resolvedId ] = options.namedExports[ id ];
 		});
 	}
 
