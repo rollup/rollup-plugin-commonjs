@@ -9,6 +9,11 @@ import { flatten, isReference } from './ast-utils.js';
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
+var blacklistedExports = {
+	__esModule: true,
+	default: true
+};
+
 function getName ( id ) {
 	const base = basename( id );
 	const ext = extname( base );
@@ -146,9 +151,12 @@ export default function commonjs ( options = {} ) {
 			const args = `module${uses.exports || uses.global ? ', exports' : ''}${uses.global ? ', global' : ''}`;
 
 			const intro = `\n\nvar ${name} = __commonjs(function (${args}) {\n`;
-			let outro = `\n});\n\nexport default ${name};\n`;
+			let outro = `\n});\n\nexport default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
 
-			outro += Object.keys( namedExports ).map( x => `export var ${x} = ${name}.${x};` ).join( '\n' );
+			outro += Object.keys( namedExports )
+				.filter( key => !blacklistedExports[ key ] )
+				.map( x => `export var ${x} = ${name}.${x};` )
+				.join( '\n' );
 
 			magicString.trim()
 				.prepend( importBlock + intro )
