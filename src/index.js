@@ -9,10 +9,10 @@ import { flatten, isReference } from './ast-utils.js';
 var firstpass = /\b(?:require|module|exports|global)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
-var blacklistedExports = {
-	__esModule: true,
-	default: true
-};
+const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
+
+var blacklistedExports = { __esModule: true };
+reserved.forEach( word => blacklistedExports[ word ] = true );
 
 function getName ( id ) {
 	const base = basename( id );
