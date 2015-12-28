@@ -21,7 +21,22 @@ function getName ( id ) {
 	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
 }
 
+function getCandidatesForExtension ( resolved, extension ) {
+	return [
+		resolved + extension,
+		resolved + `${sep}index${extension}`
+	];
+}
+
+function getCandidates ( resolved, extensions ) {
+	return extensions.reduce(
+		( paths, extension ) => paths.concat( getCandidatesForExtension ( resolved, extension ) ),
+		[resolved]
+	);
+}
+
 export default function commonjs ( options = {} ) {
+	const extensions = options.extensions || ['.js'];
 	const filter = createFilter( options.include, options.exclude );
 	let bundleUsesGlobal = false;
 	let bundleRequiresWrappers = false;
@@ -33,11 +48,7 @@ export default function commonjs ( options = {} ) {
 			if ( importee[0] !== '.' ) return; // not our problem
 
 			const resolved = resolve( dirname( importer ), importee );
-			const candidates = [
-				resolved,
-				resolved + '.js',
-				resolved + `${sep}index.js`
-			];
+			const candidates = getCandidates( resolved, extensions );
 
 			for ( let i = 0; i < candidates.length; i += 1 ) {
 				try {
@@ -49,7 +60,7 @@ export default function commonjs ( options = {} ) {
 
 		transform ( code, id ) {
 			if ( !filter( id ) ) return null;
-			if ( extname( id ) !== '.js' ) return null;
+			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 			if ( !firstpass.test( code ) ) return null;
 
 			let ast;
