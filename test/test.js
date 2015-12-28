@@ -153,6 +153,13 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
+	it( 'handles bare imports', () => {
+		return rollup({
+			entry: 'samples/bare-import/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
 	it( 'does not export __esModule', () => {
 		return rollup({
 			entry: 'samples/__esModule/main.js',
