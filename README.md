@@ -31,7 +31,11 @@ rollup({
     // specifically include/exclude files
     commonjs({
       include: 'node_modules/**',
-      exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ]
+      exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ],
+
+      // search for files other than .js files (must already
+      // be transpiled by a previous plugin!)
+      extensions: [ '.js', '.coffee' ] // defaults to [ '.js' ]
     })
   ]
 }).then(...)

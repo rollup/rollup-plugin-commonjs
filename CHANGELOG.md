@@ -1,5 +1,13 @@
 # rollup-plugin-commonjs changelog
 
+## 2.1.0
+
+* Optimised module wrappers ([#20](https://github.com/rollup/rollup-plugin-commonjs/pull/20))
+* Allow control over named exports via `options.namedExports` ([#18](https://github.com/rollup/rollup-plugin-commonjs/issues/18))
+* Handle bare imports correctly ([#23](https://github.com/rollup/rollup-plugin-commonjs/issues/23))
+* Blacklist all reserved words as export names ([#21](https://github.com/rollup/rollup-plugin-commonjs/issues/21))
+* Configure allowed file extensions via `options.extensions` ([#27](https://github.com/rollup/rollup-plugin-commonjs/pull/27))
+
 ## 2.0.0
 
 * Support for transpiled modules – `exports.default` is used as the default export in place of `module.exports`, if applicable, and `__esModule` is not exported ([#16](https://github.com/rollup/rollup-plugin-commonjs/pull/16))
