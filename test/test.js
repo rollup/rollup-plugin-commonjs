@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as assert from 'assert';
 import { SourceMapConsumer } from 'source-map';
 import { rollup } from 'rollup';
+import npm from 'rollup-plugin-npm';
 import commonjs from '..';
 
 process.chdir( __dirname );
@@ -175,5 +176,20 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			assert.ok( !module.exports.__esModule );
 		});
+	});
+
+	it( 'allows named exports to be added explicitly via config', () => {
+		return rollup({
+			entry: 'samples/custom-named-exports/main.js',
+			plugins: [
+				npm({ main: true }),
+				commonjs({
+					namedExports: {
+						'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
+						'external': [ 'message' ]
+					}
+				})
+			]
+		}).then( executeBundle );
 	});
 });
