@@ -192,4 +192,13 @@ describe( 'rollup-plugin-commonjs', () => {
 			]
 		}).then( executeBundle );
 	});
+
+	it( 'converts a CommonJS module with custom file extension', () => {
+		return rollup({
+			entry: 'samples/extension/main.coffee',
+			plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
+		}).then( bundle => {
+			assert.equal( executeBundle( bundle ).exports, 42 );
+		});
+	});
 });
