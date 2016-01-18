@@ -104,9 +104,12 @@ export default function commonjs ( options = {} ) {
 				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
 			}
 
+			let scopeDepth = 0;
+
 			walk( ast, {
 				enter ( node, parent ) {
 					if ( node.scope ) scope = node.scope;
+					if ( /^Function/.test( node.type ) ) scopeDepth += 1;
 
 					if ( sourceMap ) {
 						magicString.addSourcemapLocation( node.start );
@@ -143,6 +146,12 @@ export default function commonjs ( options = {} ) {
 						return;
 					}
 
+					if ( node.type === 'ThisExpression' && scopeDepth === 0 ) {
+						uses.global = true;
+						magicString.overwrite( node.start, node.end, `__commonjs_global`, true );
+						return;
+					}
+
 					if ( node.type !== 'CallExpression' ) return;
 					if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
 					if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
@@ -170,6 +179,7 @@ export default function commonjs ( options = {} ) {
 
 				leave ( node ) {
 					if ( node.scope ) scope = scope.parent;
+					if ( /^Function/.test( node.type ) ) scopeDepth -= 1;
 				}
 			});
 
