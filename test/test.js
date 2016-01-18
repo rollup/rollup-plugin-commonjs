@@ -201,4 +201,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( executeBundle( bundle ).exports, 42 );
 		});
 	});
+
+	it.only( 'rewrites top-level this expressions', () => {
+		return rollup({
+			entry: 'samples/this/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });
