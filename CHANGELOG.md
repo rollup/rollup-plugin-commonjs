@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 2.2.0
+
+* Rewrite top-level `this` expressions to mean the same as `global`  ([#31](https://github.com/rollup/rollup-plugin-commonjs/issues/31))
+
 ## 2.1.0
 
 * Optimised module wrappers ([#20](https://github.com/rollup/rollup-plugin-commonjs/pull/20))
