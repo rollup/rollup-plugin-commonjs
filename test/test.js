@@ -202,7 +202,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
-	it.only( 'rewrites top-level this expressions', () => {
+	it( 'rewrites top-level this expressions', () => {
 		return rollup({
 			entry: 'samples/this/main.js',
 			plugins: [ commonjs() ]
