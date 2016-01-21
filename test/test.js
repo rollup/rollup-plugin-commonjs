@@ -208,4 +208,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'handles transpiled CommonJS imports with named and default exports (#29)', () => {
+		return rollup({
+			entry: 'samples/default-and-named/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });

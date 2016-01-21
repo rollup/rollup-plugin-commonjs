@@ -199,7 +199,7 @@ export default function commonjs ( options = {} ) {
 			const importBlock = sources.length ?
 				sources.map( source => {
 					const { name, importsDefault } = required[ source ];
-					return `import ${importsDefault ? `${name} from ` : ``}'${source}';`;
+					return `import ${importsDefault ? `* as ${name} from ` : ``}'${source}';`;
 				}).join( '\n' ) :
 				'';
 
