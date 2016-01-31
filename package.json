@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-commonjs",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Convert CommonJS modules to ES2015",
   "devDependencies": {
     "babel-preset-es2015": "^6.3.13",

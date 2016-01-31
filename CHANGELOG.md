@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 2.2.1
+
+# Prevent false positives with `namedExports` ([#36](https://github.com/rollup/rollup-plugin-commonjs/issues/36))
+
 ## 2.2.0
 
 * Rewrite top-level `this` expressions to mean the same as `global`  ([#31](https://github.com/rollup/rollup-plugin-commonjs/issues/31))
