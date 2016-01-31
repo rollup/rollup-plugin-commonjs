@@ -186,7 +186,7 @@ export default function commonjs ( options = {} ) {
 			const sources = Object.keys( required );
 
 			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
-				if ( Object.keys( customNamedExports ).length ) {
+				if ( Object.keys( namedExports ).length ) {
 					throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
 				}
 				return null; // not a CommonJS module

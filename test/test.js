@@ -193,6 +193,20 @@ describe( 'rollup-plugin-commonjs', () => {
 		}).then( executeBundle );
 	});
 
+	it( 'ignores false positives with namedExports (#36)', () => {
+		return rollup({
+			entry: 'samples/custom-named-exports-false-positive/main.js',
+			plugins: [
+				npm({ main: true }),
+				commonjs({
+					namedExports: {
+						'irrelevant': [ 'lol' ]
+					}
+				})
+			]
+		}).then( executeBundle );
+	});
+
 	it( 'converts a CommonJS module with custom file extension', () => {
 		return rollup({
 			entry: 'samples/extension/main.coffee',
