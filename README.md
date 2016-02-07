@@ -12,17 +12,17 @@ npm install --save-dev rollup-plugin-commonjs
 
 ## Usage
 
-Typically, you would use this plugin alongside [rollup-plugin-npm](https://github.com/rollup/rollup-plugin-npm), so that you could bundle your CommonJS dependencies in `node_modules`.
+Typically, you would use this plugin alongside [rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve), so that you could bundle your CommonJS dependencies in `node_modules`.
 
 ```js
 import { rollup } from 'rollup';
 import commonjs from 'rollup-plugin-commonjs';
-import npm from 'rollup-plugin-npm';
+import nodeResolve from 'rollup-plugin-node-resolve';
 
 rollup({
   entry: 'main.js',
   plugins: [
-    npm({
+    nodeResolve({
       jsnext: true,
       main: true
     }),
