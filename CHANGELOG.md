@@ -2,7 +2,7 @@
 
 ## 2.2.1
 
-# Prevent false positives with `namedExports` ([#36](https://github.com/rollup/rollup-plugin-commonjs/issues/36))
+* Prevent false positives with `namedExports` ([#36](https://github.com/rollup/rollup-plugin-commonjs/issues/36))
 
 ## 2.2.0
 
