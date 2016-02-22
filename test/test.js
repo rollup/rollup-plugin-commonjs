@@ -64,12 +64,12 @@ describe( 'rollup-plugin-commonjs', () => {
 			let loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
-			assert.equal( loc.column, 15 );
+			assert.equal( loc.column, 18 );
 
 			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
-			assert.equal( loc.line, 2 );
-			assert.equal( loc.column, 8 );
+			assert.equal( loc.line, 1 );
+			assert.equal( loc.column, 7 );
 		});
 	});
 
@@ -219,6 +219,13 @@ describe( 'rollup-plugin-commonjs', () => {
 	it( 'rewrites top-level this expressions', () => {
 		return rollup({
 			entry: 'samples/this/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
+	it( 'falls back to object of exports without default export', () => {
+		return rollup({
+			entry: 'samples/fallback-no-default/main.js',
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
