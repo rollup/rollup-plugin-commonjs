@@ -163,14 +163,16 @@ export default function commonjs ( options = {} ) {
 
 					if ( !existing ) {
 						name = `require$$${uid++}`;
-						required[ source ] = { source, name, importsDefault: false };
+						required[ source ] = { source, name, exportsUsed: false };
 					} else {
 						name = required[ source ].name;
 					}
 
 					if ( parent.type !== 'ExpressionStatement' ) {
-						required[ source ].importsDefault = true;
-						magicString.overwrite( node.start, node.end, name );
+						// exportUsed is later used to generate the import statements, and
+						// omit the `${name} from` if the export is not used at all
+						required[ source ].exportsUsed = true;
+						magicString.overwrite( node.start, node.end, `('default' in ${name} ? ${name}['default'] : ${name})` );
 					} else {
 						// is a bare import, e.g. `require('foo');`
 						magicString.remove( parent.start, parent.end );
@@ -198,8 +200,8 @@ export default function commonjs ( options = {} ) {
 
 			const importBlock = sources.length ?
 				sources.map( source => {
-					const { name, importsDefault } = required[ source ];
-					return `import ${importsDefault ? `${name} from ` : ``}'${source}';`;
+					const { name, exportsUsed } = required[ source ];
+					return `import ${exportsUsed ? `* as ${name} from ` : ``}'${source}';`;
 				}).join( '\n' ) :
 				'';
 
