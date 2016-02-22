@@ -222,4 +222,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'obeys order of require expressions', () => {
+		return rollup({
+			entry: 'samples/ordering/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });

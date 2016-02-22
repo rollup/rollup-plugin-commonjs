@@ -94,6 +94,10 @@ export default function commonjs ( options = {} ) {
 			const magicString = new MagicString( code );
 
 			let required = {};
+			// Because objects have no guaranteed ordering, yet we need it,
+			// we need to keep track of the order in a array
+			let sources = [];
+			
 			let uid = 0;
 
 			let scope = attachScopes( ast, 'scope' );
@@ -159,6 +163,9 @@ export default function commonjs ( options = {} ) {
 					const source = node.arguments[0].value;
 
 					let existing = required[ source ];
+					if ( existing === undefined ) {
+						sources.unshift(source);
+					}
 					let name;
 
 					if ( !existing ) {
@@ -182,8 +189,6 @@ export default function commonjs ( options = {} ) {
 					if ( /^Function/.test( node.type ) ) scopeDepth -= 1;
 				}
 			});
-
-			const sources = Object.keys( required );
 
 			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
 				if ( Object.keys( namedExports ).length ) {
