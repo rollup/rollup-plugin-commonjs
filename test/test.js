@@ -222,4 +222,24 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'can ignore references to `global`', () => {
+		return rollup({
+			entry: 'samples/ignore-global/main.js',
+			plugins: [ commonjs({
+				ignoreGlobal: true
+			}) ]
+		}).then( bundle => {
+			const generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			let mod = {};
+
+			const fn = new Function ( 'exports', generated.code );
+			fn( mod );
+
+			assert.equal( global.setImmediate, mod.immediate, generated.code );
+		});
+	});
 });
