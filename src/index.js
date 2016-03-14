@@ -230,7 +230,7 @@ export default function commonjs ( options = {} ) {
 			var intros = [];
 
 			if ( bundleUsesGlobal ) {
-				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this;` );
+				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}` );
 			}
 
 			if ( bundleRequiresWrappers ) {
