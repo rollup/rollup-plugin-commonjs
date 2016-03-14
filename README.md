@@ -35,7 +35,10 @@ rollup({
 
       // search for files other than .js files (must already
       // be transpiled by a previous plugin!)
-      extensions: [ '.js', '.coffee' ] // defaults to [ '.js' ]
+      extensions: [ '.js', '.coffee' ], // defaults to [ '.js' ]
+
+      // if true then uses of `global` won't be dealt with by this plugin
+      ignoreGlobal: false
     })
   ]
 }).then(...)

@@ -7,7 +7,8 @@ import MagicString from 'magic-string';
 import { attachScopes, createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
 
-var firstpass = /\b(?:require|module|exports|global)\b/;
+var firstpassGlobal = /\b(?:require|module|exports|global)\b/;
+var firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
 const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
@@ -39,6 +40,8 @@ function getCandidates ( resolved, extensions ) {
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter( options.include, options.exclude );
+	const ignoreGlobal = options.ignoreGlobal;
+	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	let bundleUsesGlobal = false;
 	let bundleRequiresWrappers = false;
 
@@ -146,7 +149,7 @@ export default function commonjs ( options = {} ) {
 						return;
 					}
 
-					if ( node.type === 'ThisExpression' && scopeDepth === 0 ) {
+					if ( node.type === 'ThisExpression' && scopeDepth === 0 && !ignoreGlobal ) {
 						uses.global = true;
 						magicString.overwrite( node.start, node.end, `__commonjs_global`, true );
 						return;
