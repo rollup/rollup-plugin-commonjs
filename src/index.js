@@ -101,7 +101,7 @@ export default function commonjs ( options = {} ) {
 
 			let scope = attachScopes( ast, 'scope' );
 			let uses = { module: false, exports: false, global: false };
-
+			let usesRequire = false;
 			let namedExports = {};
 			if ( customNamedExports[ id ] ) {
 				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
@@ -145,7 +145,13 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) uses[ node.name ] = true;
+						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
+							if (parent && (parent.operator === 'typeof' || parent.type === 'ConditionalExpression')) {
+								return;
+							} else {
+								uses[ node.name ] = true;
+							}
+						}
 						return;
 					}
 
@@ -158,7 +164,7 @@ export default function commonjs ( options = {} ) {
 					if ( node.type !== 'CallExpression' ) return;
 					if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
 					if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
-
+					usesRequire = true;
 					const source = node.arguments[0].value;
 
 					let existing = required[ source ];
@@ -187,8 +193,11 @@ export default function commonjs ( options = {} ) {
 			});
 
 			const sources = Object.keys( required );
+			if (options.ignoreGlobal) {
+				uses.global = false;
+			}
 
-			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
+			if ( !sources.length && !uses.module && !uses.exports && !uses.global && !usesRequire) {
 				if ( Object.keys( namedExports ).length ) {
 					throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
 				}
