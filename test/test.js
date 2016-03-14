@@ -126,12 +126,24 @@ describe( 'rollup-plugin-commonjs', () => {
 				format: 'cjs'
 			});
 
-			let window = {};
+			let mockWindow = {};
+			let mockGlobal = {};
+			let mockSelf = {};
 
-			const fn = new Function ( 'window', 'module', generated.code );
-			fn( window, {} );
+			const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
 
-			assert.equal( window.foo, 'bar', generated.code );
+			fn( {}, mockWindow, mockGlobal,  mockSelf);
+			assert.equal( mockWindow.foo, 'bar', generated.code );
+			assert.equal( mockGlobal.foo, undefined, generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, mockGlobal,  mockSelf );
+			assert.equal( mockGlobal.foo, 'bar', generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, undefined, mockSelf );
+			assert.equal( mockSelf.foo, 'bar', generated.code );
+
 		});
 	});
 
