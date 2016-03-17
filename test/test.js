@@ -60,13 +60,12 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 
 			const smc = new SourceMapConsumer( generated.map );
-
 			let loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
+			loc = smc.originalPositionFor({ line: 12, column: 8 }); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
