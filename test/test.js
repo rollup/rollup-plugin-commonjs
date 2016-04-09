@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as assert from 'assert';
 import { SourceMapConsumer } from 'source-map';
 import { rollup } from 'rollup';
-import npm from 'rollup-plugin-npm';
+import nodeResolve from 'rollup-plugin-node-resolve';
 import commonjs from '..';
 
 process.chdir( __dirname );
@@ -194,7 +194,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/custom-named-exports/main.js',
 			plugins: [
-				npm({ main: true }),
+				nodeResolve({ main: true }),
 				commonjs({
 					namedExports: {
 						'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
@@ -209,7 +209,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/custom-named-exports-false-positive/main.js',
 			plugins: [
-				npm({ main: true }),
+				nodeResolve({ main: true }),
 				commonjs({
 					namedExports: {
 						'irrelevant': [ 'lol' ]
