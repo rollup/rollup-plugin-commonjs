@@ -1,5 +1,5 @@
 import { statSync } from 'fs';
-import { basename, dirname, extname, resolve, sep } from 'path';
+import {  dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import acorn from 'acorn';
 import { walk } from 'estree-walker';
@@ -15,13 +15,6 @@ const reserved = 'abstract arguments boolean break byte case catch char class co
 
 var blacklistedExports = { __esModule: true };
 reserved.forEach( word => blacklistedExports[ word ] = true );
-
-function getName ( id ) {
-	const base = basename( id );
-	const ext = extname( base );
-
-	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
-}
 
 function getCandidatesForExtension ( resolved, extension ) {
 	return [
@@ -43,7 +36,6 @@ export default function commonjs ( options = {} ) {
 	const ignoreGlobal = options.ignoreGlobal;
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	let bundleUsesGlobal = false;
-	let bundleRequiresWrappers = false;
 
 	const sourceMap = options.sourceMap !== false;
 
@@ -101,7 +93,10 @@ export default function commonjs ( options = {} ) {
 
 			let scope = attachScopes( ast, 'scope' );
 			let uses = { module: false, exports: false, global: false };
-
+			if (ignoreGlobal) {
+				delete uses.global;
+			}
+			let usesRequire = false;
 			let namedExports = {};
 			if ( customNamedExports[ id ] ) {
 				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
@@ -145,7 +140,16 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) uses[ node.name ] = true;
+						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
+							if (parent && (parent.operator === 'typeof' || parent.type === 'ConditionalExpression')) {
+								return;
+							} else {
+								if (node.name === 'global') {
+									magicString.overwrite( node.start, node.end, `__commonjs_global`, true);
+								}
+								uses[ node.name ] = true;
+							}
+						}
 						return;
 					}
 
@@ -158,7 +162,7 @@ export default function commonjs ( options = {} ) {
 					if ( node.type !== 'CallExpression' ) return;
 					if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
 					if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
-
+					usesRequire = true;
 					const source = node.arguments[0].value;
 
 					let existing = required[ source ];
@@ -187,17 +191,16 @@ export default function commonjs ( options = {} ) {
 			});
 
 			const sources = Object.keys( required );
+			if (options.ignoreGlobal) {
+				uses.global = false;
+			}
 
-			if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
+			if ( !sources.length && !uses.module && !uses.exports && !uses.global && !usesRequire) {
 				if ( Object.keys( namedExports ).length ) {
 					throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
 				}
 				return null; // not a CommonJS module
 			}
-
-			bundleRequiresWrappers = true;
-
-			const name = getName( id );
 
 			const importBlock = sources.length ?
 				sources.map( source => {
@@ -206,14 +209,13 @@ export default function commonjs ( options = {} ) {
 				}).join( '\n' ) :
 				'';
 
-			const args = `module${uses.exports || uses.global ? ', exports' : ''}${uses.global ? ', global' : ''}`;
 
-			const intro = `\n\nvar ${name} = __commonjs(function (${args}) {\n`;
-			let outro = `\n});\n\nexport default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
+			const intro = `\n\nvar module = {exports: {}};\n\nvar exports = module.exports;\n\n`;
+			let outro = `\n\nexport default __get_exports(module);\n`;
 
 			outro += Object.keys( namedExports )
 				.filter( key => !blacklistedExports[ key ] )
-				.map( x => `export var ${x} = ${name}.${x};` )
+				.map( x => `export var ${x} = module.exports.${x};` )
 				.join( '\n' );
 
 			magicString.trim()
@@ -225,22 +227,15 @@ export default function commonjs ( options = {} ) {
 			const map = sourceMap ? magicString.generateMap() : null;
 
 			if ( uses.global ) bundleUsesGlobal = true;
-
 			return { code, map };
 		},
 
 		intro () {
-			var intros = [];
-
+			var introTxt = `\nfunction __get_exports(module) {return module.exports && typeof module.exports === 'object' && 'default' in module.exports ? module.exports['default'] : module.exports;}\n`;
 			if ( bundleUsesGlobal ) {
-				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}` );
+				introTxt += `\nvar __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}\n`;
 			}
-
-			if ( bundleRequiresWrappers ) {
-				intros.push( `function __commonjs(fn, module) { return module = { exports: {} }, fn(module, module.exports${bundleUsesGlobal ? ', __commonjs_global' : ''}), module.exports; }\n` );
-			}
-
-			return intros.join( '\n' );
+			return introTxt;
 		}
 	};
 }
