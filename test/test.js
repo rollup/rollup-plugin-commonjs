@@ -254,4 +254,24 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( global.setImmediate, mod.immediate, generated.code );
 		});
 	});
+
+	it( 'can handle references to `require`', () => {
+		return rollup({
+			entry: 'samples/references-require/main.js',
+			plugins: [ commonjs() ]
+		}).then( bundle => {
+			const generated = bundle.generate({
+				format: 'cjs'
+			});
+			var exp = {};
+			let mod = {
+				exports: exp
+			};
+
+			const fn = new Function ( 'module', 'exports', generated.code );
+			fn( mod, exp );
+
+			assert.equal( exp.encode('///'), '%2F%2F%2F', generated.code );
+		});
+	});
 });
