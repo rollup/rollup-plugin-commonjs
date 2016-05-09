@@ -144,6 +144,16 @@ export default function commonjs ( options = {} ) {
 						return;
 					}
 
+					// To allow consumption of UMD modules, transform `typeof require` to `'function'`
+					if ( node.type === 'UnaryExpression' && node.operator === 'typeof' && node.argument.type === 'Identifier' ) {
+						const name = node.argument.name;
+
+						if ( name === 'require' && !scope.contains( name ) ) {
+							magicString.overwrite( node.start, node.end, `'function'` );
+							return;
+						}
+					}
+
 					if ( node.type === 'Identifier' ) {
 						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) uses[ node.name ] = true;
 						return;
