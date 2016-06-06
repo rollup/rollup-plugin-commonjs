@@ -37,13 +37,20 @@ function getCandidates ( resolved, extensions ) {
 	);
 }
 
+const HELPERS_ID = '%cjs%';
+const HELPERS_NAME = '__commonjsHelpers';
+const HELPERS = `
+export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}
+
+export function createCommonjsModule(fn, module) {
+	return module = { exports: {} }, fn(module, module.exports), module.exports;
+}`;
+
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter( options.include, options.exclude );
 	const ignoreGlobal = options.ignoreGlobal;
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
-	let bundleUsesGlobal = false;
-	let bundleRequiresWrappers = false;
 
 	const sourceMap = options.sourceMap !== false;
 
@@ -64,6 +71,8 @@ export default function commonjs ( options = {} ) {
 
 	return {
 		resolveId ( importee, importer ) {
+			if ( importee === HELPERS_ID ) return importee;
+
 			if ( importee[0] !== '.' ) return; // not our problem
 
 			const resolved = resolve( dirname( importer ), importee );
@@ -75,6 +84,10 @@ export default function commonjs ( options = {} ) {
 					if ( stats.isFile() ) return candidates[i];
 				} catch ( err ) { /* noop */ }
 			}
+		},
+
+		load ( id ) {
+			if ( id === HELPERS_ID ) return HELPERS;
 		},
 
 		transform ( code, id ) {
@@ -145,13 +158,16 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) uses[ node.name ] = true;
+						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
+							uses[ node.name ] = true;
+							if ( node.name === 'global' ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
+						}
 						return;
 					}
 
 					if ( node.type === 'ThisExpression' && scopeDepth === 0 && !ignoreGlobal ) {
 						uses.global = true;
-						magicString.overwrite( node.start, node.end, `__commonjs_global`, true );
+						magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
 						return;
 					}
 
@@ -195,20 +211,18 @@ export default function commonjs ( options = {} ) {
 				return null; // not a CommonJS module
 			}
 
-			bundleRequiresWrappers = true;
-
 			const name = getName( id );
 
-			const importBlock = sources.length ?
+			const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
 				sources.map( source => {
 					const { name, importsDefault } = required[ source ];
 					return `import ${importsDefault ? `${name} from ` : ``}'${source}';`;
-				}).join( '\n' ) :
-				'';
+				})
+			).join( '\n' );
 
-			const args = `module${uses.exports || uses.global ? ', exports' : ''}${uses.global ? ', global' : ''}`;
+			const args = `module${uses.exports ? ', exports' : ''}`;
 
-			const intro = `\n\nvar ${name} = __commonjs(function (${args}) {\n`;
+			const intro = `\n\nvar ${name} = __commonjsHelpers.createCommonjsModule(function (${args}) {\n`;
 			let outro = `\n});\n\nexport default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
 
 			outro += Object.keys( namedExports )
@@ -224,23 +238,7 @@ export default function commonjs ( options = {} ) {
 			code = magicString.toString();
 			const map = sourceMap ? magicString.generateMap() : null;
 
-			if ( uses.global ) bundleUsesGlobal = true;
-
 			return { code, map };
-		},
-
-		intro () {
-			var intros = [];
-
-			if ( bundleUsesGlobal ) {
-				intros.push( `var __commonjs_global = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}` );
-			}
-
-			if ( bundleRequiresWrappers ) {
-				intros.push( `function __commonjs(fn, module) { return module = { exports: {} }, fn(module, module.exports${bundleUsesGlobal ? ', __commonjs_global' : ''}), module.exports; }\n` );
-			}
-
-			return intros.join( '\n' );
 		}
 	};
 }

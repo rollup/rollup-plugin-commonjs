@@ -20,6 +20,27 @@ function executeBundle ( bundle ) {
 	return module;
 }
 
+function getLocation ( source, charIndex ) {
+	var lines = source.split( '\n' );
+	var len = lines.length;
+
+	var lineStart = 0;
+	var i;
+
+	for ( i = 0; i < len; i += 1 ) {
+		var line = lines[i];
+		var lineEnd =  lineStart + line.length + 1; // +1 for newline
+
+		if ( lineEnd > charIndex ) {
+			return { line: i + 1, column: charIndex - lineStart };
+		}
+
+		lineStart = lineEnd;
+	}
+
+	throw new Error( 'Could not determine location of character' );
+}
+
 describe( 'rollup-plugin-commonjs', () => {
 	it( 'converts a basic CommonJS module', () => {
 		return rollup({
@@ -61,12 +82,14 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			const smc = new SourceMapConsumer( generated.map );
 
-			let loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
+			let generatedLoc = getLocation( generated.code, generated.code.indexOf( '42' ) );
+			let loc = smc.originalPositionFor( generatedLoc ); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
+			generatedLoc = getLocation( generated.code, generated.code.indexOf( 'log' ) );
+			loc = smc.originalPositionFor( generatedLoc ); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
