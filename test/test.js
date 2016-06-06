@@ -1,9 +1,9 @@
-import * as path from 'path';
-import * as assert from 'assert';
-import { SourceMapConsumer } from 'source-map';
-import { rollup } from 'rollup';
-import nodeResolve from 'rollup-plugin-node-resolve';
-import commonjs from '..';
+const path = require( 'path' );
+const assert = require( 'assert' );
+const { SourceMapConsumer } = require( 'source-map' );
+const { rollup } = require( 'rollup' );
+const nodeResolve = require( 'rollup-plugin-node-resolve' );
+const commonjs = require( '..' );
 
 process.chdir( __dirname );
 
