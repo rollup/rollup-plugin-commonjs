@@ -1,9 +1,9 @@
-import * as path from 'path';
-import * as assert from 'assert';
-import { SourceMapConsumer } from 'source-map';
-import { rollup } from 'rollup';
-import nodeResolve from 'rollup-plugin-node-resolve';
-import commonjs from '..';
+const path = require( 'path' );
+const assert = require( 'assert' );
+const { SourceMapConsumer } = require( 'source-map' );
+const { rollup } = require( 'rollup' );
+const nodeResolve = require( 'rollup-plugin-node-resolve' );
+const commonjs = require( '..' );
 
 process.chdir( __dirname );
 
@@ -18,6 +18,27 @@ function executeBundle ( bundle ) {
 	fn( module, assert );
 
 	return module;
+}
+
+function getLocation ( source, charIndex ) {
+	var lines = source.split( '\n' );
+	var len = lines.length;
+
+	var lineStart = 0;
+	var i;
+
+	for ( i = 0; i < len; i += 1 ) {
+		var line = lines[i];
+		var lineEnd =  lineStart + line.length + 1; // +1 for newline
+
+		if ( lineEnd > charIndex ) {
+			return { line: i + 1, column: charIndex - lineStart };
+		}
+
+		lineStart = lineEnd;
+	}
+
+	throw new Error( 'Could not determine location of character' );
 }
 
 describe( 'rollup-plugin-commonjs', () => {
@@ -61,12 +82,14 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			const smc = new SourceMapConsumer( generated.map );
 
-			let loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
+			let generatedLoc = getLocation( generated.code, generated.code.indexOf( '42' ) );
+			let loc = smc.originalPositionFor( generatedLoc ); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
+			generatedLoc = getLocation( generated.code, generated.code.indexOf( 'log' ) );
+			loc = smc.originalPositionFor( generatedLoc ); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -176,18 +199,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/__esModule/main.js',
 			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			const fn = new Function ( 'module', 'exports', generated.code );
-			let module = { exports: {} };
-
-			fn( module, module.exports );
-
-			assert.ok( !module.exports.__esModule );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'allows named exports to be added explicitly via config', () => {
@@ -254,4 +266,13 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( global.setImmediate, mod.immediate, generated.code );
 		});
 	});
+
+	it( 'deconflicts helper name', () => {
+		return rollup({
+			entry: 'samples/deconflict-helpers/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle ).then( module => {
+			assert.notEqual( module.exports, 'nope' );
+		});
+	})
 });
