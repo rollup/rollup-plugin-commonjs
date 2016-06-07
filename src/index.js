@@ -37,7 +37,7 @@ function getCandidates ( resolved, extensions ) {
 	);
 }
 
-const HELPERS_ID = '%cjs%';
+const HELPERS_ID = '\0commonjsHelpers';
 const HELPERS_NAME = '__commonjsHelpers';
 const HELPERS = `
 export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}
