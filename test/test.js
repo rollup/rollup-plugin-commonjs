@@ -199,18 +199,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/__esModule/main.js',
 			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			const fn = new Function ( 'module', 'exports', generated.code );
-			let module = { exports: {} };
-
-			fn( module, module.exports );
-
-			assert.ok( !module.exports.__esModule );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'allows named exports to be added explicitly via config', () => {
