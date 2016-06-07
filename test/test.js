@@ -266,4 +266,13 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( global.setImmediate, mod.immediate, generated.code );
 		});
 	});
+
+	it( 'deconflicts helper name', () => {
+		return rollup({
+			entry: 'samples/deconflict-helpers/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle ).then( module => {
+			assert.notEqual( module.exports, 'nope' );
+		});
+	})
 });

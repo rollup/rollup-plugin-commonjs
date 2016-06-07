@@ -37,8 +37,15 @@ function getCandidates ( resolved, extensions ) {
 	);
 }
 
+function deconflict ( identifier, code ) {
+	let i = 1;
+	let deconflicted = identifier;
+
+	while ( ~code.indexOf( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
+	return deconflicted;
+}
+
 const HELPERS_ID = '\0commonjsHelpers';
-const HELPERS_NAME = '__commonjsHelpers';
 const HELPERS = `
 export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}
 
@@ -121,6 +128,8 @@ export default function commonjs ( options = {} ) {
 			}
 
 			let scopeDepth = 0;
+
+			const HELPERS_NAME = deconflict( 'commonjsHelpers', code );
 
 			walk( ast, {
 				enter ( node, parent ) {
@@ -222,7 +231,7 @@ export default function commonjs ( options = {} ) {
 
 			const args = `module${uses.exports ? ', exports' : ''}`;
 
-			const intro = `\n\nvar ${name} = __commonjsHelpers.createCommonjsModule(function (${args}) {\n`;
+			const intro = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
 			let outro = `\n});\n\nexport default (${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name});\n`;
 
 			outro += Object.keys( namedExports )
