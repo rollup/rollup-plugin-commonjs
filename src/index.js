@@ -77,6 +77,8 @@ export default function commonjs ( options = {} ) {
 	}
 
 	return {
+		name: 'commonjs',
+
 		resolveId ( importee, importer ) {
 			if ( importee === HELPERS_ID ) return importee;
 

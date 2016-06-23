@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 3.0.1
+
+* Return a `name`
+
 ## 3.0.0
 
 * Make `transform` stateless ([#71](https://github.com/rollup/rollup-plugin-commonjs/pull/71))
