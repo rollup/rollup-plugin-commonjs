@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 3.0.2
+
+* Handle multiple references to `global`
+
 ## 3.0.1
 
 * Return a `name`

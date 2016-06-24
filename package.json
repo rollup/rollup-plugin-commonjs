@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-commonjs",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Convert CommonJS modules to ES2015",
   "devDependencies": {
     "buble": "^0.12.3",
