@@ -170,6 +170,28 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
+	it( 'handles multiple references to `global`', () => {
+		return rollup({
+			entry: 'samples/global-in-if-block/main.js',
+			plugins: [ commonjs() ]
+		}).then( bundle => {
+			const generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			const fn = new Function ( 'module', 'exports', 'window', generated.code );
+
+			let module = { exports: {} };
+			let window = {};
+
+			fn( module, module.exports, window );
+			assert.equal( window.count, 1 );
+
+			fn( module, module.exports, window );
+			assert.equal( window.count, 2 );
+		});
+	});
+
 	it( 'handles transpiled CommonJS modules', () => {
 		return rollup({
 			entry: 'samples/corejs/literal-with-default.js',
@@ -274,5 +296,5 @@ describe( 'rollup-plugin-commonjs', () => {
 		}).then( executeBundle ).then( module => {
 			assert.notEqual( module.exports, 'nope' );
 		});
-	})
+	});
 });

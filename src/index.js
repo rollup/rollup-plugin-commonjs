@@ -169,7 +169,7 @@ export default function commonjs ( options = {} ) {
 					}
 
 					if ( node.type === 'Identifier' ) {
-						if ( ( node.name in uses && !uses[ node.name ] ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
+						if ( ( node.name in uses ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
 							uses[ node.name ] = true;
 							if ( node.name === 'global' ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
 						}
