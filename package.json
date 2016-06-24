@@ -29,7 +29,7 @@
     "estree-walker": "^0.2.1",
     "magic-string": "^0.15.2",
     "resolve": "^1.1.7",
-    "rollup-pluginutils": "^1.5.0"
+    "rollup-pluginutils": "^1.5.1"
   },
   "repository": {
     "type": "git",

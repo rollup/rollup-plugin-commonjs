@@ -192,6 +192,13 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
+	it( 'allows `var global` declarations', () => {
+		return rollup({
+			entry: 'samples/global-var/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
 	it( 'handles transpiled CommonJS modules', () => {
 		return rollup({
 			entry: 'samples/corejs/literal-with-default.js',
