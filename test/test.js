@@ -333,4 +333,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.notEqual( module.exports, 'nope' );
 		});
 	});
+	
+	it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
+		return rollup({
+			entry: './samples/basic/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });

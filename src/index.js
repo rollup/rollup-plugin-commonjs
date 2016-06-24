@@ -81,8 +81,7 @@ export default function commonjs ( options = {} ) {
 
 		resolveId ( importee, importer ) {
 			if ( importee === HELPERS_ID ) return importee;
-
-			if ( importee[0] !== '.' ) return; // not our problem
+			if ( importee[0] !== '.' || !importer ) return; // not our problem
 
 			const resolved = resolve( dirname( importer ), importee );
 			const candidates = getCandidates( resolved, extensions );
