@@ -12,12 +12,13 @@ function executeBundle ( bundle ) {
 		format: 'cjs'
 	});
 
-	const fn = new Function ( 'module', 'assert', generated.code );
-	let module = {};
+	const fn = new Function( 'module', 'exports', 'require', 'assert', generated.code );
 
-	fn( module, assert );
+	const module = { exports: {} };
 
-	return module;
+	fn( module, module.exports, () => {}, assert );
+
+	return module.exports;
 }
 
 function getLocation ( source, charIndex ) {
@@ -47,7 +48,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/basic/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 42 );
+			assert.equal( executeBundle( bundle ), 42 );
 		});
 	});
 
@@ -56,7 +57,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/exports/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 'BARBAZ' );
+			assert.equal( executeBundle( bundle ), 'BARBAZ' );
 		});
 	});
 
@@ -65,7 +66,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/inline/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports(), 2 );
+			assert.equal( executeBundle( bundle )(), 2 );
 		});
 	});
 
@@ -258,7 +259,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/extension/main.coffee',
 			plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 42 );
+			assert.equal( executeBundle( bundle ), 42 );
 		});
 	});
 
@@ -280,12 +281,40 @@ describe( 'rollup-plugin-commonjs', () => {
 				format: 'cjs'
 			});
 
-			let mod = {};
+			assert.equal( global.setImmediate, executeBundle( bundle ).immediate, generated.code );
+		});
+	});
 
-			const fn = new Function ( 'exports', generated.code );
-			fn( mod );
+	describe( 'typeof transforms', () => {
+		it( 'correct-scoping', () => {
+			return rollup({
+				entry: 'samples/umd/correct-scoping.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ), 'object' );
+			});
+		});
 
-			assert.equal( global.setImmediate, mod.immediate, generated.code );
+		it( 'protobuf', () => {
+			return rollup({
+				entry: 'samples/umd/protobuf.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ), true );
+			});
+		});
+
+		it( 'sinon', () => {
+			return rollup({
+				entry: 'samples/umd/sinon.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				const code = bundle.generate().code;
+
+				assert.equal( code.indexOf( 'typeof require' ), -1, code );
+				assert.notEqual( code.indexOf( 'typeof module' ), -1, code );
+				assert.notEqual( code.indexOf( 'typeof define' ), -1, code );
+			});
 		});
 	});
 
