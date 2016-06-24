@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 3.1.0
+
+* Replace `typeof require` with `'function'` ([#38](https://github.com/rollup/rollup-plugin-commonjs/issues/38))
+* Don't attempt to resolve entry file relative to importer ([#63](https://github.com/rollup/rollup-plugin-commonjs/issues/63))
+
 ## 3.0.2
 
 * Handle multiple references to `global`
