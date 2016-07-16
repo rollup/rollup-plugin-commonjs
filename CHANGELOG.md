@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 3.2.0
+
+* Use named exports as a function when no default export is defined ([#524](https://github.com/rollup/rollup/issues/524))
+
 ## 3.1.0
 
 * Replace `typeof require` with `'function'` ([#38](https://github.com/rollup/rollup-plugin-commonjs/issues/38))
