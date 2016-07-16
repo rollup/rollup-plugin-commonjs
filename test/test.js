@@ -340,4 +340,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'falls back to object of exports without default export', () => {
+		return rollup({
+			entry: 'samples/fallback-no-default/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });
