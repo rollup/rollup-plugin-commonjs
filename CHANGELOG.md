@@ -1,5 +1,28 @@
 # rollup-plugin-commonjs changelog
 
+## 3.2.0
+
+* Use named exports as a function when no default export is defined ([#524](https://github.com/rollup/rollup/issues/524))
+
+## 3.1.0
+
+* Replace `typeof require` with `'function'` ([#38](https://github.com/rollup/rollup-plugin-commonjs/issues/38))
+* Don't attempt to resolve entry file relative to importer ([#63](https://github.com/rollup/rollup-plugin-commonjs/issues/63))
+
+## 3.0.2
+
+* Handle multiple references to `global`
+
+## 3.0.1
+
+* Return a `name`
+
+## 3.0.0
+
+* Make `transform` stateless ([#71](https://github.com/rollup/rollup-plugin-commonjs/pull/71))
+* Support web worker `global` ([#50](https://github.com/rollup/rollup-plugin-commonjs/issues/50))
+* Ignore global with `options.ignoreGlobal` ([#48](https://github.com/rollup/rollup-plugin-commonjs/issues/48))
+
 ## 2.2.1
 
 * Prevent false positives with `namedExports` ([#36](https://github.com/rollup/rollup-plugin-commonjs/issues/36))

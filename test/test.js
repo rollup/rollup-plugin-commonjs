@@ -1,9 +1,9 @@
-import * as path from 'path';
-import * as assert from 'assert';
-import { SourceMapConsumer } from 'source-map';
-import { rollup } from 'rollup';
-import npm from 'rollup-plugin-npm';
-import commonjs from '..';
+const path = require( 'path' );
+const assert = require( 'assert' );
+const { SourceMapConsumer } = require( 'source-map' );
+const { rollup } = require( 'rollup' );
+const nodeResolve = require( 'rollup-plugin-node-resolve' );
+const commonjs = require( '..' );
 
 process.chdir( __dirname );
 
@@ -12,12 +12,34 @@ function executeBundle ( bundle ) {
 		format: 'cjs'
 	});
 
-	const fn = new Function ( 'module', 'assert', generated.code );
-	let module = {};
+	const fn = new Function( 'module', 'exports', 'require', 'assert', generated.code );
 
-	fn( module, assert );
+	const module = { exports: {} };
 
-	return module;
+	fn( module, module.exports, () => {}, assert );
+
+	return module.exports;
+}
+
+function getLocation ( source, charIndex ) {
+	var lines = source.split( '\n' );
+	var len = lines.length;
+
+	var lineStart = 0;
+	var i;
+
+	for ( i = 0; i < len; i += 1 ) {
+		var line = lines[i];
+		var lineEnd =  lineStart + line.length + 1; // +1 for newline
+
+		if ( lineEnd > charIndex ) {
+			return { line: i + 1, column: charIndex - lineStart };
+		}
+
+		lineStart = lineEnd;
+	}
+
+	throw new Error( 'Could not determine location of character' );
 }
 
 describe( 'rollup-plugin-commonjs', () => {
@@ -26,7 +48,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/basic/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 42 );
+			assert.equal( executeBundle( bundle ), 42 );
 		});
 	});
 
@@ -35,7 +57,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/exports/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 'BARBAZ' );
+			assert.equal( executeBundle( bundle ), 'BARBAZ' );
 		});
 	});
 
@@ -44,7 +66,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/inline/main.js',
 			plugins: [ commonjs() ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports(), 2 );
+			assert.equal( executeBundle( bundle )(), 2 );
 		});
 	});
 
@@ -61,12 +83,14 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			const smc = new SourceMapConsumer( generated.map );
 
-			let loc = smc.originalPositionFor({ line: 5, column: 17 }); // 42
+			let generatedLoc = getLocation( generated.code, generated.code.indexOf( '42' ) );
+			let loc = smc.originalPositionFor( generatedLoc ); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			loc = smc.originalPositionFor({ line: 9, column: 8 }); // log
+			generatedLoc = getLocation( generated.code, generated.code.indexOf( 'log' ) );
+			loc = smc.originalPositionFor( generatedLoc ); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
@@ -126,13 +150,54 @@ describe( 'rollup-plugin-commonjs', () => {
 				format: 'cjs'
 			});
 
+			let mockWindow = {};
+			let mockGlobal = {};
+			let mockSelf = {};
+
+			const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
+
+			fn( {}, mockWindow, mockGlobal,  mockSelf);
+			assert.equal( mockWindow.foo, 'bar', generated.code );
+			assert.equal( mockGlobal.foo, undefined, generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, mockGlobal,  mockSelf );
+			assert.equal( mockGlobal.foo, 'bar', generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, undefined, mockSelf );
+			assert.equal( mockSelf.foo, 'bar', generated.code );
+
+		});
+	});
+
+	it( 'handles multiple references to `global`', () => {
+		return rollup({
+			entry: 'samples/global-in-if-block/main.js',
+			plugins: [ commonjs() ]
+		}).then( bundle => {
+			const generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			const fn = new Function ( 'module', 'exports', 'window', generated.code );
+
+			let module = { exports: {} };
 			let window = {};
 
-			const fn = new Function ( 'window', 'module', generated.code );
-			fn( window, {} );
+			fn( module, module.exports, window );
+			assert.equal( window.count, 1 );
 
-			assert.equal( window.foo, 'bar', generated.code );
+			fn( module, module.exports, window );
+			assert.equal( window.count, 2 );
 		});
+	});
+
+	it( 'allows `var global` declarations', () => {
+		return rollup({
+			entry: 'samples/global-var/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
 	});
 
 	it( 'handles transpiled CommonJS modules', () => {
@@ -164,25 +229,14 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/__esModule/main.js',
 			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			const fn = new Function ( 'module', 'exports', generated.code );
-			let module = { exports: {} };
-
-			fn( module, module.exports );
-
-			assert.ok( !module.exports.__esModule );
-		});
+		}).then( executeBundle );
 	});
 
 	it( 'allows named exports to be added explicitly via config', () => {
 		return rollup({
 			entry: 'samples/custom-named-exports/main.js',
 			plugins: [
-				npm({ main: true }),
+				nodeResolve({ main: true }),
 				commonjs({
 					namedExports: {
 						'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
@@ -197,7 +251,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/custom-named-exports-false-positive/main.js',
 			plugins: [
-				npm({ main: true }),
+				nodeResolve({ main: true }),
 				commonjs({
 					namedExports: {
 						'irrelevant': [ 'lol' ]
@@ -212,7 +266,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			entry: 'samples/extension/main.coffee',
 			plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
 		}).then( bundle => {
-			assert.equal( executeBundle( bundle ).exports, 42 );
+			assert.equal( executeBundle( bundle ), 42 );
 		});
 	});
 
@@ -226,6 +280,77 @@ describe( 'rollup-plugin-commonjs', () => {
 	it( 'obeys order of require expressions', () => {
 		return rollup({
 			entry: 'samples/ordering/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
+	it( 'can ignore references to `global`', () => {
+		return rollup({
+			entry: 'samples/ignore-global/main.js',
+			plugins: [ commonjs({
+				ignoreGlobal: true
+			}) ]
+		}).then( bundle => {
+			const generated = bundle.generate({
+				format: 'cjs'
+			});
+
+			assert.equal( global.setImmediate, executeBundle( bundle ).immediate, generated.code );
+		});
+	});
+
+	describe( 'typeof transforms', () => {
+		it( 'correct-scoping', () => {
+			return rollup({
+				entry: 'samples/umd/correct-scoping.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ), 'object' );
+			});
+		});
+
+		it( 'protobuf', () => {
+			return rollup({
+				entry: 'samples/umd/protobuf.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ), true );
+			});
+		});
+
+		it( 'sinon', () => {
+			return rollup({
+				entry: 'samples/umd/sinon.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				const code = bundle.generate().code;
+
+				assert.equal( code.indexOf( 'typeof require' ), -1, code );
+				assert.notEqual( code.indexOf( 'typeof module' ), -1, code );
+				assert.notEqual( code.indexOf( 'typeof define' ), -1, code );
+			});
+		});
+	});
+
+	it( 'deconflicts helper name', () => {
+		return rollup({
+			entry: 'samples/deconflict-helpers/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle ).then( module => {
+			assert.notEqual( module.exports, 'nope' );
+		});
+	});
+
+	it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
+		return rollup({
+			entry: './samples/basic/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
+	it( 'falls back to object of exports without default export', () => {
+		return rollup({
+			entry: 'samples/fallback-no-default/main.js',
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
