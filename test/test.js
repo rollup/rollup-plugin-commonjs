@@ -277,6 +277,13 @@ describe( 'rollup-plugin-commonjs', () => {
 		}).then( executeBundle );
 	});
 
+	it( 'obeys order of require expressions', () => {
+		return rollup({
+			entry: 'samples/ordering/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
 	it( 'can ignore references to `global`', () => {
 		return rollup({
 			entry: 'samples/ignore-global/main.js',
@@ -333,7 +340,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.notEqual( module.exports, 'nope' );
 		});
 	});
-	
+
 	it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
 		return rollup({
 			entry: './samples/basic/main.js',
