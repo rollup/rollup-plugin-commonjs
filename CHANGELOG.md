@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 3.3.0
+
+* Keep the order of execution for require calls ([#43](https://github.com/rollup/rollup-plugin-commonjs/pull/43))
+* Use interopDefault as helper ([#42](https://github.com/rollup/rollup-plugin-commonjs/issues/42))
+
 ## 3.2.0
 
 * Use named exports as a function when no default export is defined ([#524](https://github.com/rollup/rollup/issues/524))
