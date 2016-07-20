@@ -354,4 +354,13 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'does not reexport named contents', () => {
+		return rollup({
+			entry: 'samples/reexport/main.js',
+			plugins: [ commonjs() ]
+		})
+		.then( executeBundle)
+		.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
+	});
 });
