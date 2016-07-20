@@ -45,13 +45,13 @@ function deconflict ( identifier, code ) {
 	return deconflicted;
 }
 
-function getInteropDefault(name) {
-	return `(${name} && typeof ${name} === 'object' && 'default' in ${name} ? ${name}['default'] : ${name})`;
-}
-
 const HELPERS_ID = '\0commonjsHelpers';
 const HELPERS = `
 export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}
+
+export function interopDefault(ex) {
+	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
+}
 
 export function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -213,7 +213,7 @@ export default function commonjs ( options = {} ) {
 
 					if ( parent.type !== 'ExpressionStatement' ) {
 						required[ source ].importsDefault = true;
-						magicString.overwrite( node.start, node.end, getInteropDefault(name) );
+						magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.interopDefault(${name})` );
 					} else {
 						// is a bare import, e.g. `require('foo');`
 						magicString.remove( parent.start, parent.end );
@@ -247,7 +247,7 @@ export default function commonjs ( options = {} ) {
 			const args = `module${uses.exports ? ', exports' : ''}`;
 
 			const intro = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
-			let outro = `\n});\n\nexport default ${getInteropDefault(name)};\n`;
+			let outro = `\n});\n\nexport default ${HELPERS_NAME}.interopDefault(${name});\n`;
 
 			outro += Object.keys( namedExports )
 				.filter( key => !blacklistedExports[ key ] )
