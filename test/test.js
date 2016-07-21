@@ -363,4 +363,11 @@ describe( 'rollup-plugin-commonjs', () => {
 		.then( executeBundle)
 		.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
 	});
+
+	it( 'handles deep commonjs correctly', () => {
+		return rollup({
+			entry: 'samples/deep-cjs/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });
