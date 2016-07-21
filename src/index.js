@@ -256,7 +256,13 @@ export default function commonjs ( options = {} ) {
 
 			outro += Object.keys( namedExports )
 				.filter( key => !blacklistedExports[ key ] )
-				.map( x => `export var ${x} = ${name}.${x};` )
+				.map( x => {
+					if (x === name) {
+						return `var ${x}$$1 = ${name}.${x};\nexport { ${x}$$1 as ${x} };`;
+					} else {
+						return `export var ${x} = ${name}.${x};`;
+					}
+				})
 				.join( '\n' );
 
 			magicString.trim()
