@@ -364,9 +364,9 @@ describe( 'rollup-plugin-commonjs', () => {
 		.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
 	});
 
-	it( 'handles deep commonjs correctly', () => {
+	it( 'deconflict export name and local variable', () => {
 		return rollup({
-			entry: 'samples/deep-cjs/main.js',
+			entry: 'samples/deconflict-export-and-local/main.js',
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
