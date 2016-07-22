@@ -12,11 +12,11 @@
     "source-map": "^0.5.6"
   },
   "main": "dist/rollup-plugin-commonjs.cjs.js",
-  "jsnext:main": "dist/rollup-plugin-commonjs.es6.js",
+  "jsnext:main": "dist/rollup-plugin-commonjs.es.js",
   "scripts": {
     "test": "mocha --compilers js:buble/register",
     "pretest": "npm run build",
-    "build": "rm -rf dist/* && rollup -c -f cjs -o dist/rollup-plugin-commonjs.cjs.js && rollup -c -f es6 -o dist/rollup-plugin-commonjs.es6.js",
+    "build": "rm -rf dist/* && rollup -c -f cjs -o dist/rollup-plugin-commonjs.cjs.js && rollup -c -f es -o dist/rollup-plugin-commonjs.es.js",
     "prepublish": "npm test"
   },
   "files": [
