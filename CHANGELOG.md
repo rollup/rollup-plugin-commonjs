@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 3.3.1
+
+* Deconflict export and local module ([rollup/rollup#554](https://github.com/rollup/rollup/issues/554))
+
 ## 3.3.0
 
 * Keep the order of execution for require calls ([#43](https://github.com/rollup/rollup-plugin-commonjs/pull/43))
