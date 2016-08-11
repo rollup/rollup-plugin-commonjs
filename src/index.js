@@ -125,7 +125,7 @@ export default function commonjs ( options = {} ) {
 			// Because objects have no guaranteed ordering, yet we need it,
 			// we need to keep track of the order in a array
 			let sources = [];
-			
+
 			let uid = 0;
 
 			let scope = attachScopes( ast, 'scope' );
@@ -185,7 +185,7 @@ export default function commonjs ( options = {} ) {
 						}
 					}
 
-					if ( node.type === 'Identifier' ) {
+					if ( node.type === 'Identifier' && ( !ignoreGlobal || node.name !== 'global' ) ) {
 						if ( ( node.name in uses ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
 							uses[ node.name ] = true;
 							if ( node.name === 'global' ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
