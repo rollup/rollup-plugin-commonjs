@@ -295,7 +295,11 @@ describe( 'rollup-plugin-commonjs', () => {
 				format: 'cjs'
 			});
 
-			assert.equal( global.setImmediate, executeBundle( bundle ).immediate, generated.code );
+			const bundleExports = executeBundle( bundle )
+
+			assert.equal( bundleExports.immediate1, global.setImmediate, generated.code );
+			assert.equal( bundleExports.immediate2, global.setImmediate, generated.code );
+			assert.equal( bundleExports.immediate3, null, generated.code );
 		});
 	});
 
