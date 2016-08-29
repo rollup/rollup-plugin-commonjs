@@ -49,8 +49,10 @@ const HELPERS_ID = '\0commonjsHelpers';
 const HELPERS = `
 export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {}
 
-export function interopDefault(ex) {
-	return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
+export function interopDefault(x) {
+	if ( !x || typeof x !== 'object' || !x.default ) return x;
+	if ( typeof x['default'] === 'object' || typeof x['default'] === 'function' ) x['default']['default'] = x['default'];
+	return x['default'];
 }
 
 export function createCommonjsModule(fn, module) {
@@ -125,7 +127,7 @@ export default function commonjs ( options = {} ) {
 			// Because objects have no guaranteed ordering, yet we need it,
 			// we need to keep track of the order in a array
 			let sources = [];
-			
+
 			let uid = 0;
 
 			let scope = attachScopes( ast, 'scope' );
@@ -220,7 +222,7 @@ export default function commonjs ( options = {} ) {
 
 					if ( parent.type !== 'ExpressionStatement' ) {
 						required[ source ].importsDefault = true;
-						magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.interopDefault(${name})` );
+						magicString.overwrite( node.start, node.end, name );
 					} else {
 						// is a bare import, e.g. `require('foo');`
 						magicString.remove( parent.start, parent.end );
@@ -245,7 +247,7 @@ export default function commonjs ( options = {} ) {
 			const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
 				sources.map( source => {
 					const { name, importsDefault } = required[ source ];
-					return `import ${importsDefault ? `* as ${name} from ` : ``}'${source}';`;
+					return `import ${importsDefault ? `${name} from ` : ``}'${source}';`;
 				})
 			).join( '\n' );
 
