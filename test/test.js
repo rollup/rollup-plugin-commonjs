@@ -370,4 +370,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'does not remove .default properties', () => {
+		return rollup({
+			entry: 'samples/react-apollo/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
 });
