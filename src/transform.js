@@ -126,7 +126,7 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 
 			if ( parent.type !== 'ExpressionStatement' ) {
 				required[ source ].importsDefault = true;
-				magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.interopDefault(${name})` );
+				magicString.overwrite( node.start, node.end, name );
 			} else {
 				// is a bare import, e.g. `require('foo');`
 				magicString.remove( parent.start, parent.end );
@@ -149,7 +149,7 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 	const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
 		sources.map( source => {
 			const { name, importsDefault } = required[ source ];
-			return `import ${importsDefault ? `* as ${name} from ` : ``}'${PREFIX}${source}';`;
+			return `import ${importsDefault ? `${name} from ` : ``}'${PREFIX}${source}';`;
 		})
 	).join( '\n' );
 
@@ -166,5 +166,5 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 	code = magicString.toString();
 	const map = sourceMap ? magicString.generateMap() : null;
 
-	return { code, map };
+	return { code, map, namedExports };
 }

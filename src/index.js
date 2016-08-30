@@ -47,6 +47,8 @@ function first ( candidates ) {
 	};
 }
 
+const ACTUAL = '\0commonjs-actual:';
+
 
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
@@ -74,20 +76,35 @@ export default function commonjs ( options = {} ) {
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
 
-		if ( importer ) importer = importer.replace( PREFIX, '' );
+		if ( importer ) importer = importer.replace( PREFIX, '' ).replace( ACTUAL, '' );
 
 		const isCommonJsImporter = importee.startsWith( PREFIX );
-		if ( isCommonJsImporter ) importee = importee.slice( PREFIX.length );
+		const isCommonJsActual = importee.startsWith( ACTUAL );
+		importee = importee.replace( PREFIX, '' ).replace( ACTUAL, '' );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
-			if ( resolved ) return resolved;
+			if ( resolved ) return isCommonJsActual ? ACTUAL + resolved : resolved;
 
-			if ( isCommonJsImporter ) {
+			if ( isCommonJsImporter || isCommonJsActual ) {
 				// standard resolution procedure
 				const resolved = defaultResolver( importee, importer );
-				if ( resolved ) return PREFIX + resolved;
+				if ( resolved ) return ( isCommonJsActual ? ACTUAL : PREFIX ) + resolved;
 			}
 		});
+	}
+
+	let commonjsModules = new Map();
+	function getCommonjsModule ( code, id ) {
+		if ( !commonjsModules.has( id ) ) {
+			let namedExports = {};
+			if ( customNamedExports[ id ] ) {
+				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
+			}
+
+			commonjsModules.set( id, transform( code, id, firstpass, sourceMap, ignoreGlobal, namedExports ) );
+		}
+
+		return commonjsModules.get( id );
 	}
 
 	let resolveUsingOtherResolvers;
@@ -126,6 +143,12 @@ export default function commonjs ( options = {} ) {
 
 		load ( id ) {
 			if ( id === HELPERS_ID ) return HELPERS;
+
+			if ( id.startsWith( ACTUAL ) ) {
+				const actualId = id.slice( ACTUAL.length );
+				return readFileSync( actualId, 'utf-8' );
+			}
+
 			if ( id.startsWith( PREFIX ) ) {
 				const actualId = id.slice( PREFIX.length );
 				return readFileSync( actualId, 'utf-8' );
@@ -134,22 +157,20 @@ export default function commonjs ( options = {} ) {
 
 		transform ( code, id ) {
 			const isCommonJsImporter = id.startsWith( PREFIX );
-			if ( isCommonJsImporter ) id = id.slice( PREFIX.length );
+			const isCommonJsActual = id.startsWith( ACTUAL );
+			id = id.replace( PREFIX, '' ).replace( ACTUAL, '' );
 
-			if ( !filter( id ) ) return null;
-			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
-
-			let namedExports = {};
-			if ( customNamedExports[ id ] ) {
-				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
-			}
-
-			const transformed = transform( code, id, firstpass, sourceMap, ignoreGlobal, namedExports );
+			let transformed;
+			if ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) transformed = getCommonjsModule( code, id );
 			const isCommonJsModule = !!transformed;
+
+			if ( isCommonJsActual ) {
+				return transformed;
+			}
 
 			// CJS importing CJS – pass module.exports through unmolested
 			if ( isCommonJsModule && isCommonJsImporter ) {
-				// console.log( 'CJS importing CJS' );
+				console.log( 'CJS importing CJS (should not happen!)' );
 				return transformed;
 			}
 
@@ -157,12 +178,11 @@ export default function commonjs ( options = {} ) {
 
 			// ES importing CJS – do the interop dance
 			if ( isCommonJsModule && !isCommonJsImporter ) {
-				// console.log( 'ES importing CJS' );
 				const HELPERS_NAME = 'commonjsHelpers';
 
-				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${PREFIX}${id}';\n\n`;
-				proxy += `export default ${HELPERS_NAME}.unwrapExports(${name});\n`;
-				proxy += Object.keys( namedExports )
+				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${ACTUAL}${id}';\n\n`;
+				proxy += /__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`;
+				proxy += Object.keys( transformed.namedExports )
 					.filter( key => !blacklistedExports[ key ] )
 					.map( x => {
 						if (x === name) {
@@ -182,6 +202,7 @@ export default function commonjs ( options = {} ) {
 			// CJS importing ES – need to import a namespace and re-export as default
 			if ( !isCommonJsModule && isCommonJsImporter ) {
 				const code = `import * as ${name} from '${id}'; export default ${name}['default'] || name;`;
+				console.log( code )
 
 				return {
 					code,

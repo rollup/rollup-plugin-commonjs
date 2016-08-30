@@ -10,11 +10,11 @@ require( 'source-map-support' ).install();
 process.chdir( __dirname );
 
 function executeBundle ( bundle ) {
-	const generated = bundle.generate({
+	const { code } = bundle.generate({
 		format: 'cjs'
 	});
 
-	const fn = new Function( 'module', 'exports', 'require', 'assert', generated.code );
+	const fn = new Function( 'module', 'exports', 'require', 'assert', code );
 
 	const module = { exports: {} };
 
