@@ -162,17 +162,26 @@ export default function commonjs ( options = {} ) {
 			if ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) transformed = getCommonjsModule( code, id );
 			const isCommonJsModule = !!transformed;
 
+			const name = getName( id );
+
+			// CJS importing ES – need to import a namespace and re-export as default
+			if ( isCommonJsActual && !isCommonJsModule ) {
+				const code = `import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
+
+				return {
+					code,
+					map: { mappings: '' }
+				};
+			}
+
 			if ( isCommonJsActual ) {
 				return transformed;
 			}
 
 			// CJS importing CJS – pass module.exports through unmolested
 			if ( isCommonJsModule && isCommonJsImporter ) {
-				console.log( 'CJS importing CJS (should not happen!)' );
-				return transformed;
+				throw new Error( 'should not happen' );
 			}
-
-			const name = getName( id );
 
 			// ES importing CJS – do the interop dance
 			if ( isCommonJsModule && !isCommonJsImporter ) {
@@ -193,17 +202,6 @@ export default function commonjs ( options = {} ) {
 
 				return {
 					code: proxy,
-					map: { mappings: '' }
-				};
-			}
-
-			// CJS importing ES – need to import a namespace and re-export as default
-			if ( !isCommonJsModule && isCommonJsImporter ) {
-				const code = `import * as ${name} from '${id}'; export default ${name}['default'] || name;`;
-				console.log( code )
-
-				return {
-					code,
 					map: { mappings: '' }
 				};
 			}
