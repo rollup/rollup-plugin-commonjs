@@ -17,3 +17,5 @@ export function createCommonjsModule(fn, module) {
 }`;
 
 export const PREFIX = '\0commonjs:';
+
+export const ACTUAL = '\0commonjs-actual:';

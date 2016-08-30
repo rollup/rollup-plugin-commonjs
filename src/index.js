@@ -2,7 +2,7 @@ import { readFileSync, statSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
-import { HELPERS_ID, HELPERS, PREFIX } from './helpers.js';
+import { ACTUAL, HELPERS_ID, HELPERS, PREFIX } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
 
@@ -46,8 +46,6 @@ function first ( candidates ) {
 		}, Promise.resolve() );
 	};
 }
-
-const ACTUAL = '\0commonjs-actual:';
 
 
 export default function commonjs ( options = {} ) {

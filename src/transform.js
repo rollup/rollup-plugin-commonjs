@@ -3,7 +3,7 @@ import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
-import { HELPERS_ID, PREFIX } from './helpers.js';
+import { ACTUAL, HELPERS_ID, PREFIX } from './helpers.js';
 
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
@@ -149,7 +149,7 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 	const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
 		sources.map( source => {
 			const { name, importsDefault } = required[ source ];
-			return `import ${importsDefault ? `${name} from ` : ``}'${PREFIX}${source}';`;
+			return `import ${importsDefault ? `${name} from ` : ``}'${ACTUAL}${source}';`;
 		})
 	).join( '\n' );
 
