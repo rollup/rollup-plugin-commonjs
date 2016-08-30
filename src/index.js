@@ -35,6 +35,19 @@ function getName ( id ) {
 	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
 }
 
+// Return the first non-falsy result from an array of
+// maybe-sync, maybe-promise-returning functions
+function first ( candidates ) {
+	return function ( ...args ) {
+		return candidates.reduce( ( promise, candidate ) => {
+			return promise.then( result => result != null ?
+				result :
+				Promise.resolve( candidate( ...args ) ) );
+		}, Promise.resolve() );
+	};
+}
+
+
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter( options.include, options.exclude );
@@ -66,25 +79,24 @@ export default function commonjs ( options = {} ) {
 		const isCommonJsImporter = importee.startsWith( PREFIX );
 		if ( isCommonJsImporter ) importee = importee.slice( PREFIX.length );
 
-		for ( let resolver of resolvers ) {
-			const resolved = resolver( importee, importer );
-			if ( resolved ) return isCommonJsImporter ? PREFIX + resolved : resolved;
-		}
+		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
+			if ( resolved ) return resolved;
 
-		if ( isCommonJsImporter ) {
-			// standard resolution procedure
-			const resolved = defaultResolver( importee, importer );
-			if ( resolved ) return PREFIX + resolved;
-		}
+			if ( isCommonJsImporter ) {
+				// standard resolution procedure
+				const resolved = defaultResolver( importee, importer );
+				if ( resolved ) return PREFIX + resolved;
+			}
+		});
 	}
 
-	let resolvers;
+	let resolveUsingOtherResolvers;
 
 	return {
 		name: 'commonjs',
 
 		options ( options ) {
-			resolvers = ( options.plugins || [] )
+			const resolvers = ( options.plugins || [] )
 				.map( plugin => {
 					if ( plugin.resolveId === resolveId ) {
 						// substitute CommonJS resolution logic
@@ -106,6 +118,8 @@ export default function commonjs ( options = {} ) {
 					return plugin.resolveId;
 				})
 				.filter( Boolean );
+
+			resolveUsingOtherResolvers = first( resolvers );
 		},
 
 		resolveId,
@@ -139,10 +153,11 @@ export default function commonjs ( options = {} ) {
 				return transformed;
 			}
 
+			const name = getName( id );
+
 			// ES importing CJS – do the interop dance
 			if ( isCommonJsModule && !isCommonJsImporter ) {
 				// console.log( 'ES importing CJS' );
-				const name = getName( id );
 				const HELPERS_NAME = 'commonjsHelpers';
 
 				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${PREFIX}${id}';\n\n`;
@@ -166,9 +181,10 @@ export default function commonjs ( options = {} ) {
 
 			// CJS importing ES – need to import a namespace and re-export as default
 			if ( !isCommonJsModule && isCommonJsImporter ) {
-				console.log( 'CJS importing ES' );
+				const code = `import * as ${name} from '${id}'; export default ${name}['default'] || name;`;
+
 				return {
-					code: 'TODO',
+					code,
 					map: { mappings: '' }
 				};
 			}
