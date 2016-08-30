@@ -5,6 +5,8 @@ const { rollup } = require( 'rollup' );
 const nodeResolve = require( 'rollup-plugin-node-resolve' );
 const commonjs = require( '..' );
 
+require( 'source-map-support' ).install();
+
 process.chdir( __dirname );
 
 function executeBundle ( bundle ) {
