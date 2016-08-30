@@ -45,6 +45,10 @@ function first ( candidates ) {
 	};
 }
 
+function startsWith ( str, prefix ) {
+	return str.slice( 0, prefix.length ) === prefix;
+}
+
 
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
@@ -71,7 +75,7 @@ export default function commonjs ( options = {} ) {
 
 		if ( importer ) importer = importer.replace( PREFIX, '' );
 
-		const isImportedByCommonJsModule = importee.startsWith( PREFIX );
+		const isImportedByCommonJsModule = startsWith( importee, PREFIX );
 		importee = importee.replace( PREFIX, '' );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
@@ -131,14 +135,14 @@ export default function commonjs ( options = {} ) {
 		load ( id ) {
 			if ( id === HELPERS_ID ) return HELPERS;
 
-			if ( id.startsWith( PREFIX ) ) {
+			if ( startsWith( id, PREFIX ) ) {
 				const actualId = id.slice( PREFIX.length );
 				return readFileSync( actualId, 'utf-8' );
 			}
 		},
 
 		transform ( code, id ) {
-			const isImportedByCommonJsModule = id.startsWith( PREFIX );
+			const isImportedByCommonJsModule = startsWith( id, PREFIX );
 			id = id.replace( PREFIX, '' );
 
 			let transformed;
