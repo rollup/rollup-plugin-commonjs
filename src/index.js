@@ -2,12 +2,10 @@ import { readFileSync, statSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
+import MagicString from 'magic-string';
 import { PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
-
-var firstpassGlobal = /\b(?:require|module|exports|global)\b/;
-var firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 
 const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
 
@@ -52,9 +50,6 @@ export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter( options.include, options.exclude );
 	const ignoreGlobal = options.ignoreGlobal;
-	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
-
-	const sourceMap = options.sourceMap !== false;
 
 	let customNamedExports = {};
 	if ( options.namedExports ) {
@@ -93,12 +88,7 @@ export default function commonjs ( options = {} ) {
 	let commonjsModules = new Map();
 	function getCommonjsModule ( code, id ) {
 		if ( !commonjsModules.has( id ) ) {
-			let namedExports = {};
-			if ( customNamedExports[ id ] ) {
-				customNamedExports[ id ].forEach( name => namedExports[ name ] = true );
-			}
-
-			commonjsModules.set( id, transform( code, id, firstpass, sourceMap, ignoreGlobal, namedExports ) );
+			commonjsModules.set( id, transform( code, id, ignoreGlobal, customNamedExports[ id ] ) );
 		}
 
 		return commonjsModules.get( id );
@@ -200,7 +190,20 @@ export default function commonjs ( options = {} ) {
 
 		transformBundle ( code ) {
 			// prevent external dependencies from having the prefix
-			return code.replace( new RegExp( PREFIX, 'g' ), '' );
+			const magicString = new MagicString( code );
+			const pattern = new RegExp( PREFIX, 'g' );
+
+			if ( !pattern.test( code ) ) return null;
+
+			let match;
+			while ( match = pattern.exec( code ) ) {
+				magicString.remove( match.index, match[0].length );
+			}
+
+			return {
+				code: magicString.toString(),
+				map: magicString.generateMap({ hires: true })
+			};
 		}
 	};
 }

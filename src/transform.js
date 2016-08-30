@@ -7,6 +7,9 @@ import { PREFIX, HELPERS_ID } from './helpers.js';
 
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
+var firstpassGlobal = /\b(?:require|module|exports|global)\b/;
+var firstpassNoGlobal = /\b(?:require|module|exports)\b/;
+
 function deconflict ( identifier, code ) {
 	let i = 1;
 	let deconflicted = identifier;
@@ -15,13 +18,9 @@ function deconflict ( identifier, code ) {
 	return deconflicted;
 }
 
-export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal, namedExports ) {
-	if ( !firstpass.test( code ) ) return null;
-
-	let ast;
-
+function tryParse ( code, id ) {
 	try {
-		ast = acorn.parse( code, {
+		return acorn.parse( code, {
 			ecmaVersion: 6,
 			sourceType: 'module'
 		});
@@ -29,7 +28,16 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 		err.message += ` in ${id}`;
 		throw err;
 	}
+}
 
+export default function transform ( code, id, ignoreGlobal, customNamedExports ) {
+	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
+	if ( !firstpass.test( code ) ) return null;
+
+	let namedExports = {};
+	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
+
+	const ast = tryParse( code, id );
 	const magicString = new MagicString( code );
 
 	let required = {};
@@ -50,11 +58,6 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 		enter ( node, parent ) {
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) scopeDepth += 1;
-
-			if ( sourceMap ) {
-				magicString.addSourcemapLocation( node.start );
-				magicString.addSourcemapLocation( node.end );
-			}
 
 			// Is this an assignment to exports or module.exports?
 			if ( node.type === 'AssignmentExpression' ) {
@@ -164,7 +167,6 @@ export default function transform ( code, id, firstpass, sourceMap, ignoreGlobal
 		.append( wrapperEnd );
 
 	code = magicString.toString();
-	const map = sourceMap ? magicString.generateMap() : null;
 
-	return { code, map, namedExports };
+	return { code, map: { mappings: '' }, namedExports };
 }
