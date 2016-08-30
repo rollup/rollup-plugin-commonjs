@@ -196,6 +196,11 @@ export default function commonjs ( options = {} ) {
 			}
 
 			return null;
+		},
+
+		transformBundle ( code ) {
+			// prevent external dependencies from having the prefix
+			return code.replace( new RegExp( PREFIX, 'g' ), '' );
 		}
 	};
 }
