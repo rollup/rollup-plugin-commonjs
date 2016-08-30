@@ -16,6 +16,4 @@ export function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }`;
 
-export const PREFIX = '\0commonjs:';
-
-export const ACTUAL = '\0commonjs-actual:';
+export const PREFIX = '\0commonjs-actual:';

@@ -2,7 +2,7 @@ import { readFileSync, statSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
-import { ACTUAL, HELPERS_ID, HELPERS, PREFIX } from './helpers.js';
+import { PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
 
@@ -74,19 +74,18 @@ export default function commonjs ( options = {} ) {
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
 
-		if ( importer ) importer = importer.replace( PREFIX, '' ).replace( ACTUAL, '' );
+		if ( importer ) importer = importer.replace( PREFIX, '' );
 
-		const isCommonJsImporter = importee.startsWith( PREFIX );
-		const isCommonJsActual = importee.startsWith( ACTUAL );
-		importee = importee.replace( PREFIX, '' ).replace( ACTUAL, '' );
+		const isImportedByCommonJsModule = importee.startsWith( PREFIX );
+		importee = importee.replace( PREFIX, '' );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
-			if ( resolved ) return isCommonJsActual ? ACTUAL + resolved : resolved;
+			if ( resolved ) return isImportedByCommonJsModule ? PREFIX + resolved : resolved;
 
-			if ( isCommonJsImporter || isCommonJsActual ) {
+			if ( isImportedByCommonJsModule ) {
 				// standard resolution procedure
 				const resolved = defaultResolver( importee, importer );
-				if ( resolved ) return ( isCommonJsActual ? ACTUAL : PREFIX ) + resolved;
+				if ( resolved ) return PREFIX + resolved;
 			}
 		});
 	}
@@ -142,11 +141,6 @@ export default function commonjs ( options = {} ) {
 		load ( id ) {
 			if ( id === HELPERS_ID ) return HELPERS;
 
-			if ( id.startsWith( ACTUAL ) ) {
-				const actualId = id.slice( ACTUAL.length );
-				return readFileSync( actualId, 'utf-8' );
-			}
-
 			if ( id.startsWith( PREFIX ) ) {
 				const actualId = id.slice( PREFIX.length );
 				return readFileSync( actualId, 'utf-8' );
@@ -154,9 +148,8 @@ export default function commonjs ( options = {} ) {
 		},
 
 		transform ( code, id ) {
-			const isCommonJsImporter = id.startsWith( PREFIX );
-			const isCommonJsActual = id.startsWith( ACTUAL );
-			id = id.replace( PREFIX, '' ).replace( ACTUAL, '' );
+			const isImportedByCommonJsModule = id.startsWith( PREFIX );
+			id = id.replace( PREFIX, '' );
 
 			let transformed;
 			if ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) transformed = getCommonjsModule( code, id );
@@ -164,30 +157,26 @@ export default function commonjs ( options = {} ) {
 
 			const name = getName( id );
 
-			// CJS importing ES – need to import a namespace and re-export as default
-			if ( isCommonJsActual && !isCommonJsModule ) {
-				const code = `import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
+			if ( isImportedByCommonJsModule ) {
+				if ( !isCommonJsModule ) {
+					// CJS importing ES – need to import a namespace and re-export as default
+					const code = `import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
 
-				return {
-					code,
-					map: { mappings: '' }
-				};
-			}
+					return {
+						code,
+						map: { mappings: '' }
+					};
+				}
 
-			if ( isCommonJsActual ) {
+				// CJS importing CJS – pass module.exports through unmolested
 				return transformed;
 			}
 
-			// CJS importing CJS – pass module.exports through unmolested
-			if ( isCommonJsModule && isCommonJsImporter ) {
-				throw new Error( 'should not happen' );
-			}
-
 			// ES importing CJS – do the interop dance
-			if ( isCommonJsModule && !isCommonJsImporter ) {
+			if ( isCommonJsModule ) {
 				const HELPERS_NAME = 'commonjsHelpers';
 
-				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${ACTUAL}${id}';\n\n`;
+				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${PREFIX}${id}';\n\n`;
 				proxy += /__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`;
 				proxy += Object.keys( transformed.namedExports )
 					.filter( key => !blacklistedExports[ key ] )
