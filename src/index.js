@@ -51,13 +51,18 @@ export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof glob
 
 export function interopDefault(x) {
 	if ( !x || typeof x !== 'object' || !x.default ) return x;
-	if ( typeof x['default'] === 'object' || typeof x['default'] === 'function' ) x['default']['default'] = x['default'];
 	return x['default'];
+}
+
+export function unwrapExports (x) {
+	return x && x.__esModule ? x['default'] : x;
 }
 
 export function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }`;
+
+const PREFIX = '\0commonjs:';
 
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
@@ -82,12 +87,17 @@ export default function commonjs ( options = {} ) {
 		});
 	}
 
+	let commonjsModules = new Map();
+
 	return {
 		name: 'commonjs',
 
 		resolveId ( importee, importer ) {
 			if ( importee === HELPERS_ID ) return importee;
+			if ( importee.startsWith( PREFIX ) ) return importee;
 			if ( importee[0] !== '.' || !importer ) return; // not our problem
+
+			if ( importer.startsWith( PREFIX ) ) importer = importer.slice( PREFIX.length );
 
 			const resolved = resolve( dirname( importer ), importee );
 			const candidates = getCandidates( resolved, extensions );
@@ -102,6 +112,10 @@ export default function commonjs ( options = {} ) {
 
 		load ( id ) {
 			if ( id === HELPERS_ID ) return HELPERS;
+			if ( id.startsWith( PREFIX ) ) {
+				const actualId = id.slice( PREFIX.length );
+				return commonjsModules.get( actualId );
+			}
 		},
 
 		transform ( code, id ) {
@@ -253,10 +267,22 @@ export default function commonjs ( options = {} ) {
 
 			const args = `module${uses.exports ? ', exports' : ''}`;
 
-			const intro = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
-			let outro = `\n});\n\nexport default ${HELPERS_NAME}.interopDefault(${name});\n`;
+			const wrapperStart = `\n\nexport default ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
+			const wrapperEnd = `\n});`;
 
-			outro += Object.keys( namedExports )
+			magicString.trim()
+				.prepend( importBlock + wrapperStart )
+				.trim()
+				.append( wrapperEnd );
+
+			code = magicString.toString();
+			const map = sourceMap ? magicString.generateMap() : null;
+
+			commonjsModules.set( id, { code, map });
+
+			let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${PREFIX}${id}';\n\n`;
+			proxy += `export default ${HELPERS_NAME}.unwrapExports(${name});\n`;
+			proxy += Object.keys( namedExports )
 				.filter( key => !blacklistedExports[ key ] )
 				.map( x => {
 					if (x === name) {
@@ -267,15 +293,10 @@ export default function commonjs ( options = {} ) {
 				})
 				.join( '\n' );
 
-			magicString.trim()
-				.prepend( importBlock + intro )
-				.trim()
-				.append( outro );
-
-			code = magicString.toString();
-			const map = sourceMap ? magicString.generateMap() : null;
-
-			return { code, map };
+			return {
+				code: proxy,
+				map: { mappings: '' }
+			};
 		}
 	};
 }
