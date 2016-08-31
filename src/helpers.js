@@ -11,4 +11,5 @@ export function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }`;
 
-export const PREFIX = '\0commonjs-required:';
+export const PREFIX = '\0commonjs-proxy:';
+export const EXTERNAL = '\0commonjs-external:';

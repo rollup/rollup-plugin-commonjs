@@ -168,6 +168,11 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 	const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
 		sources.map( source => {
+			// import the actual module before the proxy, so that we know
+			// what kind of proxy to build
+			return `import '${source}';`;
+		}),
+		sources.map( source => {
 			const { name, importsDefault } = required[ source ];
 			return `import ${importsDefault ? `${name} from ` : ``}'${PREFIX}${source}';`;
 		})

@@ -1,9 +1,9 @@
-import { readFileSync, statSync } from 'fs';
+import { statSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import MagicString from 'magic-string';
-import { PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
+import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
 
@@ -85,24 +85,19 @@ export default function commonjs ( options = {} ) {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
 
 			resolved = defaultResolver( importee, importer );
-			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
+
+			if ( isProxyModule ) {
+				if ( resolved ) return PREFIX + resolved;
+				return EXTERNAL + importee; // external
+			}
+
+			return resolved;
 		});
 	}
 
 	const sourceMap = options.sourceMap !== false;
 
 	let commonjsModules = new Map();
-	function getCommonjsModule ( code, id ) {
-		if ( !commonjsModules.has( id ) ) {
-			const promise = entryModuleIdPromise.then( () => {
-				return transform( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
-			});
-			commonjsModules.set( id, promise );
-		}
-
-		return commonjsModules.get( id );
-	}
-
 	let resolveUsingOtherResolvers;
 
 	return {
@@ -144,42 +139,35 @@ export default function commonjs ( options = {} ) {
 		load ( id ) {
 			if ( id === HELPERS_ID ) return HELPERS;
 
+			// generate proxy modules
+			if ( startsWith( id, EXTERNAL ) ) {
+				const actualId = id.slice( EXTERNAL.length );
+				const name = getName( actualId );
+
+				return `import ${name} from '${actualId}'; export default ${name};`;
+			}
+
 			if ( startsWith( id, PREFIX ) ) {
 				const actualId = id.slice( PREFIX.length );
-				return readFileSync( actualId, 'utf-8' );
+				const name = getName( actualId );
+
+				return commonjsModules.has( actualId ) ?
+					`import { __moduleExports } from '${actualId}'; export default __moduleExports;` :
+					`import * as ${name} from '${actualId}'; export default ( ${name} && ${name}['default'] ) || ${name};`;
 			}
 		},
 
 		transform ( code, id ) {
-			const isProxyModule = startsWith( id, PREFIX );
-			id = id.replace( PREFIX, '' );
+			if ( !filter( id ) ) return null;
+			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
-			const promise = ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) ?
-				getCommonjsModule( code, id ) :
-				Promise.resolve( null );
+			return entryModuleIdPromise.then( () => {
+				const transformed = transform( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
 
-			return promise.then( transformed => {
-				const isCommonJsModule = !!transformed;
-
-				const name = getName( id );
-
-				if ( isProxyModule ) {
-					const code = isCommonJsModule ?
-						`import { __moduleExports } from '${id}'; export default __moduleExports;` :
-						`import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
-
-					return {
-						code,
-						map: { mappings: '' }
-					};
-				}
-
-				// ES importing CJS
-				if ( isCommonJsModule ) {
+				if ( transformed ) {
+					commonjsModules.set( id, true );
 					return transformed;
 				}
-
-				return null;
 			});
 		},
 
