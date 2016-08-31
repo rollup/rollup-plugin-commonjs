@@ -107,14 +107,14 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			if ( node.type === 'Identifier' ) {
 				if ( ( node.name in uses ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
 					uses[ node.name ] = true;
-					if ( node.name === 'global' ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
+					if ( node.name === 'global' && !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
 				}
 				return;
 			}
 
 			if ( node.type === 'ThisExpression' && scopeDepth === 0 && !ignoreGlobal ) {
 				uses.global = true;
-				magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
 				return;
 			}
 
@@ -152,7 +152,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		}
 	});
 
-	if ( !sources.length && !uses.module && !uses.exports && !uses.global ) {
+	if ( !sources.length && !uses.module && !uses.exports && ( ignoreGlobal || !uses.global ) ) {
 		if ( Object.keys( namedExports ).length ) {
 			throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
 		}
