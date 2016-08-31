@@ -4,6 +4,11 @@ var external = Object.keys( require( './package.json' ).dependencies ).concat([ 
 
 export default {
 	entry: 'src/index.js',
-	plugins: [ buble() ],
-	external: external
+	plugins: [
+		buble({
+			transforms: { dangerousForOf: true }
+		})
+	],
+	external: external,
+	sourceMap: true
 };

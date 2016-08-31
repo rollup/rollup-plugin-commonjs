@@ -5,14 +5,24 @@ const { rollup } = require( 'rollup' );
 const nodeResolve = require( 'rollup-plugin-node-resolve' );
 const commonjs = require( '..' );
 
+require( 'source-map-support' ).install();
+
 process.chdir( __dirname );
 
 function executeBundle ( bundle ) {
-	const generated = bundle.generate({
+	const { code } = bundle.generate({
 		format: 'cjs'
 	});
 
-	const fn = new Function( 'module', 'exports', 'require', 'assert', generated.code );
+	let fn;
+
+	try {
+		fn = new Function( 'module', 'exports', 'require', 'assert', code );
+	} catch ( err ) {
+		// syntax error
+		console.log( code );
+		throw err;
+	}
 
 	const module = { exports: {} };
 
@@ -368,6 +378,28 @@ describe( 'rollup-plugin-commonjs', () => {
 		return rollup({
 			entry: 'samples/deconflict-export-and-local/main.js',
 			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
+	it( 'does not remove .default properties', () => {
+		return rollup({
+			entry: 'samples/react-apollo/main.js',
+			plugins: [ commonjs() ]
+		}).then( executeBundle );
+	});
+
+	it( 'respects other plugins', () => {
+		return rollup({
+			entry: 'samples/other-transforms/main.js',
+			plugins: [
+				{
+					transform ( code, id ) {
+						if ( id[0] === '\0' ) return null;
+						return code.replace( '40', '41' );
+					}
+				},
+				commonjs()
+			]
 		}).then( executeBundle );
 	});
 });
