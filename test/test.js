@@ -14,7 +14,15 @@ function executeBundle ( bundle ) {
 		format: 'cjs'
 	});
 
-	const fn = new Function( 'module', 'exports', 'require', 'assert', code );
+	let fn;
+
+	try {
+		fn = new Function( 'module', 'exports', 'require', 'assert', code );
+	} catch ( err ) {
+		// syntax error
+		console.log( code );
+		throw err;
+	}
 
 	const module = { exports: {} };
 
