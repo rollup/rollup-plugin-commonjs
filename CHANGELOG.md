@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 4.0.1
+
+* Fix `ignoreGlobal` option ([#86](https://github.com/rollup/rollup-plugin-commonjs/pull/86))
+
 ## 4.0.0
 
 * Better interop and smaller output ([#92](https://github.com/rollup/rollup-plugin-commonjs/pull/92))
