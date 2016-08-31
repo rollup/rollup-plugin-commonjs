@@ -72,7 +72,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
-	it.skip( 'generates a sourcemap', () => {
+	it( 'generates a sourcemap', () => {
 		return rollup({
 			entry: 'samples/sourcemap/main.js',
 			plugins: [ commonjs({ sourceMap: true }) ]

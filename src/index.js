@@ -70,29 +70,34 @@ export default function commonjs ( options = {} ) {
 		});
 	}
 
+	let entryModuleIdPromise = null;
+	let entryModuleId = null;
+
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
 
 		if ( importer ) importer = importer.replace( PREFIX, '' );
 
-		const isImportedByCommonJsModule = startsWith( importee, PREFIX );
+		const isProxyModule = startsWith( importee, PREFIX );
 		importee = importee.replace( PREFIX, '' );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
-			if ( resolved ) return isImportedByCommonJsModule ? PREFIX + resolved : resolved;
+			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
 
-			if ( isImportedByCommonJsModule ) {
-				// standard resolution procedure
-				const resolved = defaultResolver( importee, importer );
-				if ( resolved ) return PREFIX + resolved;
-			}
+			resolved = defaultResolver( importee, importer );
+			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
 		});
 	}
+
+	const sourceMap = options.sourceMap !== false;
 
 	let commonjsModules = new Map();
 	function getCommonjsModule ( code, id ) {
 		if ( !commonjsModules.has( id ) ) {
-			commonjsModules.set( id, transform( code, id, ignoreGlobal, customNamedExports[ id ] ) );
+			const promise = entryModuleIdPromise.then( () => {
+				return transform( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
+			});
+			commonjsModules.set( id, promise );
 		}
 
 		return commonjsModules.get( id );
@@ -128,6 +133,10 @@ export default function commonjs ( options = {} ) {
 				.filter( Boolean );
 
 			resolveUsingOtherResolvers = first( resolvers );
+
+			entryModuleIdPromise = resolveId( options.entry ).then( resolved => {
+				entryModuleId = resolved;
+			});
 		},
 
 		resolveId,
@@ -142,19 +151,22 @@ export default function commonjs ( options = {} ) {
 		},
 
 		transform ( code, id ) {
-			const isImportedByCommonJsModule = startsWith( id, PREFIX );
+			const isProxyModule = startsWith( id, PREFIX );
 			id = id.replace( PREFIX, '' );
 
-			let transformed;
-			if ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) transformed = getCommonjsModule( code, id );
-			const isCommonJsModule = !!transformed;
+			const promise = ( filter( id ) && extensions.indexOf( extname( id ) ) !== -1 ) ?
+				getCommonjsModule( code, id ) :
+				Promise.resolve( null );
 
-			const name = getName( id );
+			return promise.then( transformed => {
+				const isCommonJsModule = !!transformed;
 
-			if ( isImportedByCommonJsModule ) {
-				if ( !isCommonJsModule ) {
-					// CJS importing ES – need to import a namespace and re-export as default
-					const code = `import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
+				const name = getName( id );
+
+				if ( isProxyModule ) {
+					const code = isCommonJsModule ?
+						`import { __moduleExports } from '${id}'; export default __moduleExports;` :
+						`import * as ${name} from '${id}'; export default ${name}['default'] || ${name};`;
 
 					return {
 						code,
@@ -162,34 +174,13 @@ export default function commonjs ( options = {} ) {
 					};
 				}
 
-				// CJS importing CJS – pass module.exports through unmolested
-				return transformed;
-			}
+				// ES importing CJS
+				if ( isCommonJsModule ) {
+					return transformed;
+				}
 
-			// ES importing CJS – do the interop dance
-			if ( isCommonJsModule ) {
-				const HELPERS_NAME = 'commonjsHelpers';
-
-				let proxy = `import * as ${HELPERS_NAME} from '${HELPERS_ID}';\nimport ${name} from '${PREFIX}${id}';\n\n`;
-				proxy += /__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`;
-				proxy += Object.keys( transformed.namedExports )
-					.filter( key => !blacklistedExports[ key ] )
-					.map( x => {
-						if (x === name) {
-							return `var ${x}$$1 = ${name}.${x};\nexport { ${x}$$1 as ${x} };`;
-						} else {
-							return `export var ${x} = ${name}.${x};`;
-						}
-					})
-					.join( '\n' );
-
-				return {
-					code: proxy,
-					map: { mappings: '' }
-				};
-			}
-
-			return null;
+				return null;
+			});
 		},
 
 		transformBundle ( code ) {

@@ -1,9 +1,14 @@
 import acorn from 'acorn';
+import { basename, extname } from 'path';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
 import { PREFIX, HELPERS_ID } from './helpers.js';
+
+const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
+var blacklistedExports = { __esModule: true };
+reserved.forEach( word => blacklistedExports[ word ] = true );
 
 var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
@@ -30,7 +35,14 @@ function tryParse ( code, id ) {
 	}
 }
 
-export default function transform ( code, id, ignoreGlobal, customNamedExports ) {
+function getName ( id ) {
+	const base = basename( id );
+	const ext = extname( base );
+
+	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
+}
+
+export default function transform ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	if ( !firstpass.test( code ) ) return null;
 
@@ -58,6 +70,11 @@ export default function transform ( code, id, ignoreGlobal, customNamedExports )
 		enter ( node, parent ) {
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) scopeDepth += 1;
+
+			if ( sourceMap ) {
+				magicString.addSourcemapLocation( node.start );
+				magicString.addSourcemapLocation( node.end );
+			}
 
 			// Is this an assignment to exports or module.exports?
 			if ( node.type === 'AssignmentExpression' ) {
@@ -158,15 +175,31 @@ export default function transform ( code, id, ignoreGlobal, customNamedExports )
 
 	const args = `module${uses.exports ? ', exports' : ''}`;
 
-	const wrapperStart = `\n\nexport default ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
-	const wrapperEnd = `\n});`;
+	const name = getName( id );
+
+	const wrapperStart = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
+	const wrapperEnd = `\n});\n\n`;
+
+	let exportBlock = ( isEntry ? [] : [ `export { ${name} as __moduleExports };` ] ).concat(
+		/__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`,
+		Object.keys( namedExports )
+			.filter( key => !blacklistedExports[ key ] )
+			.map( x => {
+				if (x === name) {
+					return `var ${x}$$1 = ${name}.${x};\nexport { ${x}$$1 as ${x} };`;
+				} else {
+					return `export var ${x} = ${name}.${x};`;
+				}
+			})
+	).join( '\n' );
 
 	magicString.trim()
 		.prepend( importBlock + wrapperStart )
 		.trim()
-		.append( wrapperEnd );
+		.append( wrapperEnd + exportBlock );
 
 	code = magicString.toString();
+	const map = sourceMap ? magicString.generateMap() : null;
 
-	return { code, map: { mappings: '' }, namedExports };
+	return { code, map };
 }
