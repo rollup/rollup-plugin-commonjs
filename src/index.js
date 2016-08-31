@@ -27,7 +27,7 @@ function getCandidates ( resolved, extensions ) {
 }
 
 function getName ( id ) {
-	const base = basename( id );
+	const base = id.split( '/' ).pop();
 	const ext = extname( base );
 
 	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
