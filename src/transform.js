@@ -1,10 +1,10 @@
 import acorn from 'acorn';
-import { basename, extname } from 'path';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
 import { flatten, isReference } from './ast-utils.js';
 import { PREFIX, HELPERS_ID } from './helpers.js';
+import { getName } from './utils.js';
 
 const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
 var blacklistedExports = { __esModule: true };
@@ -33,13 +33,6 @@ function tryParse ( code, id ) {
 		err.message += ` in ${id}`;
 		throw err;
 	}
-}
-
-function getName ( id ) {
-	const base = basename( id );
-	const ext = extname( base );
-
-	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
 }
 
 export default function transform ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {

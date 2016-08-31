@@ -1,16 +1,12 @@
 import { statSync } from 'fs';
 import { dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
-import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
+import { createFilter } from 'rollup-pluginutils';
 import MagicString from 'magic-string';
 import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
-
-const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
-
-var blacklistedExports = { __esModule: true };
-reserved.forEach( word => blacklistedExports[ word ] = true );
+import { getName } from './utils.js';
 
 function getCandidatesForExtension ( resolved, extension ) {
 	return [
@@ -24,13 +20,6 @@ function getCandidates ( resolved, extensions ) {
 		( paths, extension ) => paths.concat( getCandidatesForExtension ( resolved, extension ) ),
 		[resolved]
 	);
-}
-
-function getName ( id ) {
-	const base = id.split( /\/\\/ ).pop();
-	const ext = extname( base );
-
-	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
 }
 
 // Return the first non-falsy result from an array of
@@ -76,10 +65,10 @@ export default function commonjs ( options = {} ) {
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
 
-		if ( importer ) importer = importer.replace( PREFIX, '' );
+		if ( importer && startsWith( importer, PREFIX ) ) importer = importer.slice( PREFIX.length );
 
 		const isProxyModule = startsWith( importee, PREFIX );
-		importee = importee.replace( PREFIX, '' );
+		if (isProxyModule) importee = importee.slice( PREFIX.length );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
@@ -144,7 +133,7 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( EXTERNAL.length );
 				const name = getName( actualId );
 
-				return `import ${name} from '${actualId}'; export default ${name};`;
+				return `import ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
 			}
 
 			if ( startsWith( id, PREFIX ) ) {
@@ -152,8 +141,8 @@ export default function commonjs ( options = {} ) {
 				const name = getName( actualId );
 
 				return commonjsModules.has( actualId ) ?
-					`import { __moduleExports } from '${actualId}'; export default __moduleExports;` :
-					`import * as ${name} from '${actualId}'; export default ( ${name} && ${name}['default'] ) || ${name};`;
+					`import { __moduleExports } from ${JSON.stringify(actualId)}; export default __moduleExports;` :
+					`import * as ${name} from ${JSON.stringify(actualId)}; export default ( ${name} && ${name}['default'] ) || ${name};`;
 			}
 		},
 
