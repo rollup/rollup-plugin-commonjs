@@ -1,5 +1,5 @@
 import { statSync } from 'fs';
-import { basename, dirname, extname, resolve, sep } from 'path';
+import { dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter, makeLegalIdentifier } from 'rollup-pluginutils';
 import MagicString from 'magic-string';
@@ -27,7 +27,7 @@ function getCandidates ( resolved, extensions ) {
 }
 
 function getName ( id ) {
-	const base = id.split( '/' ).pop();
+	const base = id.split( /\/\\/ ).pop();
 	const ext = extname( base );
 
 	return makeLegalIdentifier( ext.length ? base.slice( 0, -ext.length ) : base );
