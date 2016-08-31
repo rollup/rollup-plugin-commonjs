@@ -379,4 +379,19 @@ describe( 'rollup-plugin-commonjs', () => {
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
+
+	it( 'respects other plugins', () => {
+		return rollup({
+			entry: 'samples/other-transforms/main.js',
+			plugins: [
+				{
+					transform ( code, id ) {
+						if ( id[0] === '\0' ) return null;
+						return code.replace( '40', '41' );
+					}
+				},
+				commonjs()
+			]
+		}).then( executeBundle );
+	});
 });
