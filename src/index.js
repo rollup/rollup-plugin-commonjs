@@ -68,7 +68,7 @@ export default function commonjs ( options = {} ) {
 		if ( importer && startsWith( importer, PREFIX ) ) importer = importer.slice( PREFIX.length );
 
 		const isProxyModule = startsWith( importee, PREFIX );
-		if (isProxyModule) importee = importee.slice( PREFIX.length );
+		if ( isProxyModule ) importee = importee.slice( PREFIX.length );
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
@@ -133,7 +133,7 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( EXTERNAL.length );
 				const name = getName( actualId );
 
-				return `import ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
+				return `import ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
 			}
 
 			if ( startsWith( id, PREFIX ) ) {
@@ -141,8 +141,8 @@ export default function commonjs ( options = {} ) {
 				const name = getName( actualId );
 
 				return commonjsModules.has( actualId ) ?
-					`import { __moduleExports } from ${JSON.stringify(actualId)}; export default __moduleExports;` :
-					`import * as ${name} from ${JSON.stringify(actualId)}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+					`import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;` :
+					`import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
 			}
 		},
 
