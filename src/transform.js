@@ -2,7 +2,7 @@ import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
-import { flatten, isReference } from './ast-utils.js';
+import { flatten, isReference, isTruthy, isFalsy } from './ast-utils.js';
 import { PREFIX, HELPERS_ID } from './helpers.js';
 import { getName } from './utils.js';
 
@@ -61,6 +61,12 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 	walk( ast, {
 		enter ( node, parent ) {
+			// skip dead branches
+			if ( parent && ( parent.type === 'IfStatement' || parent.type === 'ConditionalExpression' ) ) {
+				if ( node === parent.consequent && isFalsy( parent.test ) ) return this.skip();
+				if ( node === parent.alternate && isTruthy( parent.test ) ) return this.skip();
+			}
+
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) scopeDepth += 1;
 
