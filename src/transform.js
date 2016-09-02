@@ -7,13 +7,13 @@ import { PREFIX, HELPERS_ID } from './helpers.js';
 import { getName } from './utils.js';
 
 const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
-var blacklistedExports = { __esModule: true };
+const blacklistedExports = { __esModule: true };
 reserved.forEach( word => blacklistedExports[ word ] = true );
 
-var exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
+const exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
-var firstpassGlobal = /\b(?:require|module|exports|global)\b/;
-var firstpassNoGlobal = /\b(?:require|module|exports)\b/;
+const firstpassGlobal = /\b(?:require|module|exports|global)\b/;
+const firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 const importExportDeclaration = /^(?:Import|Export(?:Named|Default))Declaration/;
 
 function deconflict ( identifier, code ) {
@@ -40,7 +40,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	if ( !firstpass.test( code ) ) return null;
 
-	let namedExports = {};
+	const namedExports = {};
 	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
 
 	const ast = tryParse( code, id );
@@ -52,15 +52,15 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 	const magicString = new MagicString( code );
 
-	let required = {};
+	const required = {};
 	// Because objects have no guaranteed ordering, yet we need it,
 	// we need to keep track of the order in a array
-	let sources = [];
+	const sources = [];
 
 	let uid = 0;
 
 	let scope = attachScopes( ast, 'scope' );
-	let uses = { module: false, exports: false, global: false };
+	const uses = { module: false, exports: false, global: false };
 
 	let scopeDepth = 0;
 
@@ -137,7 +137,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 			const source = node.arguments[0].value;
 
-			let existing = required[ source ];
+			const existing = required[ source ];
 			if ( existing === undefined ) {
 				sources.unshift(source);
 			}
@@ -191,7 +191,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	const wrapperStart = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
 	const wrapperEnd = `\n});\n\n`;
 
-	let exportBlock = ( isEntry ? [] : [ `export { ${name} as __moduleExports };` ] ).concat(
+	const exportBlock = ( isEntry ? [] : [ `export { ${name} as __moduleExports };` ] ).concat(
 		/__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`,
 		Object.keys( namedExports )
 			.filter( key => !blacklistedExports[ key ] )

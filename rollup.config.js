@@ -1,5 +1,7 @@
 import buble from 'rollup-plugin-buble';
 
+var pkg = require('./package.json');
+
 var external = Object.keys( require( './package.json' ).dependencies ).concat([ 'fs', 'path' ]);
 
 export default {
@@ -10,5 +12,15 @@ export default {
 		})
 	],
 	external: external,
-	sourceMap: true
+	sourceMap: true,
+	targets: [
+		{
+			format: 'es',
+			dest: pkg.module
+		},
+		{
+			format: 'cjs',
+			dest: pkg.main
+		}
+	]
 };

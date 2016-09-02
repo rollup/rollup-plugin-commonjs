@@ -44,7 +44,7 @@ export default function commonjs ( options = {} ) {
 	const filter = createFilter( options.include, options.exclude );
 	const ignoreGlobal = options.ignoreGlobal;
 
-	let customNamedExports = {};
+	const customNamedExports = {};
 	if ( options.namedExports ) {
 		Object.keys( options.namedExports ).forEach( id => {
 			let resolvedId;
@@ -86,7 +86,7 @@ export default function commonjs ( options = {} ) {
 
 	const sourceMap = options.sourceMap !== false;
 
-	let commonjsModules = new Map();
+	const commonjsModules = new Map();
 	let resolveUsingOtherResolvers;
 
 	return {
