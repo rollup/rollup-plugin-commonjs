@@ -19,7 +19,7 @@ function executeBundle ( bundle ) {
 	let fn;
 
 	try {
-		fn = new Function( 'module', 'exports', 'require', 'assert', code );
+		fn = new Function( 'module', 'exports', 'require', 'global', 'assert', code );
 	} catch ( err ) {
 		// syntax error
 		console.log( code );
@@ -27,10 +27,15 @@ function executeBundle ( bundle ) {
 	}
 
 	const module = { exports: {} };
+	const global = {};
 
-	fn( module, module.exports, () => {}, assert );
+	fn( module, module.exports, () => {}, global, assert );
 
-	return module.exports;
+	return {
+		code,
+		exports: module.exports,
+		global
+	};
 }
 
 describe( 'rollup-plugin-commonjs', () => {
@@ -49,11 +54,12 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: `function/${dir}/main.js`,
 					plugins: [ commonjs() ]
 				}).then( bundle => {
-					const exports = executeBundle( bundle );
+					const { code, exports, global } = executeBundle( bundle );
 
-					if ( config.exports ) {
-						config.exports( exports );
-					}
+					if ( config.show ) console.error( code );
+
+					if ( config.exports ) config.exports( exports );
+					if ( config.global ) config.global( global );
 				});
 			});
 		});
@@ -193,7 +199,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				entry: 'samples/extension/main.coffee',
 				plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
 			}).then( bundle => {
-				assert.equal( executeBundle( bundle ), 42 );
+				assert.equal( executeBundle( bundle ).exports, 42 );
 			});
 		});
 
@@ -208,11 +214,11 @@ describe( 'rollup-plugin-commonjs', () => {
 					format: 'cjs'
 				});
 
-				const bundleExports = executeBundle( bundle );
+				const { exports, global } = executeBundle( bundle );
 
-				assert.equal( bundleExports.immediate1, global.setImmediate, generated.code );
-				assert.equal( bundleExports.immediate2, global.setImmediate, generated.code );
-				assert.equal( bundleExports.immediate3, null, generated.code );
+				assert.equal( exports.immediate1, global.setImmediate, generated.code );
+				assert.equal( exports.immediate2, global.setImmediate, generated.code );
+				assert.equal( exports.immediate3, null, generated.code );
 			});
 		});
 
@@ -222,7 +228,7 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: 'samples/umd/correct-scoping.js',
 					plugins: [ commonjs() ]
 				}).then( bundle => {
-					assert.equal( executeBundle( bundle ), 'object' );
+					assert.equal( executeBundle( bundle ).exports, 'object' );
 				});
 			});
 
@@ -231,7 +237,7 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: 'samples/umd/protobuf.js',
 					plugins: [ commonjs() ]
 				}).then( bundle => {
-					assert.equal( executeBundle( bundle ), true );
+					assert.equal( executeBundle( bundle ).exports, true );
 				});
 			});
 
@@ -253,8 +259,8 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/deconflict-helpers/main.js',
 				plugins: [ commonjs() ]
-			}).then( executeBundle ).then( module => {
-				assert.notEqual( module.exports, 'nope' );
+			}).then( executeBundle ).then( ({ exports }) => {
+				assert.notEqual( exports, 'nope' );
 			});
 		});
 
