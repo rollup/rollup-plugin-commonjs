@@ -1,12 +1,12 @@
 var foo = 'a';
 var bar = 'b';
 
-var __moduleExports = {
+var input = {
 	foo: foo,
 	bar: bar
 };
 
-export default __moduleExports;
-export { __moduleExports };
+export default input;
+export { input as __moduleExports };
 export { foo };
 export { bar };

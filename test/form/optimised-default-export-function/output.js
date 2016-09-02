@@ -1,4 +1,4 @@
-var __moduleExports = function foo () {};
+var input = function foo () {};
 
-export default __moduleExports;
-export { __moduleExports };
+export default input;
+export { input as __moduleExports };

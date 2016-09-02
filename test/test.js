@@ -80,7 +80,9 @@ describe( 'rollup-plugin-commonjs', () => {
 					plugins: [ commonjs() ]
 				}).then( bundle => {
 					const { code } = bundle.generate({ format: 'cjs' });
-					if ( config.show ) console.error( code );
+					if ( config.show || config.solo ) {
+						console.error( code );
+					}
 
 					const { exports, global } = execute( code );
 

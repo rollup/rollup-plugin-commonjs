@@ -1,4 +1,4 @@
-var __moduleExports = 42;
+var input = 42;
 
-export default __moduleExports;
-export { __moduleExports };
+export default input;
+export { input as __moduleExports };
