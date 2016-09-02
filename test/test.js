@@ -104,9 +104,9 @@ describe( 'rollup-plugin-commonjs', () => {
 					format: 'cjs'
 				});
 
-				let mockWindow = {};
-				let mockGlobal = {};
-				let mockSelf = {};
+				const mockWindow = {};
+				const mockGlobal = {};
+				const mockSelf = {};
 
 				const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
 
@@ -136,8 +136,8 @@ describe( 'rollup-plugin-commonjs', () => {
 
 				const fn = new Function ( 'module', 'exports', 'window', generated.code );
 
-				let module = { exports: {} };
-				let window = {};
+				const module = { exports: {} };
+				const window = {};
 
 				fn( module, module.exports, window );
 				assert.equal( window.count, 1 );
@@ -156,7 +156,7 @@ describe( 'rollup-plugin-commonjs', () => {
 					format: 'cjs'
 				});
 
-				let module = { exports: {} };
+				const module = { exports: {} };
 
 				const fn = new Function ( 'module', 'exports', generated.code );
 				fn( module, module.exports );

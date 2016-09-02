@@ -14,8 +14,7 @@ export function isReference ( node, parent ) {
 }
 
 export function flatten ( node ) {
-	let name;
-	let parts = [];
+	const parts = [];
 
 	while ( node.type === 'MemberExpression' ) {
 		if ( node.computed ) return null;
@@ -26,7 +25,7 @@ export function flatten ( node ) {
 
 	if ( node.type !== 'Identifier' ) return null;
 
-	name = node.name;
+	const name = node.name;
 	parts.unshift( name );
 
 	return { name, keypath: parts.join( '.' ) };
