@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 4.1.0
+
+* Ignore dead branches ([#93](https://github.com/rollup/rollup-plugin-commonjs/issues/93))
+
 ## 4.0.1
 
 * Fix `ignoreGlobal` option ([#86](https://github.com/rollup/rollup-plugin-commonjs/pull/86))
