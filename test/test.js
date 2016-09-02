@@ -59,231 +59,234 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
-	it( 'generates a sourcemap', () => {
-		return rollup({
-			entry: 'samples/sourcemap/main.js',
-			plugins: [ commonjs({ sourceMap: true }) ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs',
-				sourceMap: true,
-				sourceMapFile: path.resolve( 'bundle.js' )
-			});
-
-			const smc = new SourceMapConsumer( generated.map );
-			const locator = getLocator( generated.code, { offsetLine: 1 });
-
-			let generatedLoc = locator( '42' );
-			let loc = smc.originalPositionFor( generatedLoc ); // 42
-			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
-			assert.equal( loc.line, 1 );
-			assert.equal( loc.column, 15 );
-
-			generatedLoc = locator( 'log' );
-			loc = smc.originalPositionFor( generatedLoc ); // log
-			assert.equal( loc.source, 'samples/sourcemap/main.js' );
-			assert.equal( loc.line, 2 );
-			assert.equal( loc.column, 8 );
-		});
-	});
-
-	it( 'handles references to `global`', () => {
-		return rollup({
-			entry: 'samples/global/main.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			let mockWindow = {};
-			let mockGlobal = {};
-			let mockSelf = {};
-
-			const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
-
-			fn( {}, mockWindow, mockGlobal,  mockSelf);
-			assert.equal( mockWindow.foo, 'bar', generated.code );
-			assert.equal( mockGlobal.foo, undefined, generated.code );
-			assert.equal( mockSelf.foo, undefined, generated.code );
-
-			fn( {}, undefined, mockGlobal,  mockSelf );
-			assert.equal( mockGlobal.foo, 'bar', generated.code );
-			assert.equal( mockSelf.foo, undefined, generated.code );
-
-			fn( {}, undefined, undefined, mockSelf );
-			assert.equal( mockSelf.foo, 'bar', generated.code );
-
-		});
-	});
-
-	it( 'handles multiple references to `global`', () => {
-		return rollup({
-			entry: 'samples/global-in-if-block/main.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			const fn = new Function ( 'module', 'exports', 'window', generated.code );
-
-			let module = { exports: {} };
-			let window = {};
-
-			fn( module, module.exports, window );
-			assert.equal( window.count, 1 );
-
-			fn( module, module.exports, window );
-			assert.equal( window.count, 2 );
-		});
-	});
-
-	it( 'handles transpiled CommonJS modules', () => {
-		return rollup({
-			entry: 'samples/corejs/literal-with-default.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			let module = { exports: {} };
-
-			const fn = new Function ( 'module', 'exports', generated.code );
-			fn( module, module.exports );
-
-			assert.equal( module.exports, 'foobar', generated.code );
-		});
-	});
-
-	it( 'allows named exports to be added explicitly via config', () => {
-		return rollup({
-			entry: 'samples/custom-named-exports/main.js',
-			plugins: [
-				nodeResolve({ main: true }),
-				commonjs({
-					namedExports: {
-						'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
-						'external': [ 'message' ]
-					}
-				})
-			]
-		}).then( executeBundle );
-	});
-
-	it( 'ignores false positives with namedExports (#36)', () => {
-		return rollup({
-			entry: 'samples/custom-named-exports-false-positive/main.js',
-			plugins: [
-				nodeResolve({ main: true }),
-				commonjs({
-					namedExports: {
-						'irrelevant': [ 'lol' ]
-					}
-				})
-			]
-		}).then( executeBundle );
-	});
-
-	it( 'converts a CommonJS module with custom file extension', () => {
-		return rollup({
-			entry: 'samples/extension/main.coffee',
-			plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
-		}).then( bundle => {
-			assert.equal( executeBundle( bundle ), 42 );
-		});
-	});
-
-	it( 'can ignore references to `global`', () => {
-		return rollup({
-			entry: 'samples/ignore-global/main.js',
-			plugins: [ commonjs({
-				ignoreGlobal: true
-			}) ]
-		}).then( bundle => {
-			const generated = bundle.generate({
-				format: 'cjs'
-			});
-
-			const bundleExports = executeBundle( bundle );
-
-			assert.equal( bundleExports.immediate1, global.setImmediate, generated.code );
-			assert.equal( bundleExports.immediate2, global.setImmediate, generated.code );
-			assert.equal( bundleExports.immediate3, null, generated.code );
-		});
-	});
-
-	describe( 'typeof transforms', () => {
-		it( 'correct-scoping', () => {
+	describe( 'misc tests', () => {
+		// most of these should be moved over to function...
+		it( 'generates a sourcemap', () => {
 			return rollup({
-				entry: 'samples/umd/correct-scoping.js',
+				entry: 'samples/sourcemap/main.js',
+				plugins: [ commonjs({ sourceMap: true }) ]
+			}).then( bundle => {
+				const generated = bundle.generate({
+					format: 'cjs',
+					sourceMap: true,
+					sourceMapFile: path.resolve( 'bundle.js' )
+				});
+
+				const smc = new SourceMapConsumer( generated.map );
+				const locator = getLocator( generated.code, { offsetLine: 1 });
+
+				let generatedLoc = locator( '42' );
+				let loc = smc.originalPositionFor( generatedLoc ); // 42
+				assert.equal( loc.source, 'samples/sourcemap/foo.js' );
+				assert.equal( loc.line, 1 );
+				assert.equal( loc.column, 15 );
+
+				generatedLoc = locator( 'log' );
+				loc = smc.originalPositionFor( generatedLoc ); // log
+				assert.equal( loc.source, 'samples/sourcemap/main.js' );
+				assert.equal( loc.line, 2 );
+				assert.equal( loc.column, 8 );
+			});
+		});
+
+		it( 'handles references to `global`', () => {
+			return rollup({
+				entry: 'samples/global/main.js',
 				plugins: [ commonjs() ]
 			}).then( bundle => {
-				assert.equal( executeBundle( bundle ), 'object' );
+				const generated = bundle.generate({
+					format: 'cjs'
+				});
+
+				let mockWindow = {};
+				let mockGlobal = {};
+				let mockSelf = {};
+
+				const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
+
+				fn( {}, mockWindow, mockGlobal,  mockSelf);
+				assert.equal( mockWindow.foo, 'bar', generated.code );
+				assert.equal( mockGlobal.foo, undefined, generated.code );
+				assert.equal( mockSelf.foo, undefined, generated.code );
+
+				fn( {}, undefined, mockGlobal,  mockSelf );
+				assert.equal( mockGlobal.foo, 'bar', generated.code );
+				assert.equal( mockSelf.foo, undefined, generated.code );
+
+				fn( {}, undefined, undefined, mockSelf );
+				assert.equal( mockSelf.foo, 'bar', generated.code );
+
 			});
 		});
 
-		it( 'protobuf', () => {
+		it( 'handles multiple references to `global`', () => {
 			return rollup({
-				entry: 'samples/umd/protobuf.js',
+				entry: 'samples/global-in-if-block/main.js',
 				plugins: [ commonjs() ]
 			}).then( bundle => {
-				assert.equal( executeBundle( bundle ), true );
+				const generated = bundle.generate({
+					format: 'cjs'
+				});
+
+				const fn = new Function ( 'module', 'exports', 'window', generated.code );
+
+				let module = { exports: {} };
+				let window = {};
+
+				fn( module, module.exports, window );
+				assert.equal( window.count, 1 );
+
+				fn( module, module.exports, window );
+				assert.equal( window.count, 2 );
 			});
 		});
 
-		it( 'sinon', () => {
+		it( 'handles transpiled CommonJS modules', () => {
 			return rollup({
-				entry: 'samples/umd/sinon.js',
+				entry: 'samples/corejs/literal-with-default.js',
 				plugins: [ commonjs() ]
 			}).then( bundle => {
-				const code = bundle.generate().code;
+				const generated = bundle.generate({
+					format: 'cjs'
+				});
 
-				assert.equal( code.indexOf( 'typeof require' ), -1, code );
-				assert.notEqual( code.indexOf( 'typeof module' ), -1, code );
-				assert.notEqual( code.indexOf( 'typeof define' ), -1, code );
+				let module = { exports: {} };
+
+				const fn = new Function ( 'module', 'exports', generated.code );
+				fn( module, module.exports );
+
+				assert.equal( module.exports, 'foobar', generated.code );
 			});
 		});
-	});
 
-	it( 'deconflicts helper name', () => {
-		return rollup({
-			entry: 'samples/deconflict-helpers/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle ).then( module => {
-			assert.notEqual( module.exports, 'nope' );
+		it( 'allows named exports to be added explicitly via config', () => {
+			return rollup({
+				entry: 'samples/custom-named-exports/main.js',
+				plugins: [
+					nodeResolve({ main: true }),
+					commonjs({
+						namedExports: {
+							'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
+							'external': [ 'message' ]
+						}
+					})
+				]
+			}).then( executeBundle );
 		});
-	});
 
-	it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
-		return rollup({
-			entry: './function/basic/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
+		it( 'ignores false positives with namedExports (#36)', () => {
+			return rollup({
+				entry: 'samples/custom-named-exports-false-positive/main.js',
+				plugins: [
+					nodeResolve({ main: true }),
+					commonjs({
+						namedExports: {
+							'irrelevant': [ 'lol' ]
+						}
+					})
+				]
+			}).then( executeBundle );
+		});
 
-	it( 'does not reexport named contents', () => {
-		return rollup({
-			entry: 'samples/reexport/main.js',
-			plugins: [ commonjs() ]
-		})
-		.then( executeBundle)
-		.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
-	});
+		it( 'converts a CommonJS module with custom file extension', () => {
+			return rollup({
+				entry: 'samples/extension/main.coffee',
+				plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ), 42 );
+			});
+		});
 
-	it( 'respects other plugins', () => {
-		return rollup({
-			entry: 'samples/other-transforms/main.js',
-			plugins: [
-				{
-					transform ( code, id ) {
-						if ( id[0] === '\0' ) return null;
-						return code.replace( '40', '41' );
-					}
-				},
-				commonjs()
-			]
-		}).then( executeBundle );
+		it( 'can ignore references to `global`', () => {
+			return rollup({
+				entry: 'samples/ignore-global/main.js',
+				plugins: [ commonjs({
+					ignoreGlobal: true
+				}) ]
+			}).then( bundle => {
+				const generated = bundle.generate({
+					format: 'cjs'
+				});
+
+				const bundleExports = executeBundle( bundle );
+
+				assert.equal( bundleExports.immediate1, global.setImmediate, generated.code );
+				assert.equal( bundleExports.immediate2, global.setImmediate, generated.code );
+				assert.equal( bundleExports.immediate3, null, generated.code );
+			});
+		});
+
+		describe( 'typeof transforms', () => {
+			it( 'correct-scoping', () => {
+				return rollup({
+					entry: 'samples/umd/correct-scoping.js',
+					plugins: [ commonjs() ]
+				}).then( bundle => {
+					assert.equal( executeBundle( bundle ), 'object' );
+				});
+			});
+
+			it( 'protobuf', () => {
+				return rollup({
+					entry: 'samples/umd/protobuf.js',
+					plugins: [ commonjs() ]
+				}).then( bundle => {
+					assert.equal( executeBundle( bundle ), true );
+				});
+			});
+
+			it( 'sinon', () => {
+				return rollup({
+					entry: 'samples/umd/sinon.js',
+					plugins: [ commonjs() ]
+				}).then( bundle => {
+					const code = bundle.generate().code;
+
+					assert.equal( code.indexOf( 'typeof require' ), -1, code );
+					assert.notEqual( code.indexOf( 'typeof module' ), -1, code );
+					assert.notEqual( code.indexOf( 'typeof define' ), -1, code );
+				});
+			});
+		});
+
+		it( 'deconflicts helper name', () => {
+			return rollup({
+				entry: 'samples/deconflict-helpers/main.js',
+				plugins: [ commonjs() ]
+			}).then( executeBundle ).then( module => {
+				assert.notEqual( module.exports, 'nope' );
+			});
+		});
+
+		it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
+			return rollup({
+				entry: './function/basic/main.js',
+				plugins: [ commonjs() ]
+			}).then( executeBundle );
+		});
+
+		it( 'does not reexport named contents', () => {
+			return rollup({
+				entry: 'samples/reexport/main.js',
+				plugins: [ commonjs() ]
+			})
+			.then( executeBundle)
+			.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
+		});
+
+		it( 'respects other plugins', () => {
+			return rollup({
+				entry: 'samples/other-transforms/main.js',
+				plugins: [
+					{
+						transform ( code, id ) {
+							if ( id[0] === '\0' ) return null;
+							return code.replace( '40', '41' );
+						}
+					},
+					commonjs()
+				]
+			}).then( executeBundle );
+		});
 	});
 });
