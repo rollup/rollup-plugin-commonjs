@@ -1,6 +1,8 @@
 const path = require( 'path' );
+const fs = require( 'fs' );
 const assert = require( 'assert' );
 const { SourceMapConsumer } = require( 'source-map' );
+const { getLocator } = require( 'locate-character' );
 const { rollup } = require( 'rollup' );
 const nodeResolve = require( 'rollup-plugin-node-resolve' );
 const commonjs = require( '..' );
@@ -31,52 +33,29 @@ function executeBundle ( bundle ) {
 	return module.exports;
 }
 
-function getLocation ( source, charIndex ) {
-	var lines = source.split( '\n' );
-	var len = lines.length;
-
-	var lineStart = 0;
-	var i;
-
-	for ( i = 0; i < len; i += 1 ) {
-		var line = lines[i];
-		var lineEnd =  lineStart + line.length + 1; // +1 for newline
-
-		if ( lineEnd > charIndex ) {
-			return { line: i + 1, column: charIndex - lineStart };
-		}
-
-		lineStart = lineEnd;
-	}
-
-	throw new Error( 'Could not determine location of character' );
-}
-
 describe( 'rollup-plugin-commonjs', () => {
-	it( 'converts a basic CommonJS module', () => {
-		return rollup({
-			entry: 'samples/basic/main.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			assert.equal( executeBundle( bundle ), 42 );
-		});
-	});
+	describe( 'function', () => {
+		fs.readdirSync( 'function' ).forEach( dir => {
+			let config;
 
-	it( 'converts a CommonJS module that mutates exports instead of replacing', () => {
-		return rollup({
-			entry: 'samples/exports/main.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			assert.equal( executeBundle( bundle ), 'BARBAZ' );
-		});
-	});
+			try {
+				config = require( `./function/${dir}/_config.js` );
+			} catch ( err ) {
+				config = {};
+			}
 
-	it( 'converts inline require calls', () => {
-		return rollup({
-			entry: 'samples/inline/main.js',
-			plugins: [ commonjs() ]
-		}).then( bundle => {
-			assert.equal( executeBundle( bundle )(), 2 );
+			( config.solo ? it.only : it )( dir, () => {
+				return rollup({
+					entry: `function/${dir}/main.js`,
+					plugins: [ commonjs() ]
+				}).then( bundle => {
+					const exports = executeBundle( bundle );
+
+					if ( config.exports ) {
+						config.exports( exports );
+					}
+				});
+			});
 		});
 	});
 
@@ -92,14 +71,15 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 
 			const smc = new SourceMapConsumer( generated.map );
+			const locator = getLocator( generated.code, { offsetLine: 1 });
 
-			let generatedLoc = getLocation( generated.code, generated.code.indexOf( '42' ) );
+			let generatedLoc = locator( '42' );
 			let loc = smc.originalPositionFor( generatedLoc ); // 42
 			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
-			generatedLoc = getLocation( generated.code, generated.code.indexOf( 'log' ) );
+			generatedLoc = locator( 'log' );
 			loc = smc.originalPositionFor( generatedLoc ); // log
 			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
@@ -357,7 +337,7 @@ describe( 'rollup-plugin-commonjs', () => {
 
 	it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
 		return rollup({
-			entry: './samples/basic/main.js',
+			entry: './function/basic/main.js',
 			plugins: [ commonjs() ]
 		}).then( executeBundle );
 	});
