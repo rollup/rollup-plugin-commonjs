@@ -11,11 +11,7 @@ require( 'source-map-support' ).install();
 
 process.chdir( __dirname );
 
-function executeBundle ( bundle ) {
-	const { code } = bundle.generate({
-		format: 'cjs'
-	});
-
+function execute ( code ) {
 	let fn;
 
 	try {
@@ -38,6 +34,11 @@ function executeBundle ( bundle ) {
 	};
 }
 
+function executeBundle ( bundle ) {
+	const { code } = bundle.generate({ format: 'cjs' });
+	execute( code );
+}
+
 describe( 'rollup-plugin-commonjs', () => {
 	describe( 'form', () => {
 		const { transform, options } = commonjs();
@@ -57,7 +58,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' );
 
 				return transform( input, 'input.js' ).then( transformed => {
-					assert.equal( transformed ? transformed.code : input, expected );
+					assert.equal( ( transformed ? transformed.code : input ).trim(), expected.trim() );
 				});
 			});
 		});
@@ -78,9 +79,10 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: `function/${dir}/main.js`,
 					plugins: [ commonjs() ]
 				}).then( bundle => {
-					const { code, exports, global } = executeBundle( bundle );
-
+					const { code } = bundle.generate({ format: 'cjs' });
 					if ( config.show ) console.error( code );
+
+					const { exports, global } = execute( code );
 
 					if ( config.exports ) config.exports( exports );
 					if ( config.global ) config.global( global );
