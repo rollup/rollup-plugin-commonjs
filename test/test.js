@@ -87,50 +87,6 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
-	it( 'finds index.js files', () => {
-		return rollup({
-			entry: 'samples/index/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'handles reassignments to imports', () => {
-		return rollup({
-			entry: 'samples/reassignment/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'handles imports with a trailing slash', () => {
-		// yes this actually happens. Not sure why someone would do this
-		// https://github.com/nodejs/readable-stream/blob/077681f08e04094f087f11431dc64ca147dda20f/lib/_stream_readable.js#L125
-		return rollup({
-			entry: 'samples/trailing-slash/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'handles imports with a non-extension dot', () => {
-		return rollup({
-			entry: 'samples/dot/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'handles shadowed require', () => {
-		return rollup({
-			entry: 'samples/shadowing/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'identifies named exports', () => {
-		return rollup({
-			entry: 'samples/named-exports/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
 	it( 'handles references to `global`', () => {
 		return rollup({
 			entry: 'samples/global/main.js',
@@ -183,13 +139,6 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 	});
 
-	it( 'allows `var global` declarations', () => {
-		return rollup({
-			entry: 'samples/global-var/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
 	it( 'handles transpiled CommonJS modules', () => {
 		return rollup({
 			entry: 'samples/corejs/literal-with-default.js',
@@ -206,20 +155,6 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			assert.equal( module.exports, 'foobar', generated.code );
 		});
-	});
-
-	it( 'handles bare imports', () => {
-		return rollup({
-			entry: 'samples/bare-import/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'does not export __esModule', () => {
-		return rollup({
-			entry: 'samples/__esModule/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
 	});
 
 	it( 'allows named exports to be added explicitly via config', () => {
@@ -258,20 +193,6 @@ describe( 'rollup-plugin-commonjs', () => {
 		}).then( bundle => {
 			assert.equal( executeBundle( bundle ), 42 );
 		});
-	});
-
-	it( 'rewrites top-level this expressions', () => {
-		return rollup({
-			entry: 'samples/this/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'obeys order of require expressions', () => {
-		return rollup({
-			entry: 'samples/ordering/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
 	});
 
 	it( 'can ignore references to `global`', () => {
@@ -342,13 +263,6 @@ describe( 'rollup-plugin-commonjs', () => {
 		}).then( executeBundle );
 	});
 
-	it( 'falls back to object of exports without default export', () => {
-		return rollup({
-			entry: 'samples/fallback-no-default/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
 	it( 'does not reexport named contents', () => {
 		return rollup({
 			entry: 'samples/reexport/main.js',
@@ -356,20 +270,6 @@ describe( 'rollup-plugin-commonjs', () => {
 		})
 		.then( executeBundle)
 		.catch(error => assert.ok(/reexport\.js does not export named/.test(error.message)));
-	});
-
-	it( 'deconflict export name and local variable', () => {
-		return rollup({
-			entry: 'samples/deconflict-export-and-local/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
-	});
-
-	it( 'does not remove .default properties', () => {
-		return rollup({
-			entry: 'samples/react-apollo/main.js',
-			plugins: [ commonjs() ]
-		}).then( executeBundle );
 	});
 
 	it( 'respects other plugins', () => {
