@@ -2,7 +2,6 @@ import { statSync } from 'fs';
 import { dirname, extname, resolve, sep } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
-import MagicString from 'magic-string';
 import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
 import transform from './transform.js';
@@ -158,24 +157,6 @@ export default function commonjs ( options = {} ) {
 					return transformed;
 				}
 			});
-		},
-
-		transformBundle ( code ) {
-			// prevent external dependencies from having the prefix
-			const magicString = new MagicString( code );
-			const pattern = new RegExp( PREFIX, 'g' );
-
-			if ( !pattern.test( code ) ) return null;
-
-			let match;
-			while ( match = pattern.exec( code ) ) {
-				magicString.remove( match.index, match[0].length );
-			}
-
-			return {
-				code: magicString.toString(),
-				map: magicString.generateMap({ hires: true })
-			};
 		}
 	};
 }
