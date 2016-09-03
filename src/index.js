@@ -158,24 +158,6 @@ export default function commonjs ( options = {} ) {
 					return transformed;
 				}
 			});
-		},
-
-		transformBundle ( code ) {
-			// prevent external dependencies from having the prefix
-			const magicString = new MagicString( code );
-			const pattern = new RegExp( PREFIX, 'g' );
-
-			if ( !pattern.test( code ) ) return null;
-
-			let match;
-			while ( match = pattern.exec( code ) ) {
-				magicString.remove( match.index, match[0].length );
-			}
-
-			return {
-				code: magicString.toString(),
-				map: magicString.generateMap({ hires: true })
-			};
 		}
 	};
 }
