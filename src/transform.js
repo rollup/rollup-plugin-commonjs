@@ -24,7 +24,7 @@ function deconflict ( identifier, code ) {
 }
 
 function tryParse ( code, id ) {
-	code = code.replace(/^\s*#.*/g, '') // Strip shebang-like junk
+	code = code.replace(/^\s*#.*/g, ''); // Strip shebang-like junk
 	
 	try {
 		return acorn.parse( code, {
