@@ -25,7 +25,7 @@ function execute ( code ) {
 	const module = { exports: {} };
 	const global = {};
 
-	fn( module, module.exports, () => {}, global, assert );
+	fn( module, module.exports, name => name, global, assert );
 
 	return {
 		code,

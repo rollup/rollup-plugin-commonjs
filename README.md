@@ -1,4 +1,7 @@
-# rollup-plugin-commonjs
+# rollup-plugin-commonjs [![Build Status][travis-img]][travis]
+
+[travis-img]: https://travis-ci.org/rollup/rollup-plugin-commonjs.svg
+[travis]: https://travis-ci.org/rollup/rollup-plugin-commonjs
 
 Convert CommonJS modules to ES6, so they can be included in a Rollup bundle
 
