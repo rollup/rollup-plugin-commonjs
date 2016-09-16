@@ -39,6 +39,30 @@ function executeBundle ( bundle ) {
 }
 
 describe( 'rollup-plugin-commonjs', () => {
+	describe( 'form', () => {
+		const { transform, options } = commonjs();
+		options({ entry: 'main.js' });
+
+		fs.readdirSync( 'form' ).forEach( dir => {
+			let config;
+
+			try {
+				config = require( `./form/${dir}/_config.js` );
+			} catch ( err ) {
+				config = {};
+			}
+
+			( config.solo ? it.only : it )( dir, () => {
+				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
+				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' );
+
+				return transform( input, 'input.js' ).then( transformed => {
+					assert.equal( transformed ? transformed.code : input, expected );
+				});
+			});
+		});
+	});
+
 	describe( 'function', () => {
 		fs.readdirSync( 'function' ).forEach( dir => {
 			let config;
