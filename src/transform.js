@@ -69,7 +69,6 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	const HELPERS_NAME = deconflict( scope, globals, 'commonjsHelpers' ); // TODO technically wrong since globals isn't populated yet, but ¯\_(ツ)_/¯
 
 	const namedExports = {};
-	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
 
 	// TODO handle transpiled modules
 	let shouldWrap = /__esModule/.test( code );
@@ -224,28 +223,32 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		namedExportDeclarations.push( exportModuleExports );
 	}
 
+	const name = getName( id );
+
+	function addExport ( x ) {
+		let declaration;
+
+		if ( x === name ) {
+			const deconflicted = deconflict( scope, globals, name );
+			declaration = `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
+		} else {
+			declaration = `export var ${x} = ${moduleName}.${x};`;
+		}
+
+		namedExportDeclarations.push( declaration );
+	}
+
+	if ( customNamedExports ) customNamedExports.forEach( addExport );
+
 	if ( shouldWrap ) {
 		const args = `module${uses.exports ? ', exports' : ''}`;
-
-		const name = getName( id );
 
 		wrapperStart = `var ${moduleName} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
 		wrapperEnd = `\n});`;
 
 		Object.keys( namedExports )
 			.filter( key => !blacklistedExports[ key ] )
-			.forEach( x => {
-				let declaration;
-
-				if ( x === name ) {
-					const deconflicted = deconflict( scope, globals, name );
-					declaration = `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
-				} else {
-					declaration = `export var ${x} = ${moduleName}.${x};`;
-				}
-
-				namedExportDeclarations.push( declaration );
-			});
+			.forEach( addExport );
 	} else {
 		let hasDefaultExport = false;
 		const names = [];
