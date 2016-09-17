@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 5.0.3
+
+* Respect custom `namedExports` in optimised modules ([#35](https://github.com/rollup/rollup-plugin-commonjs/issues/35))
+
 ## 5.0.2
 
 * Replace `require` (outside call expressions) with `commonjsRequire` helper ([#77](https://github.com/rollup/rollup-plugin-commonjs/issues/77), [#83](https://github.com/rollup/rollup-plugin-commonjs/issues/83))
