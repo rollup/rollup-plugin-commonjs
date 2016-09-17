@@ -36,7 +36,7 @@ function execute ( code ) {
 
 function executeBundle ( bundle ) {
 	const { code } = bundle.generate({ format: 'cjs' });
-	execute( code );
+	return execute( code );
 }
 
 describe( 'rollup-plugin-commonjs', () => {

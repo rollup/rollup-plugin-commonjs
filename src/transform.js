@@ -252,6 +252,8 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				const { left, right } = node.expression;
 				const flattened = flatten( left );
 
+				if ( !flattened ) return;
+
 				const match = exportsPattern.exec( flattened.keypath );
 				if ( !match ) return;
 
