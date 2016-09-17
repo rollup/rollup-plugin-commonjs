@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 5.0.0
+
+* Optimise modules that don't need to be wrapped in a function ([#106](https://github.com/rollup/rollup-plugin-commonjs/pull/106))
+* Ignore modules containing `import` and `export` statements ([#96](https://github.com/rollup/rollup-plugin-commonjs/pull/96))
+
 ## 4.1.0
 
 * Ignore dead branches ([#93](https://github.com/rollup/rollup-plugin-commonjs/issues/93))
