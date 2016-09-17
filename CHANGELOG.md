@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 5.0.1
+
+* Deconflict against globals ([#84](https://github.com/rollup/rollup-plugin-commonjs/issues/84))
+
 ## 5.0.0
 
 * Optimise modules that don't need to be wrapped in a function ([#106](https://github.com/rollup/rollup-plugin-commonjs/pull/106))
