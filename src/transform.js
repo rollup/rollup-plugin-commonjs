@@ -16,11 +16,13 @@ const firstpassGlobal = /\b(?:require|module|exports|global)\b/;
 const firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 const importExportDeclaration = /^(?:Import|Export(?:Named|Default))Declaration/;
 
-function deconflict ( identifier, code ) {
+function deconflict ( scope, identifier ) {
 	let i = 1;
 	let deconflicted = identifier;
 
-	while ( ~code.indexOf( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
+	while ( scope.contains( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
+	scope.declarations[ deconflicted ] = true;
+
 	return deconflicted;
 }
 
@@ -39,9 +41,6 @@ function tryParse ( code, id ) {
 export default function transform ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	if ( !firstpass.test( code ) ) return null;
-
-	const namedExports = {};
-	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
 
 	const ast = tryParse( code, id );
 
@@ -62,25 +61,36 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	let scope = attachScopes( ast, 'scope' );
 	const uses = { module: false, exports: false, global: false };
 
-	let scopeDepth = 0;
+	let lexicalDepth = 0;
+	let programDepth = 0;
 
-	const HELPERS_NAME = deconflict( 'commonjsHelpers', code );
+	const HELPERS_NAME = deconflict( scope, 'commonjsHelpers' );
+
+	const namedExports = {};
+	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
+
+	// TODO handle transpiled modules
+	let shouldWrap = /__esModule/.test( code );
 
 	walk( ast, {
 		enter ( node, parent ) {
+			if ( sourceMap ) {
+				magicString.addSourcemapLocation( node.start );
+				magicString.addSourcemapLocation( node.end );
+			}
+
 			// skip dead branches
 			if ( parent && ( parent.type === 'IfStatement' || parent.type === 'ConditionalExpression' ) ) {
 				if ( node === parent.consequent && isFalsy( parent.test ) ) return this.skip();
 				if ( node === parent.alternate && isTruthy( parent.test ) ) return this.skip();
 			}
 
-			if ( node.scope ) scope = node.scope;
-			if ( /^Function/.test( node.type ) ) scopeDepth += 1;
+			if ( node._skip ) return this.skip();
 
-			if ( sourceMap ) {
-				magicString.addSourcemapLocation( node.start );
-				magicString.addSourcemapLocation( node.end );
-			}
+			programDepth += 1;
+
+			if ( node.scope ) scope = node.scope;
+			if ( /^Function/.test( node.type ) ) lexicalDepth += 1;
 
 			// Is this an assignment to exports or module.exports?
 			if ( node.type === 'AssignmentExpression' ) {
@@ -94,6 +104,14 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				const match = exportsPattern.exec( flattened.keypath );
 				if ( !match || flattened.keypath === 'exports' ) return;
 
+				uses[ flattened.name ] = true;
+
+				// we're dealing with `module.exports = ...` or `[module.]exports.foo = ...` –
+				// if this isn't top-level, we'll need to wrap the module
+				if ( programDepth > 3 ) shouldWrap = true;
+
+				node.left._skip = true;
+
 				if ( flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression' ) {
 					return node.right.properties.forEach( prop => {
 						if ( prop.computed || prop.key.type !== 'Identifier' ) return;
@@ -103,7 +121,6 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				}
 
 				if ( match[1] ) namedExports[ match[1] ] = true;
-
 				return;
 			}
 
@@ -120,12 +137,20 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			if ( node.type === 'Identifier' ) {
 				if ( ( node.name in uses ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
 					uses[ node.name ] = true;
-					if ( node.name === 'global' && !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal` );
+					if ( node.name === 'global' && !ignoreGlobal ) {
+						magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+					}
+
+					// if module or exports are used outside the context of an assignment
+					// expression, we need to wrap the module
+					if ( node.name === 'module' || node.name === 'exports' ) {
+						shouldWrap = true;
+					}
 				}
 				return;
 			}
 
-			if ( node.type === 'ThisExpression' && scopeDepth === 0 && !ignoreGlobal ) {
+			if ( node.type === 'ThisExpression' && lexicalDepth === 0 ) {
 				uses.global = true;
 				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
 				return;
@@ -160,8 +185,9 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		},
 
 		leave ( node ) {
+			programDepth -= 1;
 			if ( node.scope ) scope = scope.parent;
-			if ( /^Function/.test( node.type ) ) scopeDepth -= 1;
+			if ( /^Function/.test( node.type ) ) lexicalDepth -= 1;
 		}
 	});
 
@@ -172,7 +198,8 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		return null; // not a CommonJS module
 	}
 
-	const importBlock = [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ].concat(
+	const includeHelpers = shouldWrap || uses.global;
+	const importBlock = ( includeHelpers ? [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ] : [] ).concat(
 		sources.map( source => {
 			// import the actual module before the proxy, so that we know
 			// what kind of proxy to build
@@ -182,27 +209,86 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			const { name, importsDefault } = required[ source ];
 			return `import ${importsDefault ? `${name} from ` : ``}'${PREFIX}${source}';`;
 		})
-	).join( '\n' );
+	).join( '\n' ) + '\n\n';
 
-	const args = `module${uses.exports ? ', exports' : ''}`;
+	const namedExportDeclarations = [];
+	let wrapperStart = '';
+	let wrapperEnd = '';
 
-	const name = getName( id );
+	const moduleName = deconflict( scope, getName( id ) );
+	if ( !isEntry ) {
+		const exportModuleExports = `export { ${moduleName} as __moduleExports };`;
+		namedExportDeclarations.push( exportModuleExports );
+	}
 
-	const wrapperStart = `\n\nvar ${name} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
-	const wrapperEnd = `\n});\n\n`;
+	if ( shouldWrap ) {
+		const args = `module${uses.exports ? ', exports' : ''}`;
 
-	const exportBlock = ( isEntry ? [] : [ `export { ${name} as __moduleExports };` ] ).concat(
-		/__esModule/.test( code ) ? `export default ${HELPERS_NAME}.unwrapExports(${name});\n` : `export default ${name};\n`,
+		const name = getName( id );
+
+		wrapperStart = `var ${moduleName} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
+		wrapperEnd = `\n});`;
+
 		Object.keys( namedExports )
 			.filter( key => !blacklistedExports[ key ] )
-			.map( x => {
-				if (x === name) {
-					return `var ${x}$$1 = ${name}.${x};\nexport { ${x}$$1 as ${x} };`;
+			.forEach( x => {
+				let declaration;
+
+				if ( x === name ) {
+					const deconflicted = deconflict( scope, name );
+					declaration = `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 				} else {
-					return `export var ${x} = ${name}.${x};`;
+					declaration = `export var ${x} = ${moduleName}.${x};`;
 				}
-			})
-	).join( '\n' );
+
+				namedExportDeclarations.push( declaration );
+			});
+	} else {
+		let hasDefaultExport = false;
+		const names = [];
+
+		ast.body.forEach( node => {
+			if ( node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' ) {
+				const { left, right } = node.expression;
+				const flattened = flatten( left );
+
+				if ( !flattened ) return;
+
+				const match = exportsPattern.exec( flattened.keypath );
+				if ( !match ) return;
+
+				if ( flattened.keypath === 'module.exports' ) {
+					hasDefaultExport = true;
+					magicString.overwrite( node.start, right.start, `var ${moduleName} = ` );
+				} else {
+					const name = match[1];
+					const deconflicted = deconflict( scope, name );
+
+					names.push({ name, deconflicted });
+
+					magicString.overwrite( node.start, right.start, `var ${deconflicted} = ` );
+
+					const declaration = name === deconflicted ?
+						`export { ${name} };` :
+						`export { ${deconflicted} as ${name} };`;
+
+					namedExportDeclarations.push( declaration );
+				}
+			}
+		});
+
+		if ( !hasDefaultExport ) {
+			wrapperEnd = `\n\nvar ${moduleName} = {\n${
+				names.map( ({ name, deconflicted }) => `\t${name}: ${deconflicted}` ).join( ',\n' )
+			}\n};`;
+		}
+	}
+
+	const defaultExport = /__esModule/.test( code ) ?
+		`export default ${HELPERS_NAME}.unwrapExports(${moduleName});` :
+		`export default ${moduleName};`;
+
+	const exportBlock = '\n\n' + [ defaultExport ].concat( namedExportDeclarations ).join( '\n' );
 
 	magicString.trim()
 		.prepend( importBlock + wrapperStart )
