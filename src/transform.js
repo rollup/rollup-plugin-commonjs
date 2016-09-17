@@ -59,7 +59,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	let uid = 0;
 
 	let scope = attachScopes( ast, 'scope' );
-	const uses = { module: false, exports: false, global: false };
+	const uses = { module: false, exports: false, global: false, require: false };
 
 	let lexicalDepth = 0;
 	let programDepth = 0;
@@ -126,22 +126,16 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				return;
 			}
 
-			// To allow consumption of UMD modules, transform `typeof require` to `'function'`
-			if ( node.type === 'UnaryExpression' && node.operator === 'typeof' && node.argument.type === 'Identifier' ) {
-				const name = node.argument.name;
-
-				if ( name === 'require' && !scope.contains( name ) ) {
-					magicString.overwrite( node.start, node.end, `'function'` );
-					return;
-				}
-			}
-
 			if ( node.type === 'Identifier' ) {
 				if ( isReference( node, parent ) && !scope.contains( node.name ) ) {
 					if ( node.name in uses ) {
 						uses[ node.name ] = true;
 						if ( node.name === 'global' && !ignoreGlobal ) {
 							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+						}
+
+						if ( node.name === 'require' ) {
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
 						}
 
 						// if module or exports are used outside the context of an assignment
@@ -189,6 +183,8 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				// is a bare import, e.g. `require('foo');`
 				magicString.remove( parent.start, parent.end );
 			}
+
+			node.callee._skip = true;
 		},
 
 		leave ( node ) {
