@@ -10,7 +10,8 @@
     "pretest": "npm run build",
     "posttest": "eslint src/*.js test/*.js",
     "build": "rm -rf dist/* && rollup -c",
-    "prepublish": "npm test"
+    "lint": "eslint src",
+    "prepublish": "npm run lint && npm test"
   },
   "files": [
     "src",
