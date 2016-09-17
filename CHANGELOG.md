@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 5.0.2
+
+* Replace `require` (outside call expressions) with `commonjsRequire` helper ([#77](https://github.com/rollup/rollup-plugin-commonjs/issues/77), [#83](https://github.com/rollup/rollup-plugin-commonjs/issues/83))
+
 ## 5.0.1
 
 * Deconflict against globals ([#84](https://github.com/rollup/rollup-plugin-commonjs/issues/84))
