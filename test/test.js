@@ -89,7 +89,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			( config.solo ? it.only : it )( dir, () => {
 				return rollup({
 					entry: `function/${dir}/main.js`,
-					plugins: [ commonjs() ]
+					plugins: [ commonjs( config.pluginOptions ) ]
 				}).then( bundle => {
 					const { code } = bundle.generate({ format: 'cjs' });
 					if ( config.show || config.solo ) {
