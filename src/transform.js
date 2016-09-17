@@ -200,7 +200,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		return null; // not a CommonJS module
 	}
 
-	const includeHelpers = shouldWrap || uses.global;
+	const includeHelpers = shouldWrap || uses.global || uses.require;
 	const importBlock = ( includeHelpers ? [ `import * as ${HELPERS_NAME} from '${HELPERS_ID}';` ] : [] ).concat(
 		sources.map( source => {
 			// import the actual module before the proxy, so that we know
