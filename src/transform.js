@@ -16,11 +16,11 @@ const firstpassGlobal = /\b(?:require|module|exports|global)\b/;
 const firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 const importExportDeclaration = /^(?:Import|Export(?:Named|Default))Declaration/;
 
-function deconflict ( scope, identifier ) {
+function deconflict ( scope, globals, identifier ) {
 	let i = 1;
 	let deconflicted = identifier;
 
-	while ( scope.contains( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
+	while ( scope.contains( deconflicted ) || globals.has( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
 	scope.declarations[ deconflicted ] = true;
 
 	return deconflicted;
@@ -64,7 +64,9 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	let lexicalDepth = 0;
 	let programDepth = 0;
 
-	const HELPERS_NAME = deconflict( scope, 'commonjsHelpers' );
+	const globals = new Set();
+
+	const HELPERS_NAME = deconflict( scope, globals, 'commonjsHelpers' ); // TODO technically wrong since globals isn't populated yet, but ¯\_(ツ)_/¯
 
 	const namedExports = {};
 	if ( customNamedExports ) customNamedExports.forEach( name => namedExports[ name ] = true );
@@ -135,18 +137,23 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			}
 
 			if ( node.type === 'Identifier' ) {
-				if ( ( node.name in uses ) && isReference( node, parent ) && !scope.contains( node.name ) ) {
-					uses[ node.name ] = true;
-					if ( node.name === 'global' && !ignoreGlobal ) {
-						magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+				if ( isReference( node, parent ) && !scope.contains( node.name ) ) {
+					if ( node.name in uses ) {
+						uses[ node.name ] = true;
+						if ( node.name === 'global' && !ignoreGlobal ) {
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+						}
+
+						// if module or exports are used outside the context of an assignment
+						// expression, we need to wrap the module
+						if ( node.name === 'module' || node.name === 'exports' ) {
+							shouldWrap = true;
+						}
 					}
 
-					// if module or exports are used outside the context of an assignment
-					// expression, we need to wrap the module
-					if ( node.name === 'module' || node.name === 'exports' ) {
-						shouldWrap = true;
-					}
+					globals.add( node.name );
 				}
+
 				return;
 			}
 
@@ -215,7 +222,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	let wrapperStart = '';
 	let wrapperEnd = '';
 
-	const moduleName = deconflict( scope, getName( id ) );
+	const moduleName = deconflict( scope, globals, getName( id ) );
 	if ( !isEntry ) {
 		const exportModuleExports = `export { ${moduleName} as __moduleExports };`;
 		namedExportDeclarations.push( exportModuleExports );
@@ -235,7 +242,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 				let declaration;
 
 				if ( x === name ) {
-					const deconflicted = deconflict( scope, name );
+					const deconflicted = deconflict( scope, globals, name );
 					declaration = `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 				} else {
 					declaration = `export var ${x} = ${moduleName}.${x};`;
@@ -262,7 +269,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 					magicString.overwrite( node.start, right.start, `var ${moduleName} = ` );
 				} else {
 					const name = match[1];
-					const deconflicted = deconflict( scope, name );
+					const deconflicted = deconflict( scope, globals, name );
 
 					names.push({ name, deconflicted });
 
