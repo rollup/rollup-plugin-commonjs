@@ -11,11 +11,15 @@ require( 'source-map-support' ).install();
 
 process.chdir( __dirname );
 
-function execute ( code ) {
+function execute ( code, context = {} ) {
 	let fn;
 
+	const contextKeys = Object.keys( context );
+
+	const argNames = contextKeys.concat( 'module', 'exports', 'require', 'global', 'assert', code );
+
 	try {
-		fn = new Function( 'module', 'exports', 'require', 'global', 'assert', code );
+		fn = new Function( ...argNames );
 	} catch ( err ) {
 		// syntax error
 		console.log( code );
@@ -25,7 +29,15 @@ function execute ( code ) {
 	const module = { exports: {} };
 	const global = {};
 
-	fn( module, module.exports, name => name, global, assert );
+	const argValues = contextKeys.map( key => context[ key ] ).concat(
+		module,
+		module.exports,
+		name => name,
+		global,
+		assert
+	);
+
+	fn( ...argValues );
 
 	return {
 		code,
@@ -34,9 +46,9 @@ function execute ( code ) {
 	};
 }
 
-function executeBundle ( bundle ) {
+function executeBundle ( bundle, context ) {
 	const { code } = bundle.generate({ format: 'cjs' });
-	return execute( code );
+	return execute( code, context );
 }
 
 describe( 'rollup-plugin-commonjs', () => {
@@ -84,7 +96,7 @@ describe( 'rollup-plugin-commonjs', () => {
 						console.error( code );
 					}
 
-					const { exports, global } = execute( code );
+					const { exports, global } = execute( code, config.context );
 
 					if ( config.exports ) config.exports( exports );
 					if ( config.global ) config.global( global );
