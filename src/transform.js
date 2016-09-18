@@ -241,6 +241,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 	if ( customNamedExports ) customNamedExports.forEach( addExport );
 
 	const defaultExportPropertyAssignments = [];
+	let hasDefaultExport = false;
 
 	if ( shouldWrap ) {
 		const args = `module${uses.exports ? ', exports' : ''}`;
@@ -252,7 +253,6 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			.filter( key => !blacklistedExports[ key ] )
 			.forEach( addExport );
 	} else {
-		let hasDefaultExport = false;
 		const names = [];
 
 		ast.body.forEach( node => {
@@ -299,7 +299,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 	const exportBlock = '\n\n' + [ defaultExport ]
 		.concat( namedExportDeclarations )
-		.concat( defaultExportPropertyAssignments )
+		.concat( hasDefaultExport ? defaultExportPropertyAssignments : [] )
 		.join( '\n' );
 
 	magicString.trim()
