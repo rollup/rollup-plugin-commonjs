@@ -240,6 +240,9 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 	if ( customNamedExports ) customNamedExports.forEach( addExport );
 
+	const defaultExportPropertyAssignments = [];
+	let hasDefaultExport = false;
+
 	if ( shouldWrap ) {
 		const args = `module${uses.exports ? ', exports' : ''}`;
 
@@ -250,7 +253,6 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 			.filter( key => !blacklistedExports[ key ] )
 			.forEach( addExport );
 	} else {
-		let hasDefaultExport = false;
 		const names = [];
 
 		ast.body.forEach( node => {
@@ -279,6 +281,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 						`export { ${deconflicted} as ${name} };`;
 
 					namedExportDeclarations.push( declaration );
+					defaultExportPropertyAssignments.push( `${moduleName}.${name} = ${deconflicted};` );
 				}
 			}
 		});
@@ -294,7 +297,10 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		`export default ${HELPERS_NAME}.unwrapExports(${moduleName});` :
 		`export default ${moduleName};`;
 
-	const exportBlock = '\n\n' + [ defaultExport ].concat( namedExportDeclarations ).join( '\n' );
+	const exportBlock = '\n\n' + [ defaultExport ]
+		.concat( namedExportDeclarations )
+		.concat( hasDefaultExport ? defaultExportPropertyAssignments : [] )
+		.join( '\n' );
 
 	magicString.trim()
 		.prepend( importBlock + wrapperStart )
