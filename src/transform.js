@@ -193,7 +193,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 		}
 	});
 
-	if ( !sources.length && !uses.module && !uses.exports && ( ignoreGlobal || !uses.global ) ) {
+	if ( !sources.length && !uses.module && !uses.exports && !uses.require && ( ignoreGlobal || !uses.global ) ) {
 		if ( Object.keys( namedExports ).length ) {
 			throw new Error( `Custom named exports were specified for ${id} but it does not appear to be a CommonJS module` );
 		}
