@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 5.0.4
+
+* Ensure named exports are added to default export in optimised modules ([#112](https://github.com/rollup/rollup-plugin-commonjs/issues/112))
+
 ## 5.0.3
 
 * Respect custom `namedExports` in optimised modules ([#35](https://github.com/rollup/rollup-plugin-commonjs/issues/35))
