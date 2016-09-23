@@ -267,7 +267,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 				if ( flattened.keypath === 'module.exports' ) {
 					hasDefaultExport = true;
-					magicString.overwrite( node.start, right.start, `var ${moduleName} = ` );
+					magicString.overwrite( left.start, left.end, `var ${moduleName}` );
 				} else {
 					const name = match[1];
 					const deconflicted = deconflict( scope, globals, name );

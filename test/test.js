@@ -262,6 +262,15 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 		});
 
+		it( 'can handle parens around right have node while producing default export', () => {
+			return rollup({
+				entry: 'samples/paren-expression/index.js',
+				plugins: [ commonjs() ]
+			}).then( bundle => {
+				assert.equal( executeBundle( bundle ).exports, 42 );
+			});
+		});
+
 		describe( 'typeof transforms', () => {
 			it( 'correct-scoping', () => {
 				return rollup({
