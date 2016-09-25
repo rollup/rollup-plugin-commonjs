@@ -1,5 +1,8 @@
 # rollup-plugin-commonjs changelog
 
+## master
+* Fix parenthesis wrapped exports ([#120](https://github.com/rollup/rollup-plugin-commonjs/issues/120))
+
 ## 5.0.4
 
 * Ensure named exports are added to default export in optimised modules ([#112](https://github.com/rollup/rollup-plugin-commonjs/issues/112))
