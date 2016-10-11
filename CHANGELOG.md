@@ -1,6 +1,8 @@
 # rollup-plugin-commonjs changelog
 
 ## master
+
+## 5.0.5
 * Fix parenthesis wrapped exports ([#120](https://github.com/rollup/rollup-plugin-commonjs/issues/120))
 
 ## 5.0.4
