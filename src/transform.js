@@ -20,6 +20,13 @@ function deconflict ( scope, globals, identifier ) {
 	let i = 1;
 	let deconflicted = identifier;
 
+	// Reserved keywords are unassignable and must be mangled
+	try {
+		tryParse(deconflicted + ' = null');
+	} catch (e) {
+		deconflicted = `${identifier}_${i++}`;
+	}
+
 	while ( scope.contains( deconflicted ) || globals.has( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
 	scope.declarations[ deconflicted ] = true;
 

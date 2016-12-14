@@ -313,6 +313,19 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 		});
 
+		it( 'deconflicts reserved keywords', () => {
+			return rollup({
+				entry: 'samples/reserved-as-property/main.js',
+				plugins: [ commonjs() ]
+			})
+			.then( bundle => {
+				assert.doesNotThrow(() => {
+					const reservedProp = executeBundle( bundle ).exports.delete;
+					assert.equal(reservedProp, 'foo');
+				});
+			});
+		});
+
 		it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
 			return rollup({
 				entry: './function/basic/main.js',
