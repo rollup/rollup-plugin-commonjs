@@ -7,8 +7,8 @@ import { PREFIX, HELPERS_ID } from './helpers.js';
 import { getName } from './utils.js';
 
 const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
-const blacklistedExports = { __esModule: true };
-reserved.forEach( word => blacklistedExports[ word ] = true );
+const blacklist = { __esModule: true };
+reserved.forEach( word => blacklist[ word ] = true );
 
 const exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
@@ -20,14 +20,7 @@ function deconflict ( scope, globals, identifier ) {
 	let i = 1;
 	let deconflicted = identifier;
 
-	// Reserved keywords are unassignable and must be mangled
-	try {
-		tryParse(deconflicted + ' = null');
-	} catch (e) {
-		deconflicted = `${identifier}_${i++}`;
-	}
-
-	while ( scope.contains( deconflicted ) || globals.has( deconflicted ) ) deconflicted = `${identifier}_${i++}`;
+	while ( scope.contains( deconflicted ) || globals.has( deconflicted ) || deconflicted in blacklist ) deconflicted = `${identifier}_${i++}`;
 	scope.declarations[ deconflicted ] = true;
 
 	return deconflicted;
@@ -261,7 +254,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 		wrapperEnd = `\n});`;
 
 		Object.keys( namedExports )
-			.filter( key => !blacklistedExports[ key ] )
+			.filter( key => !blacklist[ key ] )
 			.forEach( addExport );
 	} else {
 		const names = [];
