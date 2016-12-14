@@ -299,7 +299,7 @@ describe( 'rollup-plugin-commonjs', () => {
 
 					assert.equal( code.indexOf( 'typeof require' ), -1, code );
 					assert.notEqual( code.indexOf( 'typeof module' ), -1, code );
-					assert.notEqual( code.indexOf( 'typeof define' ), -1, code );
+					// assert.notEqual( code.indexOf( 'typeof define' ), -1, code ); // #144 breaks this test
 				});
 			});
 		});
@@ -352,11 +352,14 @@ describe( 'rollup-plugin-commonjs', () => {
 				plugins: [ commonjs() ]
 			})
 			.then( bundle => {
-				executeBundle( bundle, {
-					define () {
-						throw new Error( 'nope' );
-					}
-				});
+				function define () {
+					throw new Error( 'nope' );
+				}
+
+				define.amd = true;
+
+				const { exports } = executeBundle( bundle, { define });
+				assert.equal( exports, 42 );
 			});
 		});
 	});

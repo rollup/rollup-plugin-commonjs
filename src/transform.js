@@ -144,6 +144,10 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 						}
 					}
 
+					if ( node.name === 'define' ) {
+						magicString.overwrite( node.start, node.end, 'undefined', true );
+					}
+
 					globals.add( node.name );
 				}
 

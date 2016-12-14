@@ -1,3 +1,3 @@
 import foo from './foo.js';
 
-assert.equal( foo, 42 );
+export default 42;
