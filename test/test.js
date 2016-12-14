@@ -345,5 +345,19 @@ describe( 'rollup-plugin-commonjs', () => {
 				]
 			}).then( executeBundle );
 		});
+
+		it( 'rewrites top-level defines', () => {
+			return rollup({
+				entry: 'samples/define-is-undefined/main.js',
+				plugins: [ commonjs() ]
+			})
+			.then( bundle => {
+				executeBundle( bundle, {
+					define () {
+						throw new Error( 'nope' );
+					}
+				});
+			});
+		});
 	});
 });
