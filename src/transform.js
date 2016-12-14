@@ -38,7 +38,7 @@ function tryParse ( code, id ) {
 	}
 }
 
-export default function transform ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {
+export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	if ( !firstpass.test( code ) ) return null;
 
@@ -164,7 +164,7 @@ export default function transform ( code, id, isEntry, ignoreGlobal, customNamed
 
 			const existing = required[ source ];
 			if ( existing === undefined ) {
-				sources.unshift(source);
+				sources.push( source );
 			}
 			let name;
 

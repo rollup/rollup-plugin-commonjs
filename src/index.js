@@ -4,7 +4,7 @@ import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
-import transform from './transform.js';
+import transformCommonjs from './transform.js';
 import { getName } from './utils.js';
 
 function getCandidatesForExtension ( resolved, extension ) {
@@ -150,7 +150,7 @@ export default function commonjs ( options = {} ) {
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
 			return entryModuleIdPromise.then( () => {
-				const transformed = transform( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
+				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
 
 				if ( transformed ) {
 					commonjsModules.set( id, true );
