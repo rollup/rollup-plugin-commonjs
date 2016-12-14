@@ -29,7 +29,7 @@ function deconflict ( scope, globals, identifier ) {
 function tryParse ( code, id ) {
 	try {
 		return acorn.parse( code, {
-			ecmaVersion: 6,
+			ecmaVersion: 8,
 			sourceType: 'module'
 		});
 	} catch ( err ) {
