@@ -327,7 +327,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			})
 			.then( executeBundle )
 			.catch( error => {
-				assert.equal( error.message, `'named' is not exported by samples/reexport/reexport.js (imported by samples/reexport/main.js). For help fixing this error see https://github.com/rollup/rollup/wiki/Troubleshooting#name-is-not-exported-by-module` );
+				assert.equal( error.message, `'named' is not exported by samples${path.sep}reexport${path.sep}reexport.js (imported by samples${path.sep}reexport${path.sep}main.js). For help fixing this error see https://github.com/rollup/rollup/wiki/Troubleshooting#name-is-not-exported-by-module` );
 			});
 		});
 
