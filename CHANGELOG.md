@@ -1,6 +1,10 @@
 # rollup-plugin-commonjs changelog
 
-## master
+## 6.0.0
+
+* Rewrite top-level `define` as `undefined`, so AMD-first UMD blocks do not cause breakage ([#144](https://github.com/rollup/rollup-plugin-commonjs/issues/144))
+* Support ES2017 syntax ([#132](https://github.com/rollup/rollup-plugin-commonjs/issues/132))
+* Deconflict exported reserved keywords ([#116](https://github.com/rollup/rollup-plugin-commonjs/issues/116))
 
 ## 5.0.5
 * Fix parenthesis wrapped exports ([#120](https://github.com/rollup/rollup-plugin-commonjs/issues/120))
