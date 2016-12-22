@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 6.0.1
+
+* Don't overwrite globals ([#127](https://github.com/rollup/rollup-plugin-commonjs/issues/127))
+
 ## 6.0.0
 
 * Rewrite top-level `define` as `undefined`, so AMD-first UMD blocks do not cause breakage ([#144](https://github.com/rollup/rollup-plugin-commonjs/issues/144))
