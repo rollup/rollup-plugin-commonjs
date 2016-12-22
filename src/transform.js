@@ -230,14 +230,11 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 	const name = getName( id );
 
 	function addExport ( x ) {
-		let declaration;
+		const deconflicted = deconflict( scope, globals, name );
 
-		if ( x === name ) {
-			const deconflicted = deconflict( scope, globals, name );
-			declaration = `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
-		} else {
-			declaration = `export var ${x} = ${moduleName}.${x};`;
-		}
+		const declaration = deconflicted === name ?
+			`export var ${x} = ${moduleName}.${x};` :
+			`var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 
 		namedExportDeclarations.push( declaration );
 	}
