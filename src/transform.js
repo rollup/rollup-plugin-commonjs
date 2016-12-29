@@ -93,6 +93,18 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) lexicalDepth += 1;
 
+			// rewrite `typeof module`, `typeof module.exports` and `typeof exports` (https://github.com/rollup/rollup-plugin-commonjs/issues/151)
+			if ( node.type === 'UnaryExpression' && node.operator === 'typeof' ) {
+				const flattened = flatten( node.argument );
+				if ( !flattened ) return;
+
+				if ( scope.contains( flattened.name ) ) return;
+
+				if ( flattened.keypath === 'module.exports' || flattened.keypath === 'module' || flattened.keypath === 'exports' ) {
+					magicString.overwrite( node.start, node.end, `'object'`, false );
+				}
+			}
+
 			// Is this an assignment to exports or module.exports?
 			if ( node.type === 'AssignmentExpression' ) {
 				if ( node.left.type !== 'MemberExpression' ) return;
