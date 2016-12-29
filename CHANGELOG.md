@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 7.0.0
+
+* Rewrite `typeof module`, `typeof module.exports` and `typeof exports` as `'object'` ([#151](https://github.com/rollup/rollup-plugin-commonjs/issues/151))
+
 ## 6.0.1
 
 * Don't overwrite globals ([#127](https://github.com/rollup/rollup-plugin-commonjs/issues/127))
