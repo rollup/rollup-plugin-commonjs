@@ -46,8 +46,11 @@ function execute ( code, context = {} ) {
 	};
 }
 
-function executeBundle ( bundle, context ) {
-	const { code } = bundle.generate({ format: 'cjs' });
+function executeBundle ( bundle, { context, exports } = {} ) {
+	const options = { format: 'cjs' };
+	if ( exports ) options.exports = exports;
+
+	const { code } = bundle.generate( options );
 	return execute( code, context );
 }
 
@@ -88,10 +91,12 @@ describe( 'rollup-plugin-commonjs', () => {
 			}
 
 			( config.solo ? it.only : it )( dir, () => {
-				return rollup({
+				const options = Object.assign({
 					entry: `function/${dir}/main.js`,
 					plugins: [ commonjs( config.pluginOptions ) ]
-				}).then( bundle => {
+				}, config.options || {} );
+
+				return rollup( options ).then( bundle => {
 					const { code } = bundle.generate({ format: 'cjs' });
 					if ( config.show || config.solo ) {
 						console.error( code );
@@ -247,9 +252,13 @@ describe( 'rollup-plugin-commonjs', () => {
 		it( 'can ignore references to `global`', () => {
 			return rollup({
 				entry: 'samples/ignore-global/main.js',
-				plugins: [ commonjs({
-					ignoreGlobal: true
-				}) ]
+				plugins: [
+					commonjs({ ignoreGlobal: true })
+				],
+				onwarn: warning => {
+					if ( warning.code === 'THIS_IS_UNDEFINED' ) return;
+					console.warn( warning.message );
+				}
 			}).then( bundle => {
 				const generated = bundle.generate({
 					format: 'cjs'
@@ -322,7 +331,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			})
 			.then( bundle => {
 				assert.doesNotThrow(() => {
-					const reservedProp = executeBundle( bundle ).exports.delete;
+					const reservedProp = executeBundle( bundle, { exports: 'named' }).exports.delete;
 					assert.equal(reservedProp, 'foo');
 				});
 			});
@@ -373,7 +382,7 @@ describe( 'rollup-plugin-commonjs', () => {
 
 				define.amd = true;
 
-				const { exports } = executeBundle( bundle, { define });
+				const { exports } = executeBundle( bundle, { context: { define } });
 				assert.equal( exports, 42 );
 			});
 		});
