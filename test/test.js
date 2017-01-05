@@ -285,6 +285,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			it( 'protobuf', () => {
 				return rollup({
 					entry: 'samples/umd/protobuf.js',
+					external: [ 'bytebuffer' ],
 					plugins: [ commonjs() ]
 				}).then( bundle => {
 					assert.equal( executeBundle( bundle ).exports, true );
@@ -296,7 +297,7 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: 'samples/umd/sinon.js',
 					plugins: [ commonjs() ]
 				}).then( bundle => {
-					const code = bundle.generate().code;
+					const code = bundle.generate({ format: 'es' }).code;
 
 					assert.equal( code.indexOf( 'typeof require' ), -1, code );
 					// assert.notEqual( code.indexOf( 'typeof module' ), -1, code ); // #151 breaks this test
@@ -341,7 +342,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			})
 			.then( executeBundle )
 			.catch( error => {
-				assert.equal( error.message, `'named' is not exported by samples${path.sep}reexport${path.sep}reexport.js (imported by samples${path.sep}reexport${path.sep}main.js). For help fixing this error see https://github.com/rollup/rollup/wiki/Troubleshooting#name-is-not-exported-by-module` );
+				assert.equal( error.message, `'named' is not exported by samples${path.sep}reexport${path.sep}reexport.js` );
 			});
 		});
 
