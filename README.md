@@ -80,14 +80,14 @@ myLib.named = 'you can\'t see me';
 In those cases, you can specify custom named exports:
 
 ```js
-commonjs({
-  namedExports: {
-    // left-hand side can be an absolute path, a path
-    // relative to the current directory, or the name
-    // of a module in node_modules
-    'node_modules/my-lib/index.js': [ 'named' ]
-  }
-});
+    commonjs({
+      namedExports: {
+        // left-hand side can be an absolute path, a path
+        // relative to the current directory, or the name
+        // of a module in node_modules
+        'node_modules/my-lib/index.js': [ 'named' ]
+      }
+    })
 ```
 
 
