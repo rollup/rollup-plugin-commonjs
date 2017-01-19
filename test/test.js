@@ -305,6 +305,15 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 		});
 
+		it( 'ignores dupplicate module.exports.global export', () => {
+			return rollup({
+				entry: 'samples/dupplicate-default-export/main.js',
+				plugins: [ commonjs() ]
+			}).then( executeBundle ).then( ({ exports }) => {
+				assert.equal( exports, 'first export' );
+			});
+		});
+
 		it( 'deconflicts helper name', () => {
 			return rollup({
 				entry: 'samples/deconflict-helpers/main.js',
