@@ -270,7 +270,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 
 		ast.body.forEach( node => {
 			if ( node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' ) {
-				const { left, right } = node.expression;
+				const left = node.expression.left;
 				const flattened = flatten( left );
 
 				if ( !flattened ) return;
