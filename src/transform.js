@@ -287,7 +287,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 
 					names.push({ name, deconflicted });
 
-					magicString.overwrite( node.start, right.start, `var ${deconflicted} = ` );
+					magicString.overwrite( node.start, left.end, `var ${deconflicted}` );
 
 					const declaration = name === deconflicted ?
 						`export { ${name} };` :
