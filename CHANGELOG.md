@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 7.0.1
+
+* Fix exports with parentheses ([#168](https://github.com/rollup/rollup-plugin-commonjs/issues/168))
+
 ## 7.0.0
 
 * Rewrite `typeof module`, `typeof module.exports` and `typeof exports` as `'object'` ([#151](https://github.com/rollup/rollup-plugin-commonjs/issues/151))
