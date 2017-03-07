@@ -235,7 +235,11 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 
 	const moduleName = deconflict( scope, globals, getName( id ) );
 	if ( !isEntry ) {
-		const exportModuleExports = `export { ${moduleName} as __moduleExports };`;
+		const exportModuleExports = {
+			str: `export { ${moduleName} as __moduleExports };`,
+			name: '__moduleExports'
+		};
+
 		namedExportDeclarations.push( exportModuleExports );
 	}
 
@@ -248,7 +252,10 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 			`export var ${x} = ${moduleName}.${x};` :
 			`var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 
-		namedExportDeclarations.push( declaration );
+		namedExportDeclarations.push({
+			str: declaration,
+			name: x
+		});
 	}
 
 	if ( customNamedExports ) customNamedExports.forEach( addExport );
@@ -293,7 +300,11 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 						`export { ${name} };` :
 						`export { ${deconflicted} as ${name} };`;
 
-					namedExportDeclarations.push( declaration );
+					namedExportDeclarations.push({
+						str: declaration,
+						name
+					});
+
 					defaultExportPropertyAssignments.push( `${moduleName}.${name} = ${deconflicted};` );
 				}
 			}
@@ -310,8 +321,12 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 		`export default ${HELPERS_NAME}.unwrapExports(${moduleName});` :
 		`export default ${moduleName};`;
 
+	const named = namedExportDeclarations
+		.filter( x => x.name !== 'default' || !hasDefaultExport )
+		.map( x => x.str );
+
 	const exportBlock = '\n\n' + [ defaultExport ]
-		.concat( namedExportDeclarations )
+		.concat( named )
 		.concat( hasDefaultExport ? defaultExportPropertyAssignments : [] )
 		.join( '\n' );
 
