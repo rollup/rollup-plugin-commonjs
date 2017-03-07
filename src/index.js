@@ -58,6 +58,13 @@ export default function commonjs ( options = {} ) {
 		});
 	}
 
+	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
+
+	const ignoreRequire = typeof options.ignore === 'function' ?
+		options.ignore :
+		Array.isArray( options.ignore ) ? id => ~options.ignore.indexOf( id ) :
+		() => false;
+
 	let entryModuleIdPromise = null;
 	let entryModuleId = null;
 
@@ -150,7 +157,7 @@ export default function commonjs ( options = {} ) {
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
 			return entryModuleIdPromise.then( () => {
-				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, customNamedExports[ id ], sourceMap );
+				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire );
 
 				if ( transformed ) {
 					commonjsModules.set( id, true );

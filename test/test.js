@@ -56,9 +56,6 @@ function executeBundle ( bundle, { context, exports } = {} ) {
 
 describe( 'rollup-plugin-commonjs', () => {
 	describe( 'form', () => {
-		const { transform, options } = commonjs();
-		options({ entry: 'main.js' });
-
 		fs.readdirSync( 'form' ).forEach( dir => {
 			let config;
 
@@ -69,6 +66,9 @@ describe( 'rollup-plugin-commonjs', () => {
 			}
 
 			( config.solo ? it.only : it )( dir, () => {
+				const { transform, options } = commonjs( config.options );
+				options({ entry: 'main.js' });
+
 				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
 				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim();
 

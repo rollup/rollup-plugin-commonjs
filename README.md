@@ -50,7 +50,13 @@ export default {
 
       // explicitly specify unresolvable named exports
       // (see below for more details)
-      namedExports: { './module.js': ['foo', 'bar' ] }  // Default: undefined
+      namedExports: { './module.js': ['foo', 'bar' ] },  // Default: undefined
+
+      // sometimes you have to leave require statements
+      // unconverted. Pass an array containing the IDs
+      // or a `id => boolean` function. Only use this
+      // option if you know what you're doing!
+      ignore: [ 'conditional-runtime-dependency' ]
     })
   ]
 };
