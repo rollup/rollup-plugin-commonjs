@@ -270,7 +270,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 
 		ast.body.forEach( node => {
 			if ( node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' ) {
-				const { left, right } = node.expression;
+				const left = node.expression.left;
 				const flattened = flatten( left );
 
 				if ( !flattened ) return;
@@ -287,7 +287,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 
 					names.push({ name, deconflicted });
 
-					magicString.overwrite( node.start, right.start, `var ${deconflicted} = ` );
+					magicString.overwrite( node.start, left.end, `var ${deconflicted}` );
 
 					const declaration = name === deconflicted ?
 						`export { ${name} };` :
