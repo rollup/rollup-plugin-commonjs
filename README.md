@@ -18,12 +18,14 @@ npm install --save-dev rollup-plugin-commonjs
 Typically, you would use this plugin alongside [rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve), so that you could bundle your CommonJS dependencies in `node_modules`.
 
 ```js
-import { rollup } from 'rollup';
+// rollup.config.js
 import commonjs from 'rollup-plugin-commonjs';
 import nodeResolve from 'rollup-plugin-node-resolve';
 
-rollup({
+export default {
   entry: 'main.js',
+  dest: 'bundle.js',
+  format: 'iife',
   plugins: [
     nodeResolve({
       jsnext: true,
@@ -45,13 +47,13 @@ rollup({
 
       // if false then skip sourceMap generation for CommonJS modules
       sourceMap: false,  // Default: true
-      
+
       // explicitly specify unresolvable named exports
       // (see below for more details)
-      namedExports: { './module.js': ['foo', 'bar' ] }  // Default: undefined 
+      namedExports: { './module.js': ['foo', 'bar' ] }  // Default: undefined
     })
   ]
-}).then(...)
+};
 ```
 
 ### Custom named exports
@@ -80,15 +82,22 @@ myLib.named = 'you can\'t see me';
 In those cases, you can specify custom named exports:
 
 ```js
-    commonjs({
-      namedExports: {
-        // left-hand side can be an absolute path, a path
-        // relative to the current directory, or the name
-        // of a module in node_modules
-        'node_modules/my-lib/index.js': [ 'named' ]
-      }
-    })
+commonjs({
+  namedExports: {
+    // left-hand side can be an absolute path, a path
+    // relative to the current directory, or the name
+    // of a module in node_modules
+    'node_modules/my-lib/index.js': [ 'named' ]
+  }
+})
 ```
+
+
+## Strict mode
+
+ES modules are *always* parsed in strict mode. That means that certain non-strict constructs (like octal literals) will be treated as syntax errors when Rollup parses modules that use them. Some older CommonJS modules depend on those constructs, and if you depend on them your bundle will blow up. There's basically nothing we can do about that.
+
+Luckily, there is absolutely no good reason *not* to use strict mode for everything — so the solution to this problem is to lobby the authors of those modules to update them.
 
 
 ## License
