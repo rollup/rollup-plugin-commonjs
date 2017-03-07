@@ -38,7 +38,7 @@ function tryParse ( code, id ) {
 	}
 }
 
-export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, customNamedExports, sourceMap ) {
+export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequire, customNamedExports, sourceMap, allowDynamicRequire ) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
 	if ( !firstpass.test( code ) ) return null;
 
@@ -140,13 +140,14 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 			if ( node.type === 'Identifier' ) {
 				if ( isReference( node, parent ) && !scope.contains( node.name ) ) {
 					if ( node.name in uses ) {
+						if ( node.name === 'require' ) {
+							if ( allowDynamicRequire ) return;
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
+						}
+
 						uses[ node.name ] = true;
 						if ( node.name === 'global' && !ignoreGlobal ) {
 							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
-						}
-
-						if ( node.name === 'require' ) {
-							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
 						}
 
 						// if module or exports are used outside the context of an assignment
@@ -175,6 +176,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, cus
 			if ( node.type !== 'CallExpression' ) return;
 			if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
 			if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
+			if ( ignoreRequire( node.arguments[0].value ) ) return;
 
 			const source = node.arguments[0].value;
 
