@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 7.1.0
+
+* Allow certain `require` statements to pass through unmolested ([#174](https://github.com/rollup/rollup-plugin-commonjs/issues/174))
+
 ## 7.0.2
 
 * Handle duplicate default exports ([#158](https://github.com/rollup/rollup-plugin-commonjs/issues/158))
