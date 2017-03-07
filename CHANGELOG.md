@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 7.0.2
+
+* Handle duplicate default exports ([#158](https://github.com/rollup/rollup-plugin-commonjs/issues/158))
+
 ## 7.0.1
 
 * Fix exports with parentheses ([#168](https://github.com/rollup/rollup-plugin-commonjs/issues/168))
