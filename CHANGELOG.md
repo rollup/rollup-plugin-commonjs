@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.0.0
+
+* Prefer the names dependencies are imported by for the common `var foo = require('foo')` pattern ([#176](https://github.com/rollup/rollup-plugin-commonjs/issues/176))
+
 ## 7.1.0
 
 * Allow certain `require` statements to pass through unmolested ([#174](https://github.com/rollup/rollup-plugin-commonjs/issues/174))
