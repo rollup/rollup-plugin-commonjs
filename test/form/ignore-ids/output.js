@@ -1,8 +1,8 @@
 import 'bar';
-import require$$0 from 'commonjs-proxy:bar';
+import bar from 'commonjs-proxy:bar';
 
 var foo = require( 'foo' );
-var bar = require$$0;
+
 
 var input = {
 

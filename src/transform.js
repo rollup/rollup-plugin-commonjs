@@ -2,7 +2,7 @@ import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
-import { flatten, isReference, isTruthy, isFalsy } from './ast-utils.js';
+import { extractNames, flatten, isReference, isTruthy, isFalsy } from './ast-utils.js';
 import { PREFIX, HELPERS_ID } from './helpers.js';
 import { getName } from './utils.js';
 
@@ -73,6 +73,45 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 	// TODO handle transpiled modules
 	let shouldWrap = /__esModule/.test( code );
 
+	function isRequireStatement ( node ) {
+		if ( !node ) return;
+		if ( node.type !== 'CallExpression' ) return;
+		if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
+		if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
+		if ( ignoreRequire( node.arguments[0].value ) ) return;
+
+		return true;
+	}
+
+	function getRequired ( node, name ) {
+		const source = node.arguments[0].value;
+
+		const existing = required[ source ];
+		if ( existing === undefined ) {
+			sources.push( source );
+
+			if ( !name ) name = `require$$${uid++}`;
+			required[ source ] = { source, name, importsDefault: false };
+		}
+
+		return required[ source ];
+	}
+
+	// do a first pass, see which names are assigned to. This is necessary to prevent
+	// illegally replacing `var foo = require('foo')` with `import foo from 'foo'`,
+	// where `foo` is later reassigned. (This happens in the wild. CommonJS, sigh)
+	const assignedTo = new Set();
+	walk( ast, {
+		enter ( node ) {
+			if ( node.type !== 'AssignmentExpression' ) return;
+			if ( node.left.type === 'MemberExpression' ) return;
+			
+			extractNames( node.left ).forEach( name => {
+				assignedTo.add( name );
+			});
+		}
+	});
+
 	walk( ast, {
 		enter ( node, parent ) {
 			if ( sourceMap ) {
@@ -93,6 +132,13 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) lexicalDepth += 1;
 
+			// rewrite `this` as `commonjsHelpers.commonjsGlobal`
+			if ( node.type === 'ThisExpression' && lexicalDepth === 0 ) {
+				uses.global = true;
+				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+				return;
+			}
+
 			// rewrite `typeof module`, `typeof module.exports` and `typeof exports` (https://github.com/rollup/rollup-plugin-commonjs/issues/151)
 			if ( node.type === 'UnaryExpression' && node.operator === 'typeof' ) {
 				const flattened = flatten( node.argument );
@@ -103,6 +149,38 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 				if ( flattened.keypath === 'module.exports' || flattened.keypath === 'module' || flattened.keypath === 'exports' ) {
 					magicString.overwrite( node.start, node.end, `'object'`, false );
 				}
+			}
+
+			// rewrite `require` (if not already handled) `global` and `define`, and handle free references to
+			// `module` and `exports` as these mean we need to wrap the module in commonjsHelpers.createCommonjsModule
+			if ( node.type === 'Identifier' ) {
+				if ( isReference( node, parent ) && !scope.contains( node.name ) ) {
+					if ( node.name in uses ) {
+						if ( node.name === 'require' ) {
+							if ( allowDynamicRequire ) return;
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
+						}
+
+						uses[ node.name ] = true;
+						if ( node.name === 'global' && !ignoreGlobal ) {
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+						}
+
+						// if module or exports are used outside the context of an assignment
+						// expression, we need to wrap the module
+						if ( node.name === 'module' || node.name === 'exports' ) {
+							shouldWrap = true;
+						}
+					}
+
+					if ( node.name === 'define' ) {
+						magicString.overwrite( node.start, node.end, 'undefined', true );
+					}
+
+					globals.add( node.name );
+				}
+
+				return;
 			}
 
 			// Is this an assignment to exports or module.exports?
@@ -137,68 +215,32 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 				return;
 			}
 
-			if ( node.type === 'Identifier' ) {
-				if ( isReference( node, parent ) && !scope.contains( node.name ) ) {
-					if ( node.name in uses ) {
-						if ( node.name === 'require' ) {
-							if ( allowDynamicRequire ) return;
-							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
-						}
+			// if this is `var x = require('x')`, we can do `import x from 'x'`
+			if ( node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && isRequireStatement( node.init ) ) {
+				// for now, only do this for top-level requires. maybe fix this in future
+				if ( scope.parent ) return;
 
-						uses[ node.name ] = true;
-						if ( node.name === 'global' && !ignoreGlobal ) {
-							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
-						}
+				// edge case — CJS allows you to assign to imports. ES doesn't
+				if ( assignedTo.has( node.id.name ) ) return;
 
-						// if module or exports are used outside the context of an assignment
-						// expression, we need to wrap the module
-						if ( node.name === 'module' || node.name === 'exports' ) {
-							shouldWrap = true;
-						}
-					}
+				const r = getRequired( node.init, node.id.name );
+				r.importsDefault = true;
 
-					if ( node.name === 'define' ) {
-						magicString.overwrite( node.start, node.end, 'undefined', true );
-					}
-
-					globals.add( node.name );
+				if ( r.name === node.id.name ) {
+					node._shouldRemove = true;
 				}
-
-				return;
 			}
 
-			if ( node.type === 'ThisExpression' && lexicalDepth === 0 ) {
-				uses.global = true;
-				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
-				return;
-			}
+			if ( !isRequireStatement( node ) ) return;
 
-			if ( node.type !== 'CallExpression' ) return;
-			if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
-			if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
-			if ( ignoreRequire( node.arguments[0].value ) ) return;
+			const r = getRequired( node );
 
-			const source = node.arguments[0].value;
-
-			const existing = required[ source ];
-			if ( existing === undefined ) {
-				sources.push( source );
-			}
-			let name;
-
-			if ( !existing ) {
-				name = `require$$${uid++}`;
-				required[ source ] = { source, name, importsDefault: false };
-			} else {
-				name = required[ source ].name;
-			}
-
-			if ( parent.type !== 'ExpressionStatement' ) {
-				required[ source ].importsDefault = true;
-				magicString.overwrite( node.start, node.end, name );
-			} else {
+			if ( parent.type === 'ExpressionStatement' ) {
 				// is a bare import, e.g. `require('foo');`
 				magicString.remove( parent.start, parent.end );
+			} else {
+				r.importsDefault = true;
+				magicString.overwrite( node.start, node.end, r.name );
 			}
 
 			node.callee._skip = true;
@@ -208,6 +250,25 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 			programDepth -= 1;
 			if ( node.scope ) scope = scope.parent;
 			if ( /^Function/.test( node.type ) ) lexicalDepth -= 1;
+
+			if ( node.type === 'VariableDeclaration' ) {
+				let keepDeclaration = false;
+
+				for ( let i = 0; i < node.declarations.length; i += 1 ) {
+					const declarator = node.declarations[i];
+					const next = node.declarations[ i + 1 ];
+
+					if ( declarator._shouldRemove ) {
+						magicString.remove( declarator.start, next ? next.start : declarator.end );
+					} else {
+						keepDeclaration = true;
+					}
+				}
+
+				if ( !keepDeclaration ) {
+					magicString.remove( node.start, node.end );
+				}
+			}
 		}
 	});
 
