@@ -105,7 +105,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 		enter ( node ) {
 			if ( node.type !== 'AssignmentExpression' ) return;
 			if ( node.left.type === 'MemberExpression' ) return;
-			
+
 			extractNames( node.left ).forEach( name => {
 				assignedTo.add( name );
 			});
@@ -253,16 +253,18 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 
 			if ( node.type === 'VariableDeclaration' ) {
 				let keepDeclaration = false;
+				let c = node.declarations[0].start;
 
 				for ( let i = 0; i < node.declarations.length; i += 1 ) {
 					const declarator = node.declarations[i];
-					const next = node.declarations[ i + 1 ];
 
 					if ( declarator._shouldRemove ) {
-						magicString.remove( declarator.start, next ? next.start : declarator.end );
+						magicString.remove( c, declarator.end );
 					} else {
 						keepDeclaration = true;
 					}
+
+					c = declarator.end;
 				}
 
 				if ( !keepDeclaration ) {
