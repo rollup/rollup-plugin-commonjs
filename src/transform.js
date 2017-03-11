@@ -261,10 +261,13 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 					if ( declarator._shouldRemove ) {
 						magicString.remove( c, declarator.end );
 					} else {
-						keepDeclaration = true;
-					}
+						if ( !keepDeclaration ) {
+							magicString.remove( c, declarator.start );
+							keepDeclaration = true;
+						}
 
-					c = declarator.end;
+						c = declarator.end;
+					}
 				}
 
 				if ( !keepDeclaration ) {
