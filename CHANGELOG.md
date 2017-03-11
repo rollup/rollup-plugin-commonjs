@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.0.2
+
+* Fix another `var` rewrite bug ([#181](https://github.com/rollup/rollup-plugin-commonjs/issues/181))
+
 ## 8.0.1
 
 * Remove declarators within a var declaration correctly ([#179](https://github.com/rollup/rollup-plugin-commonjs/issues/179))
