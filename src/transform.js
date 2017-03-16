@@ -353,6 +353,10 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 				const match = exportsPattern.exec( flattened.keypath );
 				if ( !match ) return;
 
+				if ( flattened.keypath === 'module.exports.default' && hasDefaultExport ) {
+					return;
+				}
+
 				if ( flattened.keypath === 'module.exports' ) {
 					hasDefaultExport = true;
 					magicString.overwrite( left.start, left.end, `var ${moduleName}` );
