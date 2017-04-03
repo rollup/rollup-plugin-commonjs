@@ -27,6 +27,8 @@ function deconflict ( scope, globals, identifier ) {
 }
 
 function tryParse ( code, id ) {
+	code = code.replace(/^\s*#.*/g, ''); // Strip shebang-like junk
+	
 	try {
 		return acorn.parse( code, {
 			ecmaVersion: 8,
