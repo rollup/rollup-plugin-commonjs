@@ -17,7 +17,8 @@
   "files": [
     "src",
     "dist",
-    "README.md"
+    "README.md",
+    "rollup.config.js"
   ],
   "dependencies": {
     "acorn": "^4.0.1",
