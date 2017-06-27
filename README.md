@@ -37,6 +37,8 @@ export default {
       // specifically include/exclude files
       include: 'node_modules/**',  // Default: undefined
       exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ],  // Default: undefined
+      // these values can also be regular expressions
+      // include: /node_modules/
 
       // search for files other than .js files (must already
       // be transpiled by a previous plugin!)
