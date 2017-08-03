@@ -30,7 +30,8 @@ function tryParse ( code, id ) {
 	try {
 		return acorn.parse( code, {
 			ecmaVersion: 8,
-			sourceType: 'module'
+			sourceType: 'module',
+			allowReturnOutsideFunction: true
 		});
 	} catch ( err ) {
 		err.message += ` in ${id}`;
@@ -131,6 +132,11 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 
 			if ( node.scope ) scope = node.scope;
 			if ( /^Function/.test( node.type ) ) lexicalDepth += 1;
+
+			// if toplevel return, we need to wrap it
+			if ( node.type === 'ReturnStatement' && lexicalDepth === 0 ) {
+				shouldWrap = true;
+			}
 
 			// rewrite `this` as `commonjsHelpers.commonjsGlobal`
 			if ( node.type === 'ThisExpression' && lexicalDepth === 0 ) {
