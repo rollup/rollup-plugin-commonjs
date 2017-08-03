@@ -1,10 +1,11 @@
 const path = require( 'path' );
 const fs = require( 'fs' );
 const assert = require( 'assert' );
+const relative = require( 'require-relative' );
 const { SourceMapConsumer } = require( 'source-map' );
 const { getLocator } = require( 'locate-character' );
 const { rollup } = require( 'rollup' );
-const nodeResolve = require( 'rollup-plugin-node-resolve' );
+const resolve = require( 'rollup-plugin-node-resolve' );
 const commonjs = require( '..' );
 
 require( 'source-map-support' ).install();
@@ -32,7 +33,7 @@ function execute ( code, context = {} ) {
 	const argValues = contextKeys.map( key => context[ key ] ).concat(
 		module,
 		module.exports,
-		name => name,
+		name => relative( name, 'test/x.js' ),
 		global,
 		assert
 	);
@@ -215,7 +216,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/custom-named-exports/main.js',
 				plugins: [
-					nodeResolve({ main: true }),
+					resolve({ main: true }),
 					commonjs({
 						namedExports: {
 							'samples/custom-named-exports/secret-named-exporter.js': [ 'named' ],
@@ -230,7 +231,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/custom-named-exports-false-positive/main.js',
 				plugins: [
-					nodeResolve({ main: true }),
+					resolve({ main: true }),
 					commonjs({
 						namedExports: {
 							'irrelevant': [ 'lol' ]
@@ -384,6 +385,24 @@ describe( 'rollup-plugin-commonjs', () => {
 
 				const { exports } = executeBundle( bundle, { context: { define } });
 				assert.equal( exports, 42 );
+			});
+		});
+
+		it( 'respects options.external', () => {
+			return rollup({
+				entry: 'samples/external/main.js',
+				plugins: [
+					resolve(),
+					commonjs()
+				],
+				external: ['baz']
+			})
+			.then( async bundle => {
+				const { code, map } = await bundle.generate({ format: 'cjs' });
+				assert.equal( code.indexOf( 'hello' ), -1 );
+
+				const { exports } = executeBundle( bundle );
+				assert.equal( exports, 'HELLO' );
 			});
 		});
 	});
