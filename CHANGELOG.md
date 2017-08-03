@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 8.1.0
+
+* Handle `options.external` correctly ([#212](https://github.com/rollup/rollup-plugin-commonjs/pull/212))
+* Support top-level return ([#195](https://github.com/rollup/rollup-plugin-commonjs/pull/195))
+
 ## 8.0.2
 
 * Fix another `var` rewrite bug ([#181](https://github.com/rollup/rollup-plugin-commonjs/issues/181))
