@@ -122,6 +122,13 @@ export default function commonjs ( options = {} ) {
 				})
 				.filter( Boolean );
 
+			const isExternal = options.external ?
+				Array.isArray( options.external ) ? id => ~options.external.indexOf( id ) :
+				options.external :
+				() => false;
+
+			resolvers.unshift( id => isExternal( id ) ? false : null );
+
 			resolveUsingOtherResolvers = first( resolvers );
 
 			entryModuleIdPromise = resolveId( options.entry ).then( resolved => {
