@@ -398,7 +398,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				external: ['baz']
 			})
 			.then( async bundle => {
-				const { code, map } = await bundle.generate({ format: 'cjs' });
+				const { code } = await bundle.generate({ format: 'cjs' });
 				assert.equal( code.indexOf( 'hello' ), -1 );
 
 				const { exports } = executeBundle( bundle );
