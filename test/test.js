@@ -51,8 +51,8 @@ function executeBundle ( bundle, { context, exports } = {} ) {
 	const options = { format: 'cjs' };
 	if ( exports ) options.exports = exports;
 
-	const { code } = bundle.generate( options );
-	return execute( code, context );
+	return bundle.generate( options )
+		.then( ({ code }) => execute( code, context ) );
 }
 
 describe( 'rollup-plugin-commonjs', () => {
@@ -97,8 +97,11 @@ describe( 'rollup-plugin-commonjs', () => {
 					plugins: [ commonjs( config.pluginOptions ) ]
 				}, config.options || {} );
 
-				return rollup( options ).then( bundle => {
-					const { code } = bundle.generate({ format: 'cjs' });
+				return rollup(
+					options
+				)
+				.then( bundle => bundle.generate({ format: 'cjs' }))
+				.then( ({ code }) => {
 					if ( config.show || config.solo ) {
 						console.error( code );
 					}
@@ -118,13 +121,13 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/sourcemap/main.js',
 				plugins: [ commonjs({ sourceMap: true }) ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs',
-					sourceMap: true,
-					sourceMapFile: path.resolve( 'bundle.js' )
-				});
-
+			})
+			.then( bundle => bundle.generate({
+				format: 'cjs',
+				sourceMap: true,
+				sourceMapFile: path.resolve( 'bundle.js' )
+			}))
+			.then( generated => {
 				const smc = new SourceMapConsumer( generated.map );
 				const locator = getLocator( generated.code, { offsetLine: 1 });
 
@@ -146,11 +149,10 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/global/main.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
+			}).then( bundle => bundle.generate({
+				format: 'cjs'
+			}))
+			.then( generated => {
 				const mockWindow = {};
 				const mockGlobal = {};
 				const mockSelf = {};
@@ -176,11 +178,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/global-in-if-block/main.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
+			})
+			.then( bundle => bundle.generate({
+				format: 'cjs'
+			}))
+			.then( generated => {
 				const fn = new Function ( 'module', 'exports', 'window', generated.code );
 
 				const module = { exports: {} };
@@ -198,11 +200,11 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/corejs/literal-with-default.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
+			})
+			.then( bundle => bundle.generate({
+				format: 'cjs'
+			}))
+			.then( generated => {
 				const module = { exports: {} };
 
 				const fn = new Function ( 'module', 'exports', generated.code );
@@ -245,9 +247,9 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/extension/main.coffee',
 				plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
-			}).then( bundle => {
-				assert.equal( executeBundle( bundle ).exports, 42 );
-			});
+			})
+			.then( executeBundle )
+			.then( output => assert.equal( output.exports, 42 ));
 		});
 
 		it( 'can ignore references to `global`', () => {
@@ -260,13 +262,14 @@ describe( 'rollup-plugin-commonjs', () => {
 					if ( warning.code === 'THIS_IS_UNDEFINED' ) return;
 					console.warn( warning.message );
 				}
-			}).then( bundle => {
-				const generated = bundle.generate({
+			})
+			.then( bundle => Promise.all([
+				bundle.generate({
 					format: 'cjs'
-				});
-
-				const { exports, global } = executeBundle( bundle );
-
+				}),
+				executeBundle( bundle )
+			]))
+			.then( ([ generated, { exports, global } ]) => {
 				assert.equal( exports.immediate1, global.setImmediate, generated.code );
 				assert.equal( exports.immediate2, global.setImmediate, generated.code );
 				assert.equal( exports.immediate3, null, generated.code );
@@ -277,9 +280,9 @@ describe( 'rollup-plugin-commonjs', () => {
 			return rollup({
 				entry: 'samples/paren-expression/index.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				assert.equal( executeBundle( bundle ).exports, 42 );
-			});
+			})
+			.then( executeBundle )
+			.then( ({ exports }) => assert.equal( exports, 42 ));
 		});
 
 		describe( 'typeof transforms', () => {
@@ -287,9 +290,9 @@ describe( 'rollup-plugin-commonjs', () => {
 				return rollup({
 					entry: 'samples/umd/correct-scoping.js',
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					assert.equal( executeBundle( bundle ).exports, 'object' );
-				});
+				})
+				.then( executeBundle)
+				.then( ({ exports }) => assert.equal( exports, 'object' ));
 			});
 
 			it( 'protobuf', () => {
@@ -297,18 +300,18 @@ describe( 'rollup-plugin-commonjs', () => {
 					entry: 'samples/umd/protobuf.js',
 					external: [ 'bytebuffer' ],
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					assert.equal( executeBundle( bundle ).exports, true );
-				});
+				})
+				.then( executeBundle )
+				.then( ({ exports }) => assert.equal( exports, true ));
 			});
 
 			it( 'sinon', () => {
 				return rollup({
 					entry: 'samples/umd/sinon.js',
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					const code = bundle.generate({ format: 'es' }).code;
-
+				})
+				.then( bundle => bundle.generate({ format: 'es' }) )
+				.then( ({ code }) => {
 					assert.equal( code.indexOf( 'typeof require' ), -1, code );
 					// assert.notEqual( code.indexOf( 'typeof module' ), -1, code ); // #151 breaks this test
 					// assert.notEqual( code.indexOf( 'typeof define' ), -1, code ); // #144 breaks this test
@@ -330,12 +333,8 @@ describe( 'rollup-plugin-commonjs', () => {
 				entry: 'samples/reserved-as-property/main.js',
 				plugins: [ commonjs() ]
 			})
-			.then( bundle => {
-				assert.doesNotThrow(() => {
-					const reservedProp = executeBundle( bundle, { exports: 'named' }).exports.delete;
-					assert.equal(reservedProp, 'foo');
-				});
-			});
+			.then( bundle => executeBundle( bundle, { exports: 'named' }) )
+			.then( ({ exports }) => assert.equal(exports.delete, 'foo'));
 		});
 
 		it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
@@ -383,9 +382,9 @@ describe( 'rollup-plugin-commonjs', () => {
 
 				define.amd = true;
 
-				const { exports } = executeBundle( bundle, { context: { define } });
-				assert.equal( exports, 42 );
-			});
+				return executeBundle( bundle, { context: { define } });
+			})
+			.then( ({ exports }) => assert.equal( exports, 42 ));
 		});
 
 		it( 'respects options.external', () => {
@@ -401,7 +400,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				const { code } = await bundle.generate({ format: 'cjs' });
 				assert.equal( code.indexOf( 'hello' ), -1 );
 
-				const { exports } = executeBundle( bundle );
+				const { exports } = await executeBundle( bundle );
 				assert.equal( exports, 'HELLO' );
 			});
 		});
