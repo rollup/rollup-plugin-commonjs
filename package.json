@@ -8,7 +8,7 @@
   "scripts": {
     "test": "mocha",
     "pretest": "npm run build",
-    "build": "rm -rf dist/* && rollup -c",
+    "build": "shx rm -rf dist/* && rollup -c",
     "dev": "rollup -c -w",
     "lint": "eslint src/*.js test/*.js",
     "prepublish": "npm run lint && npm test"
@@ -34,6 +34,7 @@
     "rollup-plugin-buble": "^0.15.0",
     "rollup-plugin-node-resolve": "^2.0.0",
     "rollup-watch": "^3.1.0",
+    "shx": "^0.2.2",
     "source-map": "^0.5.6",
     "source-map-support": "^0.4.2"
   },
