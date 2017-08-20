@@ -131,7 +131,7 @@ export default function commonjs ( options = {} ) {
 
 			resolveUsingOtherResolvers = first( resolvers );
 
-			entryModuleIdPromise = resolveId( options.entry ).then( resolved => {
+			entryModuleIdPromise = resolveId( options.input || options.entry ).then( resolved => {
 				entryModuleId = resolved;
 			});
 		},

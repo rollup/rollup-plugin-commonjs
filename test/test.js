@@ -47,11 +47,11 @@ function execute ( code, context = {} ) {
 	};
 }
 
-function executeBundle ( bundle, { context, exports } = {} ) {
+async function executeBundle ( bundle, { context, exports } = {} ) {
 	const options = { format: 'cjs' };
 	if ( exports ) options.exports = exports;
 
-	const { code } = bundle.generate( options );
+	const { code } = await bundle.generate( options );
 	return execute( code, context );
 }
 
@@ -68,7 +68,7 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			( config.solo ? it.only : it )( dir, () => {
 				const { transform, options } = commonjs( config.options );
-				options({ entry: 'main.js' });
+				options({ input: 'main.js' });
 
 				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
 				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim();
@@ -91,130 +91,128 @@ describe( 'rollup-plugin-commonjs', () => {
 				config = {};
 			}
 
-			( config.solo ? it.only : it )( dir, () => {
+			( config.solo ? it.only : it )( dir, async () => {
 				const options = Object.assign({
-					entry: `function/${dir}/main.js`,
+					input: `function/${dir}/main.js`,
 					plugins: [ commonjs( config.pluginOptions ) ]
 				}, config.options || {} );
 
-				return rollup( options ).then( bundle => {
-					const { code } = bundle.generate({ format: 'cjs' });
-					if ( config.show || config.solo ) {
-						console.error( code );
-					}
+				const bundle = await rollup( options );
+				const { code } = await bundle.generate({ format: 'cjs' });
+				if ( config.show || config.solo ) {
+					console.error( code );
+				}
 
-					const { exports, global } = execute( code, config.context );
+				const { exports, global } = execute( code, config.context );
 
-					if ( config.exports ) config.exports( exports );
-					if ( config.global ) config.global( global );
-				});
+				if ( config.exports ) config.exports( exports );
+				if ( config.global ) config.global( global );
 			});
 		});
 	});
 
 	describe( 'misc tests', () => {
 		// most of these should be moved over to function...
-		it( 'generates a sourcemap', () => {
-			return rollup({
-				entry: 'samples/sourcemap/main.js',
+		it( 'generates a sourcemap', async () => {
+			const bundle = await rollup({
+				input: 'samples/sourcemap/main.js',
 				plugins: [ commonjs({ sourceMap: true }) ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs',
-					sourceMap: true,
-					sourceMapFile: path.resolve( 'bundle.js' )
-				});
-
-				const smc = new SourceMapConsumer( generated.map );
-				const locator = getLocator( generated.code, { offsetLine: 1 });
-
-				let generatedLoc = locator( '42' );
-				let loc = smc.originalPositionFor( generatedLoc ); // 42
-				assert.equal( loc.source, 'samples/sourcemap/foo.js' );
-				assert.equal( loc.line, 1 );
-				assert.equal( loc.column, 15 );
-
-				generatedLoc = locator( 'log' );
-				loc = smc.originalPositionFor( generatedLoc ); // log
-				assert.equal( loc.source, 'samples/sourcemap/main.js' );
-				assert.equal( loc.line, 2 );
-				assert.equal( loc.column, 8 );
 			});
+
+			const generated = await bundle.generate({
+				format: 'cjs',
+				sourceMap: true,
+				sourceMapFile: path.resolve( 'bundle.js' )
+			});
+
+			const smc = new SourceMapConsumer( generated.map );
+			const locator = getLocator( generated.code, { offsetLine: 1 });
+
+			let generatedLoc = locator( '42' );
+			let loc = smc.originalPositionFor( generatedLoc ); // 42
+			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
+			assert.equal( loc.line, 1 );
+			assert.equal( loc.column, 15 );
+
+			generatedLoc = locator( 'log' );
+			loc = smc.originalPositionFor( generatedLoc ); // log
+			assert.equal( loc.source, 'samples/sourcemap/main.js' );
+			assert.equal( loc.line, 2 );
+			assert.equal( loc.column, 8 );
 		});
 
-		it( 'handles references to `global`', () => {
-			return rollup({
-				entry: 'samples/global/main.js',
+		it( 'handles references to `global`', async () => {
+			const bundle = await rollup({
+				input: 'samples/global/main.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
-				const mockWindow = {};
-				const mockGlobal = {};
-				const mockSelf = {};
-
-				const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
-
-				fn( {}, mockWindow, mockGlobal,  mockSelf);
-				assert.equal( mockWindow.foo, 'bar', generated.code );
-				assert.equal( mockGlobal.foo, undefined, generated.code );
-				assert.equal( mockSelf.foo, undefined, generated.code );
-
-				fn( {}, undefined, mockGlobal,  mockSelf );
-				assert.equal( mockGlobal.foo, 'bar', generated.code );
-				assert.equal( mockSelf.foo, undefined, generated.code );
-
-				fn( {}, undefined, undefined, mockSelf );
-				assert.equal( mockSelf.foo, 'bar', generated.code );
-
 			});
+
+			const generated = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const mockWindow = {};
+			const mockGlobal = {};
+			const mockSelf = {};
+
+			const fn = new Function ( 'module', 'window', 'global', 'self', generated.code );
+
+			fn( {}, mockWindow, mockGlobal,  mockSelf);
+			assert.equal( mockWindow.foo, 'bar', generated.code );
+			assert.equal( mockGlobal.foo, undefined, generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, mockGlobal,  mockSelf );
+			assert.equal( mockGlobal.foo, 'bar', generated.code );
+			assert.equal( mockSelf.foo, undefined, generated.code );
+
+			fn( {}, undefined, undefined, mockSelf );
+			assert.equal( mockSelf.foo, 'bar', generated.code );
 		});
 
-		it( 'handles multiple references to `global`', () => {
-			return rollup({
-				entry: 'samples/global-in-if-block/main.js',
+		it( 'handles multiple references to `global`', async () => {
+			const bundle = await rollup({
+				input: 'samples/global-in-if-block/main.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
-				const fn = new Function ( 'module', 'exports', 'window', generated.code );
-
-				const module = { exports: {} };
-				const window = {};
-
-				fn( module, module.exports, window );
-				assert.equal( window.count, 1 );
-
-				fn( module, module.exports, window );
-				assert.equal( window.count, 2 );
 			});
+
+			const generated = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const fn = new Function ( 'module', 'exports', 'window', generated.code );
+
+			const module = { exports: {} };
+			const window = {};
+
+			fn( module, module.exports, window );
+			assert.equal( window.count, 1 );
+
+			fn( module, module.exports, window );
+			assert.equal( window.count, 2 );
 		});
 
-		it( 'handles transpiled CommonJS modules', () => {
-			return rollup({
-				entry: 'samples/corejs/literal-with-default.js',
+		it( 'handles transpiled CommonJS modules', async () => {
+			const bundle = await rollup({
+				input: 'samples/corejs/literal-with-default.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
-				const module = { exports: {} };
-
-				const fn = new Function ( 'module', 'exports', generated.code );
-				fn( module, module.exports );
-
-				assert.equal( module.exports, 'foobar', generated.code );
 			});
+
+			const generated = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const module = { exports: {} };
+
+			const fn = new Function ( 'module', 'exports', generated.code );
+			fn( module, module.exports );
+
+			assert.equal( module.exports, 'foobar', generated.code );
 		});
 
-		it( 'allows named exports to be added explicitly via config', () => {
-			return rollup({
-				entry: 'samples/custom-named-exports/main.js',
+		it( 'allows named exports to be added explicitly via config', async () => {
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports/main.js',
 				plugins: [
 					resolve({ main: true }),
 					commonjs({
@@ -224,12 +222,14 @@ describe( 'rollup-plugin-commonjs', () => {
 						}
 					})
 				]
-			}).then( executeBundle );
+			});
+
+			await executeBundle( bundle );
 		});
 
-		it( 'ignores false positives with namedExports (#36)', () => {
-			return rollup({
-				entry: 'samples/custom-named-exports-false-positive/main.js',
+		it( 'ignores false positives with namedExports (#36)', async () => {
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports-false-positive/main.js',
 				plugins: [
 					resolve({ main: true }),
 					commonjs({
@@ -238,21 +238,23 @@ describe( 'rollup-plugin-commonjs', () => {
 						}
 					})
 				]
-			}).then( executeBundle );
-		});
-
-		it( 'converts a CommonJS module with custom file extension', () => {
-			return rollup({
-				entry: 'samples/extension/main.coffee',
-				plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
-			}).then( bundle => {
-				assert.equal( executeBundle( bundle ).exports, 42 );
 			});
+
+			await executeBundle( bundle );
 		});
 
-		it( 'can ignore references to `global`', () => {
-			return rollup({
-				entry: 'samples/ignore-global/main.js',
+		it( 'converts a CommonJS module with custom file extension', async () => {
+			const bundle = await rollup({
+				input: 'samples/extension/main.coffee',
+				plugins: [ commonjs({ extensions: ['.coffee' ]}) ]
+			});
+
+			assert.equal( (await executeBundle( bundle )).exports, 42 );
+		});
+
+		it( 'can ignore references to `global`', async () => {
+			const bundle = await rollup({
+				input: 'samples/ignore-global/main.js',
 				plugins: [
 					commonjs({ ignoreGlobal: true })
 				],
@@ -260,105 +262,105 @@ describe( 'rollup-plugin-commonjs', () => {
 					if ( warning.code === 'THIS_IS_UNDEFINED' ) return;
 					console.warn( warning.message );
 				}
-			}).then( bundle => {
-				const generated = bundle.generate({
-					format: 'cjs'
-				});
-
-				const { exports, global } = executeBundle( bundle );
-
-				assert.equal( exports.immediate1, global.setImmediate, generated.code );
-				assert.equal( exports.immediate2, global.setImmediate, generated.code );
-				assert.equal( exports.immediate3, null, generated.code );
 			});
+
+			const generated = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const { exports, global } = await executeBundle( bundle );
+
+			assert.equal( exports.immediate1, global.setImmediate, generated.code );
+			assert.equal( exports.immediate2, global.setImmediate, generated.code );
+			assert.equal( exports.immediate3, null, generated.code );
 		});
 
-		it( 'can handle parens around right have node while producing default export', () => {
-			return rollup({
-				entry: 'samples/paren-expression/index.js',
+		it( 'can handle parens around right have node while producing default export', async () => {
+			const bundle = await rollup({
+				input: 'samples/paren-expression/index.js',
 				plugins: [ commonjs() ]
-			}).then( bundle => {
-				assert.equal( executeBundle( bundle ).exports, 42 );
 			});
+
+			assert.equal( (await executeBundle( bundle )).exports, 42 );
 		});
 
 		describe( 'typeof transforms', () => {
-			it( 'correct-scoping', () => {
-				return rollup({
-					entry: 'samples/umd/correct-scoping.js',
+			it( 'correct-scoping', async () => {
+				const bundle = await rollup({
+					input: 'samples/umd/correct-scoping.js',
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					assert.equal( executeBundle( bundle ).exports, 'object' );
 				});
+
+				assert.equal( (await executeBundle( bundle )).exports, 'object' );
 			});
 
-			it( 'protobuf', () => {
-				return rollup({
-					entry: 'samples/umd/protobuf.js',
+			it( 'protobuf', async () => {
+				const bundle = await rollup({
+					input: 'samples/umd/protobuf.js',
 					external: [ 'bytebuffer' ],
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					assert.equal( executeBundle( bundle ).exports, true );
 				});
+
+				assert.equal( (await executeBundle( bundle )).exports, true );
 			});
 
-			it( 'sinon', () => {
-				return rollup({
-					entry: 'samples/umd/sinon.js',
+			it( 'sinon', async () => {
+				const bundle = await rollup({
+					input: 'samples/umd/sinon.js',
 					plugins: [ commonjs() ]
-				}).then( bundle => {
-					const code = bundle.generate({ format: 'es' }).code;
-
-					assert.equal( code.indexOf( 'typeof require' ), -1, code );
-					// assert.notEqual( code.indexOf( 'typeof module' ), -1, code ); // #151 breaks this test
-					// assert.notEqual( code.indexOf( 'typeof define' ), -1, code ); // #144 breaks this test
 				});
+
+				const { code } = await bundle.generate({ format: 'es' });
+
+				assert.equal( code.indexOf( 'typeof require' ), -1, code );
+				// assert.notEqual( code.indexOf( 'typeof module' ), -1, code ); // #151 breaks this test
+				// assert.notEqual( code.indexOf( 'typeof define' ), -1, code ); // #144 breaks this test
 			});
 		});
 
-		it( 'deconflicts helper name', () => {
-			return rollup({
-				entry: 'samples/deconflict-helpers/main.js',
+		it( 'deconflicts helper name', async () => {
+			const bundle = await rollup({
+				input: 'samples/deconflict-helpers/main.js',
 				plugins: [ commonjs() ]
-			}).then( executeBundle ).then( ({ exports }) => {
-				assert.notEqual( exports, 'nope' );
 			});
+
+			const { exports } = await executeBundle( bundle );
+			assert.notEqual( exports, 'nope' );
 		});
 
-		it( 'deconflicts reserved keywords', () => {
-			return rollup({
-				entry: 'samples/reserved-as-property/main.js',
+		it( 'deconflicts reserved keywords', async () => {
+			const bundle = await rollup({
+				input: 'samples/reserved-as-property/main.js',
 				plugins: [ commonjs() ]
-			})
-			.then( bundle => {
-				assert.doesNotThrow(() => {
-					const reservedProp = executeBundle( bundle, { exports: 'named' }).exports.delete;
-					assert.equal(reservedProp, 'foo');
+			});
+
+			const reservedProp = (await executeBundle( bundle, { exports: 'named' })).exports.delete;
+			assert.equal(reservedProp, 'foo');
+		});
+
+		it( 'does not process the entry file when it has a leading "." (issue #63)', async () => {
+			const bundle = await rollup({
+				input: './function/basic/main.js',
+				plugins: [ commonjs() ]
+			});
+
+			await executeBundle( bundle );
+		});
+
+		it( 'does not reexport named contents', async () => {
+			try {
+				await rollup({
+					input: 'samples/reexport/main.js',
+					plugins: [ commonjs() ]
 				});
-			});
-		});
-
-		it( 'does not process the entry file when it has a leading "." (issue #63)', () => {
-			return rollup({
-				entry: './function/basic/main.js',
-				plugins: [ commonjs() ]
-			}).then( executeBundle );
-		});
-
-		it( 'does not reexport named contents', () => {
-			return rollup({
-				entry: 'samples/reexport/main.js',
-				plugins: [ commonjs() ]
-			})
-			.then( executeBundle )
-			.catch( error => {
+			} catch (error) {
 				assert.equal( error.message, `'named' is not exported by samples${path.sep}reexport${path.sep}reexport.js` );
-			});
+			}
 		});
 
-		it( 'respects other plugins', () => {
-			return rollup({
-				entry: 'samples/other-transforms/main.js',
+		it( 'respects other plugins', async () => {
+			const bundle = await rollup({
+				input: 'samples/other-transforms/main.js',
 				plugins: [
 					{
 						transform ( code, id ) {
@@ -368,42 +370,42 @@ describe( 'rollup-plugin-commonjs', () => {
 					},
 					commonjs()
 				]
-			}).then( executeBundle );
-		});
-
-		it( 'rewrites top-level defines', () => {
-			return rollup({
-				entry: 'samples/define-is-undefined/main.js',
-				plugins: [ commonjs() ]
-			})
-			.then( bundle => {
-				function define () {
-					throw new Error( 'nope' );
-				}
-
-				define.amd = true;
-
-				const { exports } = executeBundle( bundle, { context: { define } });
-				assert.equal( exports, 42 );
 			});
+
+			await executeBundle( bundle );
 		});
 
-		it( 'respects options.external', () => {
-			return rollup({
-				entry: 'samples/external/main.js',
+		it( 'rewrites top-level defines', async () => {
+			const bundle = await rollup({
+				input: 'samples/define-is-undefined/main.js',
+				plugins: [ commonjs() ]
+			});
+
+			function define () {
+				throw new Error( 'nope' );
+			}
+
+			define.amd = true;
+
+			const { exports } = await executeBundle( bundle, { context: { define } });
+			assert.equal( exports, 42 );
+		});
+
+		it( 'respects options.external', async () => {
+			const bundle = await rollup({
+				input: 'samples/external/main.js',
 				plugins: [
 					resolve(),
 					commonjs()
 				],
 				external: ['baz']
-			})
-			.then( async bundle => {
-				const { code } = await bundle.generate({ format: 'cjs' });
-				assert.equal( code.indexOf( 'hello' ), -1 );
-
-				const { exports } = executeBundle( bundle );
-				assert.equal( exports, 'HELLO' );
 			});
+
+			const { code } = await bundle.generate({ format: 'cjs' });
+			assert.equal( code.indexOf( 'hello' ), -1 );
+
+			const { exports } = await executeBundle( bundle );
+			assert.equal( exports, 'HELLO' );
 		});
 	});
 });
