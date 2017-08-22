@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.2.0
+
+* Avoid using `index` as a variable name ([#208](https://github.com/rollup/rollup-plugin-commonjs/pull/208))
+
 ## 8.1.1
 
 * Compatibility with 0.48 ([#220](https://github.com/rollup/rollup-plugin-commonjs/issues/220))
