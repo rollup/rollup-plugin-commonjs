@@ -407,5 +407,19 @@ describe( 'rollup-plugin-commonjs', () => {
 			const { exports } = await executeBundle( bundle );
 			assert.equal( exports, 'HELLO' );
 		});
+
+		it( 'prefers to set name using directory for index files', () => {
+			return rollup({
+				entry: 'samples/rename-index/main.js',
+				plugins: [ commonjs() ]
+			})
+			.then( async bundle => {
+				const { code } = await bundle.generate({ format: 'cjs' });
+				assert.equal( code.indexOf( 'var index' ), -1 );
+				assert.notEqual( code.indexOf( 'var invalidVar' ), -1 );
+				assert.notEqual( code.indexOf( 'var validVar' ), -1 );
+				assert.notEqual( code.indexOf( 'var nonIndex' ), -1 );
+			});
+		});
 	});
 });
