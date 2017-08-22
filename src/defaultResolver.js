@@ -19,7 +19,7 @@ function addJsExtensionIfNecessary ( file ) {
 	return null;
 }
 
-const absolutePath = /^(?:\/|(?:[A-Za-z]:)?[\\|\/])/;
+const absolutePath = /^(?:\/|(?:[A-Za-z]:)?[\\|/])/;
 
 function isAbsolute ( path ) {
 	return absolutePath.test( path );

@@ -19,23 +19,22 @@
     "README.md"
   ],
   "dependencies": {
-    "acorn": "^4.0.1",
-    "estree-walker": "^0.3.0",
-    "magic-string": "^0.19.0",
-    "resolve": "^1.1.7",
+    "acorn": "^5.1.1",
+    "estree-walker": "^0.5.0",
+    "magic-string": "^0.22.4",
+    "resolve": "^1.4.0",
     "rollup-pluginutils": "^2.0.1"
   },
   "devDependencies": {
-    "eslint": "^3.5.0",
-    "locate-character": "^2.0.0",
-    "mocha": "^3.0.2",
+    "eslint": "^4.5.0",
+    "locate-character": "^2.0.1",
+    "mocha": "^3.5.0",
     "require-relative": "^0.8.7",
-    "rollup": "^0.40.2",
+    "rollup": "^0.48.2",
     "rollup-plugin-buble": "^0.15.0",
-    "rollup-plugin-node-resolve": "^2.0.0",
-    "rollup-watch": "^3.1.0",
-    "source-map": "^0.5.6",
-    "source-map-support": "^0.4.2"
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "source-map": "^0.5.7",
+    "source-map-support": "^0.4.16"
   },
   "repository": "rollup/rollup-plugin-commonjs",
   "author": "Rich Harris",

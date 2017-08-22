@@ -63,7 +63,7 @@ export default function commonjs ( options = {} ) {
 	const ignoreRequire = typeof options.ignore === 'function' ?
 		options.ignore :
 		Array.isArray( options.ignore ) ? id => ~options.ignore.indexOf( id ) :
-		() => false;
+			() => false;
 
 	let entryModuleIdPromise = null;
 	let entryModuleId = null;
@@ -124,7 +124,7 @@ export default function commonjs ( options = {} ) {
 
 			const isExternal = options.external ?
 				Array.isArray( options.external ) ? id => ~options.external.indexOf( id ) :
-				options.external :
+					options.external :
 				() => false;
 
 			resolvers.unshift( id => isExternal( id ) ? false : null );
