@@ -391,9 +391,8 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 		}
 	}
 
-	const defaultExport = /__esModule/.test( code ) ?
-		`export default ${HELPERS_NAME}.unwrapExports(${moduleName});` :
-		`export default ${moduleName};`;
+	const defaultExport = !/__esModule/.test( code ) ? `export default ${moduleName};`
+		: hasDefaultExport ? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});` : '';
 
 	const named = namedExportDeclarations
 		.filter( x => x.name !== 'default' || !hasDefaultExport )
