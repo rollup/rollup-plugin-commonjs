@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.2.1
+
+* Fix magic-string deprecation warning
+
 ## 8.2.0
 
 * Avoid using `index` as a variable name ([#208](https://github.com/rollup/rollup-plugin-commonjs/pull/208))
