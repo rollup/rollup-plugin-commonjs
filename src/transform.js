@@ -141,7 +141,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 			// rewrite `this` as `commonjsHelpers.commonjsGlobal`
 			if ( node.type === 'ThisExpression' && lexicalDepth === 0 ) {
 				uses.global = true;
-				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+				if ( !ignoreGlobal ) magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, { storeName: true } );
 				return;
 			}
 
@@ -153,7 +153,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 				if ( scope.contains( flattened.name ) ) return;
 
 				if ( flattened.keypath === 'module.exports' || flattened.keypath === 'module' || flattened.keypath === 'exports' ) {
-					magicString.overwrite( node.start, node.end, `'object'`, false );
+					magicString.overwrite( node.start, node.end, `'object'`, { storeName: false } );
 				}
 			}
 
@@ -164,12 +164,12 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 					if ( node.name in uses ) {
 						if ( node.name === 'require' ) {
 							if ( allowDynamicRequire ) return;
-							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, true );
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, { storeName: true } );
 						}
 
 						uses[ node.name ] = true;
 						if ( node.name === 'global' && !ignoreGlobal ) {
-							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, true );
+							magicString.overwrite( node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, { storeName: true } );
 						}
 
 						// if module or exports are used outside the context of an assignment
@@ -180,7 +180,7 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 					}
 
 					if ( node.name === 'define' ) {
-						magicString.overwrite( node.start, node.end, 'undefined', true );
+						magicString.overwrite( node.start, node.end, 'undefined', { storeName: true } );
 					}
 
 					globals.add( node.name );
