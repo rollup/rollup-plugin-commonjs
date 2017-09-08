@@ -8,7 +8,7 @@ export function commonjsRequire () {
 }
 
 export function unwrapExports (x) {
-	return x && x.__esModule ? x['default'] : x;
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
 
 export function createCommonjsModule(fn, module) {
