@@ -23,9 +23,11 @@ import commonjs from 'rollup-plugin-commonjs';
 import nodeResolve from 'rollup-plugin-node-resolve';
 
 export default {
-  entry: 'main.js',
-  dest: 'bundle.js',
-  format: 'iife',
+  input: 'main.js',
+  output: {
+    file: 'bundle.js',
+    format: 'iife'
+  },
   plugins: [
     nodeResolve({
       jsnext: true,
