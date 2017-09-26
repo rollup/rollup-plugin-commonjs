@@ -91,7 +91,11 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 		if ( existing === undefined ) {
 			sources.push( source );
 
-			if ( !name ) name = `require$$${uid++}`;
+			if ( !name ) {
+				do name = `require$$${uid++}`;
+				while ( scope.contains( name ) );
+			}
+
 			required[ source ] = { source, name, importsDefault: false };
 		}
 
