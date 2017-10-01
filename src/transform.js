@@ -1,4 +1,4 @@
-import acorn from 'acorn';
+import {parse} from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
@@ -28,7 +28,7 @@ function deconflict ( scope, globals, identifier ) {
 
 function tryParse ( code, id ) {
 	try {
-		return acorn.parse( code, {
+		return parse( code, {
 			ecmaVersion: 8,
 			sourceType: 'module',
 			allowReturnOutsideFunction: true

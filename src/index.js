@@ -1,6 +1,6 @@
 import { statSync } from 'fs';
 import { dirname, extname, resolve, sep } from 'path';
-import { sync as nodeResolveSync } from 'resolve';
+import {default as nodeResolveSync} from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
