@@ -121,8 +121,8 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			const generated = await bundle.generate({
 				format: 'cjs',
-				sourceMap: true,
-				sourceMapFile: path.resolve( 'bundle.js' )
+				sourcemap: true,
+				sourcemapFile: path.resolve( 'bundle.js' )
 			});
 
 			const smc = new SourceMapConsumer( generated.map );
@@ -410,7 +410,7 @@ describe( 'rollup-plugin-commonjs', () => {
 
 		it( 'prefers to set name using directory for index files', async () => {
 			const bundle = await rollup({
-				entry: 'samples/rename-index/main.js',
+				input: 'samples/rename-index/main.js',
 				plugins: [ commonjs() ]
 			});
 
@@ -424,7 +424,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		it( 'does not misassign default when consuming rollup output', async () => {
 			// Issue #224
 			const bundle = await rollup({
-				entry: 'samples/use-own-output/main.js',
+				input: 'samples/use-own-output/main.js',
 				plugins: [ commonjs() ],
 			});
 
