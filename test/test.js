@@ -420,5 +420,17 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.notEqual( code.indexOf( 'var validVar' ), -1 );
 			assert.notEqual( code.indexOf( 'var nonIndex' ), -1 );
 		});
+
+		it( 'does not misassign default when consuming rollup output', async () => {
+			// Issue #224
+			const bundle = await rollup({
+				entry: 'samples/use-own-output/main.js',
+				plugins: [ commonjs() ],
+			});
+
+			const window = {};
+			await executeBundle( bundle, { context: { window } } );
+			assert.notEqual( window.b.default, undefined );
+		});
 	});
 });
