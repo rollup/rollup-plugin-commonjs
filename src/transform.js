@@ -374,10 +374,12 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 						`export { ${name} };` :
 						`export { ${deconflicted} as ${name} };`;
 
-					namedExportDeclarations.push({
-						str: declaration,
-						name
-					});
+					if ( name !== 'default' ) {
+						namedExportDeclarations.push({
+							str: declaration,
+							name
+						});
+					}
 
 					defaultExportPropertyAssignments.push( `${moduleName}.${name} = ${deconflicted};` );
 				}
