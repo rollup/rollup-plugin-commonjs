@@ -39,26 +39,29 @@ function tryParse ( code, id ) {
 	}
 }
 
-export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequire, customNamedExports, sourceMap, allowDynamicRequire ) {
+export function checkFirstpass (code, ignoreGlobal) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
-	if ( !firstpass.test( code ) ) return null;
+	return firstpass.test(code);
+}
 
-	const ast = tryParse( code, id );
+export function checkEsModule (code, id) {
+	const ast = tryParse(code, id);
 
 	// if there are top-level import/export declarations, this is ES not CommonJS
-	{
-		let hasDefaultExport = false;
-		let isEsModule = false;
-		for ( const node of ast.body ) {
-			if ( node.type === 'ExportDefaultDeclaration' )
-				hasDefaultExport = true;
-			if ( importExportDeclaration.test( node.type ) )
-				isEsModule = true;
-		}
-		if (isEsModule) {
-			return { code, map: sourceMap, isEsModule, hasDefaultExport };
-		}
+	let hasDefaultExport = false;
+	let isEsModule = false;
+	for ( const node of ast.body ) {
+		if ( node.type === 'ExportDefaultDeclaration' )
+			hasDefaultExport = true;
+		if ( importExportDeclaration.test( node.type ) )
+			isEsModule = true;
 	}
+
+	return { isEsModule, hasDefaultExport, ast };
+}
+
+export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequire, customNamedExports, sourceMap, allowDynamicRequire, astCache ) {
+	const ast = astCache || tryParse( code, id );
 
 	const magicString = new MagicString( code );
 
