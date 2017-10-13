@@ -94,7 +94,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			( config.solo ? it.only : it )( dir, async () => {
 				const options = Object.assign({
 					input: `function/${dir}/main.js`,
-					plugins: [ commonjs( config.pluginOptions ) ]
+					plugins: [ commonjs( config.pluginOptions ) ],
 				}, config.options || {} );
 
 				const bundle = await rollup( options );
@@ -431,6 +431,23 @@ describe( 'rollup-plugin-commonjs', () => {
 			const window = {};
 			await executeBundle( bundle, { context: { window } } );
 			assert.notEqual( window.b.default, undefined );
+		});
+
+		it( 'does not warn even if the ES module not export "default"', async () => {
+			const warns = [];
+			await rollup({
+				input: 'samples/es-modules-without-default-export/main.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
+
+			await rollup({
+				input: 'function/bare-import/bar.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
 		});
 	});
 });
