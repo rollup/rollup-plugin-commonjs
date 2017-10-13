@@ -169,10 +169,14 @@ export default function commonjs ( options = {} ) {
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
 			return entryModuleIdPromise.then( () => {
-				if ( !checkFirstpass( code, ignoreGlobal ) ) return;
-
 				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
 				if ( isEsModule ) {
+				  if ( !hasDefaultExport )
+				    esModulesWithoutDefaultExport.push( id );
+					return;
+				}
+
+				if ( !checkFirstpass( code, ignoreGlobal ) ) {
 				  if ( !hasDefaultExport )
 				    esModulesWithoutDefaultExport.push( id );
 					return;
