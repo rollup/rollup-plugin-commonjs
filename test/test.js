@@ -94,7 +94,7 @@ describe( 'rollup-plugin-commonjs', () => {
 			( config.solo ? it.only : it )( dir, async () => {
 				const options = Object.assign({
 					input: `function/${dir}/main.js`,
-					plugins: [ commonjs( config.pluginOptions ) ],
+					plugins: [ commonjs( config.pluginOptions ) ]
 				}, config.options || {} );
 
 				const bundle = await rollup( options );

@@ -171,14 +171,14 @@ export default function commonjs ( options = {} ) {
 			return entryModuleIdPromise.then( () => {
 				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
 				if ( isEsModule ) {
-				  if ( !hasDefaultExport )
-				    esModulesWithoutDefaultExport.push( id );
+					if ( !hasDefaultExport )
+						esModulesWithoutDefaultExport.push( id );
 					return;
 				}
 
+				// it is not an ES module but not a commonjs module, too.
 				if ( !checkFirstpass( code, ignoreGlobal ) ) {
-				  if ( !hasDefaultExport )
-				    esModulesWithoutDefaultExport.push( id );
+					esModulesWithoutDefaultExport.push( id );
 					return;
 				}
 
