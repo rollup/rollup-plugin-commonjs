@@ -58,6 +58,8 @@ export default function commonjs ( options = {} ) {
 		});
 	}
 
+	const esModulesWithoutDefaultExport = [];
+
 	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
 
 	const ignoreRequire = typeof options.ignore === 'function' ?
@@ -153,9 +155,12 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( PREFIX.length );
 				const name = getName( actualId );
 
-				return commonjsModules.has( actualId ) ?
-					`import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;` :
-					`import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+				if (commonjsModules.has( actualId ))
+					return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
+				else if (esModulesWithoutDefaultExport.includes(actualId))
+					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
+				else
+					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
 			}
 		},
 
@@ -165,11 +170,17 @@ export default function commonjs ( options = {} ) {
 
 			return entryModuleIdPromise.then( () => {
 				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire );
+				if ( !transformed ) return;
 
-				if ( transformed ) {
-					commonjsModules.set( id, true );
-					return transformed;
+				const {isEsModule, hasDefaultExport} = transformed;
+				if ( isEsModule ) {
+				  if ( !hasDefaultExport )
+				    esModulesWithoutDefaultExport.push(id);
+					return;
 				}
+
+				commonjsModules.set( id, true );
+				return transformed;
 			});
 		}
 	};

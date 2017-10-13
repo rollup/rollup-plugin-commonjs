@@ -46,8 +46,18 @@ export default function transformCommonjs ( code, id, isEntry, ignoreGlobal, ign
 	const ast = tryParse( code, id );
 
 	// if there are top-level import/export declarations, this is ES not CommonJS
-	for ( const node of ast.body ) {
-		if ( importExportDeclaration.test( node.type ) ) return null;
+	{
+		let hasDefaultExport = false;
+		let isEsModule = false;
+		for ( const node of ast.body ) {
+			if ( node.type === 'ExportDefaultDeclaration' )
+				hasDefaultExport = true;
+			if ( importExportDeclaration.test( node.type ) )
+				isEsModule = true;
+		}
+		if (isEsModule) {
+			return { code, map: sourceMap, isEsModule, hasDefaultExport };
+		}
 	}
 
 	const magicString = new MagicString( code );
