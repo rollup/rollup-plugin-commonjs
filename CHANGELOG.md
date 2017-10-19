@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.2.4
+
+* Don't import default from ES modules that don't export default ([#206](https://github.com/rollup/rollup-plugin-commonjs/issues/206))
+
 ## 8.2.3
 
 * Prevent duplicate default exports ([#230](https://github.com/rollup/rollup-plugin-commonjs/pull/230))
