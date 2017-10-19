@@ -432,5 +432,22 @@ describe( 'rollup-plugin-commonjs', () => {
 			await executeBundle( bundle, { context: { window } } );
 			assert.notEqual( window.b.default, undefined );
 		});
+
+		it( 'does not warn even if the ES module not export "default"', async () => {
+			const warns = [];
+			await rollup({
+				input: 'samples/es-modules-without-default-export/main.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
+
+			await rollup({
+				input: 'function/bare-import/bar.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
+		});
 	});
 });

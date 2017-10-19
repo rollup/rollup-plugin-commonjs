@@ -4,7 +4,7 @@ import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL, PREFIX, HELPERS_ID, HELPERS } from './helpers.js';
 import defaultResolver from './defaultResolver.js';
-import transformCommonjs from './transform.js';
+import { checkFirstpass, checkEsModule, transformCommonjs } from './transform.js';
 import { getName } from './utils.js';
 
 function getCandidatesForExtension ( resolved, extension ) {
@@ -57,6 +57,8 @@ export default function commonjs ( options = {} ) {
 			customNamedExports[ resolvedId ] = options.namedExports[ id ];
 		});
 	}
+
+	const esModulesWithoutDefaultExport = [];
 
 	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
 
@@ -153,9 +155,12 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( PREFIX.length );
 				const name = getName( actualId );
 
-				return commonjsModules.has( actualId ) ?
-					`import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;` :
-					`import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+				if (commonjsModules.has( actualId ))
+					return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
+				else if (esModulesWithoutDefaultExport.includes(actualId))
+					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
+				else
+					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
 			}
 		},
 
@@ -164,12 +169,24 @@ export default function commonjs ( options = {} ) {
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
 			return entryModuleIdPromise.then( () => {
-				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire );
-
-				if ( transformed ) {
-					commonjsModules.set( id, true );
-					return transformed;
+				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
+				if ( isEsModule ) {
+					if ( !hasDefaultExport )
+						esModulesWithoutDefaultExport.push( id );
+					return;
 				}
+
+				// it is not an ES module but not a commonjs module, too.
+				if ( !checkFirstpass( code, ignoreGlobal ) ) {
+					esModulesWithoutDefaultExport.push( id );
+					return;
+				}
+
+				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
+				if ( !transformed ) return;
+
+				commonjsModules.set( id, true );
+				return transformed;
 			});
 		}
 	};
