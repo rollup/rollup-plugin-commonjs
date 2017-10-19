@@ -1,5 +1,11 @@
 # rollup-plugin-commonjs changelog
 
+## 8.2.3
+
+* Prevent duplicate default exports ([#230](https://github.com/rollup/rollup-plugin-commonjs/pull/230))
+* Only include default export when it exists ([#226](https://github.com/rollup/rollup-plugin-commonjs/pull/226))
+* Deconflict `require` aliases ([#232](https://github.com/rollup/rollup-plugin-commonjs/issues/232))
+
 ## 8.2.1
 
 * Fix magic-string deprecation warning
