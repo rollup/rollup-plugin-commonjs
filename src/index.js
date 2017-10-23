@@ -157,7 +157,7 @@ export default function commonjs ( options = {} ) {
 
 				if (commonjsModules.has( actualId ))
 					return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
-				else if (esModulesWithoutDefaultExport.includes(actualId))
+				else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
 					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
 				else
 					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
