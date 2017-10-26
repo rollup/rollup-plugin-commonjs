@@ -6,12 +6,14 @@
   "module": "dist/rollup-plugin-commonjs.es.js",
   "jsnext:main": "dist/rollup-plugin-commonjs.es.js",
   "scripts": {
-    "test": "mocha",
+    "test": "npm run test:only",
+    "test:only": "mocha",
     "pretest": "npm run build",
     "build": "shx rm -rf dist/* && rollup -c",
     "dev": "rollup -c -w",
     "lint": "eslint src/*.js test/*.js",
-    "prepublish": "npm run lint && npm test"
+    "prepublishOnly": "npm run lint && npm run test:only",
+    "prepare": "npm run build"
   },
   "files": [
     "src",
