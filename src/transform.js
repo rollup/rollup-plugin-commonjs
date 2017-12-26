@@ -91,14 +91,14 @@ export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequi
 		if ( !node ) return;
 		if ( node.type !== 'CallExpression' ) return;
 		if ( node.callee.name !== 'require' || scope.contains( 'require' ) ) return;
-		if ( node.arguments.length !== 1 || node.arguments[0].type !== 'Literal' ) return; // TODO handle these weird cases?
+		if ( node.arguments.length !== 1 || (node.arguments[0].type !== 'Literal' && (node.arguments[0].type !== 'TemplateLiteral' || node.arguments[0].expressions.length > 0) ) ) return; // TODO handle these weird cases?
 		if ( ignoreRequire( node.arguments[0].value ) ) return;
 
 		return true;
 	}
 
 	function getRequired ( node, name ) {
-		const source = node.arguments[0].value;
+		const source = node.arguments[0].type === 'Literal' ? node.arguments[0].value : node.arguments[0].quasis[0].value.cooked;
 
 		const existing = required[ source ];
 		if ( existing === undefined ) {
