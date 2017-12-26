@@ -252,6 +252,20 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( (await executeBundle( bundle )).exports, 42 );
 		});
 
+		it( 'identifies named exports from object literals', async () => {
+			const bundle = await rollup({
+				input: 'samples/named-exports-from-object-literal/main.js',
+				plugins: [ commonjs() ]
+			});
+
+			const { code } = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const fn = new Function ( 'module', 'assert', code );
+			fn( {}, assert );
+		});
+
 		it( 'can ignore references to `global`', async () => {
 			const bundle = await rollup({
 				input: 'samples/ignore-global/main.js',
