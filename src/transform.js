@@ -359,10 +359,6 @@ export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequi
 
 		wrapperStart = `var ${moduleName} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
 		wrapperEnd = `\n});`;
-
-		Object.keys( namedExports )
-			.filter( key => !blacklist[ key ] )
-			.forEach( addExport );
 	} else {
 		const names = [];
 
@@ -396,6 +392,7 @@ export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequi
 							str: declaration,
 							name
 						});
+						delete namedExports[name];
 					}
 
 					defaultExportPropertyAssignments.push( `${moduleName}.${name} = ${deconflicted};` );
@@ -409,6 +406,9 @@ export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequi
 			}\n};`;
 		}
 	}
+	Object.keys( namedExports )
+		.filter( key => !blacklist[ key ] )
+		.forEach( addExport );
 
 	const defaultExport = /__esModule/.test( code ) ?
 		`export default ${HELPERS_NAME}.unwrapExports(${moduleName});` :
