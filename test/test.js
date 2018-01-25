@@ -130,7 +130,6 @@ describe( 'rollup-plugin-commonjs', () => {
 
 			let generatedLoc = locator( '42' );
 			let loc = smc.originalPositionFor( generatedLoc ); // 42
-			console.log(JSON.stringify(generated, null, 2));
 			assert.equal( loc.source, 'foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
@@ -140,6 +139,25 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( loc.source, 'main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
+		});
+
+		it( 'supports multiple entry points for experimentalCodeSplitting', async () => {
+			const bundle = await rollup({
+				input: [
+					'samples/multiple-entry-points/b.js',
+					'samples/multiple-entry-points/c.js'
+				],
+				experimentalCodeSplitting: true,
+				plugins: [ commonjs() ]
+			});
+
+			const generated = await bundle.generate({
+				format: 'cjs',
+			});
+
+			assert.equal(Object.keys(generated).length, 3);
+			assert.equal(generated.hasOwnProperty('./b.js'), true);
+			assert.equal(generated.hasOwnProperty('./c.js'), true);
 		});
 
 		it( 'handles references to `global`', async () => {
