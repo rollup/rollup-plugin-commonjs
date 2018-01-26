@@ -2,9 +2,10 @@
 
 ## 8.3.0
 
+* Handle multiple entry points ([#283](https://github.com/rollup/rollup-plugin-commonjs/issues/283))
 * Extract named exports from exported object literals ([#272](https://github.com/rollup/rollup-plugin-commonjs/issues/272))
-* Recognize static template strings in require statements ([#271](https://github.com/rollup/rollup-plugin-commonjs/issues/271))
 * Fix when `options.external` is modified by other plugins ([#264](https://github.com/rollup/rollup-plugin-commonjs/issues/264))
+* Recognize static template strings in require statements ([#271](https://github.com/rollup/rollup-plugin-commonjs/issues/271))
 
 ## 8.2.4
 

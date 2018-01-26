@@ -9,15 +9,16 @@ export default {
 		})
 	],
 	external: Object.keys( pkg.dependencies ).concat([ 'fs', 'path' ]),
-	sourcemap: true,
 	output: [
 		{
 			format: 'es',
-			file: pkg.module
+			file: pkg.module,
+			sourcemap: true
 		},
 		{
 			format: 'cjs',
-			file: pkg.main
+			file: pkg.main,
+			sourcemap: true
 		}
 	]
 };
