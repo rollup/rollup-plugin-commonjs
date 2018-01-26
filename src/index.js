@@ -67,8 +67,7 @@ export default function commonjs ( options = {} ) {
 		Array.isArray( options.ignore ) ? id => ~options.ignore.indexOf( id ) :
 			() => false;
 
-	let entryModuleIdPromise = null;
-	let entryModuleId = null;
+	let entryModuleIdsPromise = null;
 
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
@@ -133,9 +132,10 @@ export default function commonjs ( options = {} ) {
 
 			resolveUsingOtherResolvers = first( resolvers );
 
-			entryModuleIdPromise = resolveId( options.input || options.entry ).then( resolved => {
-				entryModuleId = resolved;
-			});
+			const entryModules = [].concat( options.input || options.entry );
+			entryModuleIdsPromise = Promise.all(
+				entryModules.map( entry => resolveId( entry ))
+			);
 		},
 
 		resolveId,
@@ -168,7 +168,7 @@ export default function commonjs ( options = {} ) {
 			if ( !filter( id ) ) return null;
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
-			return entryModuleIdPromise.then( () => {
+			return entryModuleIdsPromise.then( (entryModuleIds) => {
 				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
 				if ( isEsModule ) {
 					if ( !hasDefaultExport )
@@ -182,7 +182,7 @@ export default function commonjs ( options = {} ) {
 					return;
 				}
 
-				const transformed = transformCommonjs( code, id, id === entryModuleId, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
+				const transformed = transformCommonjs( code, id, entryModuleIds.indexOf(id) !== -1, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
 				if ( !transformed ) return;
 
 				commonjsModules.set( id, true );
