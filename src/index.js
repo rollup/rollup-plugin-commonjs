@@ -68,7 +68,6 @@ export default function commonjs ( options = {} ) {
 			() => false;
 
 	let entryModuleIdsPromise = null;
-	const entryModuleIds = [];
 
 	function resolveId ( importee, importer ) {
 		if ( importee === HELPERS_ID ) return importee;
@@ -135,11 +134,7 @@ export default function commonjs ( options = {} ) {
 
 			const entryModules = [].concat( options.input || options.entry );
 			entryModuleIdsPromise = Promise.all(
-				entryModules.map( entry =>
-					resolveId( entry ).then( resolved => {
-						entryModuleIds.push( resolved );
-					})
-				)
+				entryModules.map( entry => resolveId( entry ))
 			);
 		},
 
@@ -173,7 +168,7 @@ export default function commonjs ( options = {} ) {
 			if ( !filter( id ) ) return null;
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
-			return entryModuleIdsPromise.then( () => {
+			return entryModuleIdsPromise.then( (entryModuleIds) => {
 				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
 				if ( isEsModule ) {
 					if ( !hasDefaultExport )
