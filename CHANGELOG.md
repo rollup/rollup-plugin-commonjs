@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.x.x
+
+* Extract named exports from exported object literals ([#272](https://github.com/rollup/rollup-plugin-commonjs/issues/272))
+
 ## 8.2.4
 
 * Don't import default from ES modules that don't export default ([#206](https://github.com/rollup/rollup-plugin-commonjs/issues/206))
