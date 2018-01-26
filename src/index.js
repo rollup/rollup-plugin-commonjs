@@ -124,10 +124,10 @@ export default function commonjs ( options = {} ) {
 				})
 				.filter( Boolean );
 
-			const isExternal = options.external ?
-				Array.isArray( options.external ) ? id => ~options.external.indexOf( id ) :
-					options.external :
-				() => false;
+			const isExternal = id => options.external ?
+				Array.isArray( options.external ) ? ~options.external.indexOf( id ) :
+					options.external(id) :
+				false;
 
 			resolvers.unshift( id => isExternal( id ) ? false : null );
 
