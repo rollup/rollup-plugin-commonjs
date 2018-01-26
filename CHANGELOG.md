@@ -1,8 +1,9 @@
 # rollup-plugin-commonjs changelog
 
-## 8.x.x
+## 8.3.0
 
 * Extract named exports from exported object literals ([#272](https://github.com/rollup/rollup-plugin-commonjs/issues/272))
+* Recognize static template strings in require statements ([#271](https://github.com/rollup/rollup-plugin-commonjs/issues/271))
 
 ## 8.2.4
 
