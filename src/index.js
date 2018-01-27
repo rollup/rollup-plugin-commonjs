@@ -183,7 +183,10 @@ export default function commonjs ( options = {} ) {
 				}
 
 				const transformed = transformCommonjs( code, id, entryModuleIds.indexOf(id) !== -1, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
-				if ( !transformed ) return;
+				if ( !transformed ) {
+					esModulesWithoutDefaultExport.push( id );
+					return;
+				}
 
 				commonjsModules.set( id, true );
 				return transformed;
