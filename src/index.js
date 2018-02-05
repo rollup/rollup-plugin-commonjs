@@ -187,6 +187,8 @@ export default function commonjs ( options = {} ) {
 
 				commonjsModules.set( id, true );
 				return transformed;
+			}).catch(err => {
+				this.error(err, err.loc);
 			});
 		}
 	};

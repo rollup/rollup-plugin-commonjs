@@ -482,5 +482,16 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 			assert.equal( warns.length, 0 );
 		});
+
+		it( 'creates an error with a code frame when parsing fails', async () => {
+			try {
+				await rollup({
+					input: 'samples/invalid-syntax/main.js',
+					plugins: [ commonjs() ]
+				});
+			} catch (error) {
+				assert.equal( error.frame, '1: export const foo = 2,\n                        ^' );
+			}
+		});
 	});
 });
