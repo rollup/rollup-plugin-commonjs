@@ -1,4 +1,3 @@
-import acorn from 'acorn';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
@@ -26,9 +25,9 @@ function deconflict ( scope, globals, identifier ) {
 	return deconflicted;
 }
 
-function tryParse ( code, id ) {
+function tryParse ( parse, code, id ) {
 	try {
-		return acorn.parse( code, {
+		return parse( code, {
 			ecmaVersion: 8,
 			sourceType: 'module',
 			allowReturnOutsideFunction: true
@@ -44,8 +43,8 @@ export function checkFirstpass (code, ignoreGlobal) {
 	return firstpass.test(code);
 }
 
-export function checkEsModule (code, id) {
-	const ast = tryParse(code, id);
+export function checkEsModule ( parse, code, id ) {
+	const ast = tryParse( parse, code, id );
 
 	// if there are top-level import/export declarations, this is ES not CommonJS
 	let hasDefaultExport = false;
@@ -60,8 +59,8 @@ export function checkEsModule (code, id) {
 	return { isEsModule, hasDefaultExport, ast };
 }
 
-export function transformCommonjs ( code, id, isEntry, ignoreGlobal, ignoreRequire, customNamedExports, sourceMap, allowDynamicRequire, astCache ) {
-	const ast = astCache || tryParse( code, id );
+export function transformCommonjs ( parse, code, id, isEntry, ignoreGlobal, ignoreRequire, customNamedExports, sourceMap, allowDynamicRequire, astCache ) {
+	const ast = astCache || tryParse( parse, code, id );
 
 	const magicString = new MagicString( code );
 

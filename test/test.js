@@ -1,3 +1,4 @@
+const acorn = require( 'acorn' );
 const path = require( 'path' );
 const fs = require( 'fs' );
 const assert = require( 'assert' );
@@ -55,6 +56,10 @@ async function executeBundle ( bundle, { context, exports } = {} ) {
 	return execute( code, context );
 }
 
+const transformContext = {
+	parse: acorn.parse
+};
+
 describe( 'rollup-plugin-commonjs', () => {
 	describe( 'form', () => {
 		fs.readdirSync( 'form' ).forEach( dir => {
@@ -73,7 +78,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
 				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim();
 
-				return transform( input, 'input.js' ).then( transformed => {
+				return transform.call( transformContext, input, 'input.js' ).then( transformed => {
 					const actual = ( transformed ? transformed.code : input ).trim().replace( /\0/g, '' );
 					assert.equal( actual, expected );
 				});
