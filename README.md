@@ -5,6 +5,32 @@
 
 Convert CommonJS modules to ES6, so they can be included in a Rollup bundle
 
+For example, a module with the definition
+
+```js
+module.exports = function log2() {console.log(2)}
+```
+
+cannot be imported by rollup, because it does not have a default export.
+
+```js
+import log2 from 'log2' // [!] Error: 'default' is not exported  by node_modules/log2/index.js
+```
+
+However, with `rollup-plugin-commonjs`, the code becomes
+
+```js
+module.exports.default = function log2() {console.log(2)}
+```
+
+and rollup can now the module, and you can log the number 2!
+
+```js
+import log2 from 'log2'
+
+log2() // prints 2
+```
+
 
 ## Installation
 
