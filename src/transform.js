@@ -27,11 +27,7 @@ function deconflict ( scope, globals, identifier ) {
 
 function tryParse ( parse, code, id ) {
 	try {
-		return parse( code, {
-			ecmaVersion: 8,
-			sourceType: 'module',
-			allowReturnOutsideFunction: true
-		});
+		return parse( code, { allowReturnOutsideFunction: true });
 	} catch ( err ) {
 		err.message += ` in ${id}`;
 		throw err;

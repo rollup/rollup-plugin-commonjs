@@ -57,7 +57,11 @@ async function executeBundle ( bundle, { context, exports } = {} ) {
 }
 
 const transformContext = {
-	parse: acorn.parse
+	parse: ( input, options ) =>
+		acorn.parse( input, Object.assign( {
+			ecmaVersion: 9,
+			sourceType: 'module',
+		}, options ) )
 };
 
 describe( 'rollup-plugin-commonjs', () => {
