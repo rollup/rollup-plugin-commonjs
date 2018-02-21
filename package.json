@@ -21,7 +21,7 @@
     "README.md"
   ],
   "dependencies": {
-    "acorn": "^5.2.1",
+    "acorn": "^5.4.1",
     "estree-walker": "^0.5.0",
     "magic-string": "^0.22.4",
     "resolve": "^1.4.0",
