@@ -1,3 +1,4 @@
+const acorn = require( 'acorn' );
 const path = require( 'path' );
 const fs = require( 'fs' );
 const assert = require( 'assert' );
@@ -55,6 +56,14 @@ async function executeBundle ( bundle, { context, exports } = {} ) {
 	return execute( code, context );
 }
 
+const transformContext = {
+	parse: ( input, options ) =>
+		acorn.parse( input, Object.assign( {
+			ecmaVersion: 9,
+			sourceType: 'module',
+		}, options ) )
+};
+
 describe( 'rollup-plugin-commonjs', () => {
 	describe( 'form', () => {
 		fs.readdirSync( 'form' ).forEach( dir => {
@@ -73,7 +82,7 @@ describe( 'rollup-plugin-commonjs', () => {
 				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
 				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim();
 
-				return transform( input, 'input.js' ).then( transformed => {
+				return transform.call( transformContext, input, 'input.js' ).then( transformed => {
 					const actual = ( transformed ? transformed.code : input ).trim().replace( /\0/g, '' );
 					assert.equal( actual, expected );
 				});
@@ -481,6 +490,24 @@ describe( 'rollup-plugin-commonjs', () => {
 				onwarn: (warn) => warns.push( warn )
 			});
 			assert.equal( warns.length, 0 );
+
+			await rollup({
+				input: 'function/bare-import-comment/main.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
+		});
+
+		it( 'creates an error with a code frame when parsing fails', async () => {
+			try {
+				await rollup({
+					input: 'samples/invalid-syntax/main.js',
+					plugins: [ commonjs() ]
+				});
+			} catch (error) {
+				assert.equal( error.frame, '1: export const foo = 2,\n                        ^' );
+			}
 		});
 	});
 });
