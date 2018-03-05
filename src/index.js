@@ -169,7 +169,7 @@ export default function commonjs ( options = {} ) {
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
 			return entryModuleIdsPromise.then( (entryModuleIds) => {
-				const {isEsModule, hasDefaultExport, ast} = checkEsModule( code, id );
+				const {isEsModule, hasDefaultExport, ast} = checkEsModule( this.parse, code, id );
 				if ( isEsModule ) {
 					if ( !hasDefaultExport )
 						esModulesWithoutDefaultExport.push( id );
@@ -182,7 +182,7 @@ export default function commonjs ( options = {} ) {
 					return;
 				}
 
-				const transformed = transformCommonjs( code, id, entryModuleIds.indexOf(id) !== -1, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
+				const transformed = transformCommonjs( this.parse, code, id, entryModuleIds.indexOf(id) !== -1, ignoreGlobal, ignoreRequire, customNamedExports[ id ], sourceMap, allowDynamicRequire, ast );
 				if ( !transformed ) {
 					esModulesWithoutDefaultExport.push( id );
 					return;
