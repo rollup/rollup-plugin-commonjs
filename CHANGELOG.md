@@ -4,6 +4,7 @@
 
 * Better handle non-CJS files that contain CJS keywords ([#285](https://github.com/rollup/rollup-plugin-commonjs/issues/285))
 * Use rollup's plugin context`parse` function ([#287](https://github.com/rollup/rollup-plugin-commonjs/issues/287))
+* Improve error handling ([#288](https://github.com/rollup/rollup-plugin-commonjs/issues/288))
 
 ## 8.3.0
 
