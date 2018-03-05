@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 8.4.0
+
+* Better handle non-CJS files that contain CJS keywords ([#285](https://github.com/rollup/rollup-plugin-commonjs/issues/285))
+
 ## 8.3.0
 
 * Handle multiple entry points ([#283](https://github.com/rollup/rollup-plugin-commonjs/issues/283))

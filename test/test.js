@@ -481,6 +481,13 @@ describe( 'rollup-plugin-commonjs', () => {
 				onwarn: (warn) => warns.push( warn )
 			});
 			assert.equal( warns.length, 0 );
+
+			await rollup({
+				input: 'function/bare-import-comment/main.js',
+				plugins: [ commonjs() ],
+				onwarn: (warn) => warns.push( warn )
+			});
+			assert.equal( warns.length, 0 );
 		});
 	});
 });
