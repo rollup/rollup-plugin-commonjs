@@ -1,5 +1,13 @@
 # rollup-plugin-commonjs changelog
 
+## 9.0.0
+
+* Make rollup a peer dependency with a version range ([#300](https://github.com/rollup/rollup-plugin-commonjs/issues/300))
+
+## 8.4.1
+
+* Re-release of 8.3.0 as #287 was actually a breaking change
+
 ## 8.4.0
 
 * Better handle non-CJS files that contain CJS keywords ([#285](https://github.com/rollup/rollup-plugin-commonjs/issues/285))
