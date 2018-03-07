@@ -143,7 +143,7 @@ export function transformCommonjs ( parse, code, id, isEntry, ignoreGlobal, igno
 			programDepth += 1;
 
 			if ( node.scope ) scope = node.scope;
-			if ( /^Function/.test( node.type ) ) lexicalDepth += 1;
+			if ( /Function/.test( node.type ) ) lexicalDepth += 1;
 
 			// if toplevel return, we need to wrap it
 			if ( node.type === 'ReturnStatement' && lexicalDepth === 0 ) {
@@ -267,7 +267,7 @@ export function transformCommonjs ( parse, code, id, isEntry, ignoreGlobal, igno
 		leave ( node ) {
 			programDepth -= 1;
 			if ( node.scope ) scope = scope.parent;
-			if ( /^Function/.test( node.type ) ) lexicalDepth -= 1;
+			if ( /Function/.test( node.type ) ) lexicalDepth -= 1;
 
 			if ( node.type === 'VariableDeclaration' ) {
 				let keepDeclaration = false;
