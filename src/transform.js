@@ -14,7 +14,7 @@ const exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/
 const firstpassGlobal = /\b(?:require|module|exports|global)\b/;
 const firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 const importExportDeclaration = /^(?:Import|Export(?:Named|Default))Declaration/;
-const functionType = /Function/;
+const functionType = /^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/;
 
 function deconflict ( scope, globals, identifier ) {
 	let i = 1;
