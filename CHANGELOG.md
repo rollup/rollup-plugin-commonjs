@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.0
+
+* Do not automatically wrap modules with return statements in top level arrow functions ([#302](https://github.com/rollup/rollup-plugin-commonjs/issues/302))
+
 ## 9.0.0
 
 * Make rollup a peer dependency with a version range ([#300](https://github.com/rollup/rollup-plugin-commonjs/issues/300))
