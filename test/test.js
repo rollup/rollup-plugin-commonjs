@@ -79,8 +79,8 @@ describe( 'rollup-plugin-commonjs', () => {
 				const { transform, options } = commonjs( config.options );
 				options({ input: 'main.js' });
 
-				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' );
-				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim();
+				const input = fs.readFileSync( `form/${dir}/input.js`, 'utf-8' ).replace(/\r/g, '');
+				const expected = fs.readFileSync( `form/${dir}/output.js`, 'utf-8' ).trim().replace(/\r/g, '');
 
 				return transform.call( transformContext, input, 'input.js' ).then( transformed => {
 					const actual = ( transformed ? transformed.code : input ).trim().replace( /\0/g, '' );
