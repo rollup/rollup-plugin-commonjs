@@ -60,7 +60,8 @@ export default function commonjs ( options = {} ) {
 
 	const esModulesWithoutDefaultExport = [];
 
-	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
+	const allowDynamicRequire = typeof options.allowDynamicRequire === 'undefined' ?
+		!!options.ignore : options.allowDynamicRequire;
 
 	const ignoreRequire = typeof options.ignore === 'function' ?
 		options.ignore :

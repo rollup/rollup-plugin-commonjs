@@ -60,7 +60,10 @@ export default {
       // unconverted. Pass an array containing the IDs
       // or a `id => boolean` function. Only use this
       // option if you know what you're doing!
-      ignore: [ 'conditional-runtime-dependency' ]
+      ignore: [ 'conditional-runtime-dependency' ],
+
+      // if false then dynamic require statements are converted into a noop.
+      allowDynamicRequire: false  // Default: true when settings.ignore is used, false otherwise.
     })
   ]
 };
