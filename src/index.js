@@ -96,7 +96,7 @@ export default function commonjs ( options = {} ) {
 	let resolveUsingOtherResolvers;
 
 	const isCjsPromises = Object.create(null);
-	function getIsCjsTransformPromise ( id ) {
+	function getIsCjsPromise ( id ) {
 		let isCjsPromise = isCjsPromises[id];
 		if (isCjsPromise)
 			return isCjsPromise.promise;
@@ -178,9 +178,9 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( PREFIX.length );
 				const name = getName( actualId );
 
-				return getIsCjsTransformPromise( actualId )
-				.then( isCjsTransform => {
-					if ( isCjsTransform )
+				return getIsCjsPromise( actualId )
+				.then( isCjs => {
+					if ( isCjs )
 						return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
 					else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
 						return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
