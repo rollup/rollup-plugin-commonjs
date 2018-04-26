@@ -219,7 +219,7 @@ export default function commonjs ( options = {} ) {
 				this.error(err, err.loc);
 			});
 
-			setIsCjsPromise(id, transformPromise.then( transformed => transformed ? true : false ));
+			setIsCjsPromise(id, transformPromise.then( transformed => transformed ? true : false, err => true ));
 
 			return transformPromise;
 		}
