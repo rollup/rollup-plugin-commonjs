@@ -93,8 +93,31 @@ export default function commonjs ( options = {} ) {
 
 	const sourceMap = options.sourceMap !== false;
 
-	const commonjsModules = new Map();
 	let resolveUsingOtherResolvers;
+
+	const isCjsPromises = Object.create(null);
+	function getIsCjsTransformPromise ( id ) {
+		let isCjsPromise = isCjsPromises[id];
+		if (isCjsPromise)
+			return isCjsPromise.promise;
+
+		let promise = new Promise( resolve => {
+			isCjsPromises[id] = isCjsPromise = {
+				resolve: resolve,
+				promise: undefined
+			};
+		});
+		isCjsPromise.promise = promise;
+
+		return promise;
+	}
+	function setIsCjsPromise ( id, promise ) {
+		let isCjsPromise = isCjsPromises[id];
+		if (isCjsPromise)
+			isCjsPromise.resolve(promise);
+		else
+			isCjsPromises[id] = { promise: promise, resolve: undefined };
+	}
 
 	return {
 		name: 'commonjs',
@@ -155,12 +178,15 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( PREFIX.length );
 				const name = getName( actualId );
 
-				if (commonjsModules.has( actualId ))
-					return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
-				else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
-					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
-				else
-					return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+				return getIsCjsTransformPromise( actualId )
+				.then( isCjsTransform => {
+					if ( isCjsTransform )
+						return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
+					else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
+						return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
+					else
+						return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+				});
 			}
 		},
 
@@ -168,7 +194,7 @@ export default function commonjs ( options = {} ) {
 			if ( !filter( id ) ) return null;
 			if ( extensions.indexOf( extname( id ) ) === -1 ) return null;
 
-			return entryModuleIdsPromise.then( (entryModuleIds) => {
+			const transformPromise = entryModuleIdsPromise.then( (entryModuleIds) => {
 				const {isEsModule, hasDefaultExport, ast} = checkEsModule( this.parse, code, id );
 				if ( isEsModule ) {
 					if ( !hasDefaultExport )
@@ -188,11 +214,14 @@ export default function commonjs ( options = {} ) {
 					return;
 				}
 
-				commonjsModules.set( id, true );
 				return transformed;
 			}).catch(err => {
 				this.error(err, err.loc);
 			});
+
+			setIsCjsPromise(id, transformPromise.then( transformed => transformed ? true : false ));
+
+			return transformPromise;
 		}
 	};
 }
