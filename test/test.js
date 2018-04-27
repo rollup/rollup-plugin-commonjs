@@ -165,8 +165,8 @@ describe( 'rollup-plugin-commonjs', () => {
 			});
 
 			assert.equal(Object.keys(generated).length, 3);
-			assert.equal(generated.hasOwnProperty('b.js'), true);
-			assert.equal(generated.hasOwnProperty('c.js'), true);
+			assert.equal(generated.hasOwnProperty('./b.js'), true);
+			assert.equal(generated.hasOwnProperty('./c.js'), true);
 		});
 
 		it( 'handles references to `global`', async () => {
