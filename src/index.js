@@ -101,7 +101,7 @@ export default function commonjs ( options = {} ) {
 		if (isCjsPromise)
 			return isCjsPromise.promise;
 
-		let promise = new Promise( resolve => {
+		const promise = new Promise( resolve => {
 			isCjsPromises[id] = isCjsPromise = {
 				resolve: resolve,
 				promise: undefined
@@ -112,7 +112,7 @@ export default function commonjs ( options = {} ) {
 		return promise;
 	}
 	function setIsCjsPromise ( id, promise ) {
-		let isCjsPromise = isCjsPromises[id];
+		const isCjsPromise = isCjsPromises[id];
 		if (isCjsPromise)
 			isCjsPromise.resolve(promise);
 		else
@@ -179,14 +179,14 @@ export default function commonjs ( options = {} ) {
 				const name = getName( actualId );
 
 				return getIsCjsPromise( actualId )
-				.then( isCjs => {
-					if ( isCjs )
-						return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
-					else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
-						return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
-					else
-						return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
-				});
+					.then( isCjs => {
+						if ( isCjs )
+							return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
+						else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
+							return `import * as ${name} from ${JSON.stringify( actualId )}; export default ${name};`;
+						else
+							return `import * as ${name} from ${JSON.stringify( actualId )}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+					});
 			}
 		},
 
@@ -219,7 +219,7 @@ export default function commonjs ( options = {} ) {
 				this.error(err, err.loc);
 			});
 
-			setIsCjsPromise(id, transformPromise.then( transformed => transformed ? true : false, err => true ));
+			setIsCjsPromise(id, transformPromise.then( transformed => transformed ? true : false, () => true ));
 
 			return transformPromise;
 		}
