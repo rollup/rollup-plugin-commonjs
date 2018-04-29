@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.1
+*2018-04-30*
+* Fix ordering of modules when using rollup 0.58 ([#302](https://github.com/rollup/rollup-plugin-commonjs/issues/302))
+
 ## 9.1.0
 
 * Do not automatically wrap modules with return statements in top level arrow functions ([#302](https://github.com/rollup/rollup-plugin-commonjs/issues/302))
