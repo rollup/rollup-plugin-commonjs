@@ -239,7 +239,7 @@ describe( 'rollup-plugin-commonjs', () => {
 		});
 
 		it( 'handles successive builds', async () => {
-			const plugin = commonjs()
+			const plugin = commonjs();
 			let bundle = await rollup({
 				input: 'samples/corejs/literal-with-default.js',
 				plugins: [ plugin ]
