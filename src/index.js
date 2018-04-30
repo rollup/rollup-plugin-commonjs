@@ -114,7 +114,7 @@ export default function commonjs ( options = {} ) {
 	function setIsCjsPromise ( id, promise ) {
 		const isCjsPromise = isCjsPromises[id];
 		if (isCjsPromise) {
-			if (!isCjsPromise.resolve) {
+			if (isCjsPromise.resolve) {
 				isCjsPromise.resolve(promise);
 				isCjsPromise.resolve = undefined;
 			}

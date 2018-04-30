@@ -238,6 +238,32 @@ describe( 'rollup-plugin-commonjs', () => {
 			assert.equal( module.exports, 'foobar', generated.code );
 		});
 
+		it( 'handles successive builds', async () => {
+			const plugin = commonjs()
+			let bundle = await rollup({
+				input: 'samples/corejs/literal-with-default.js',
+				plugins: [ plugin ]
+			});
+			await bundle.generate({
+				format: 'cjs'
+			});
+
+			bundle = await rollup({
+				input: 'samples/corejs/literal-with-default.js',
+				plugins: [ plugin ]
+			});
+			const generated = await bundle.generate({
+				format: 'cjs'
+			});
+
+			const module = { exports: {} };
+
+			const fn = new Function ( 'module', 'exports', generated.code );
+			fn( module, module.exports );
+
+			assert.equal( module.exports, 'foobar', generated.code );
+		});
+
 		it( 'allows named exports to be added explicitly via config', async () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports/main.js',
