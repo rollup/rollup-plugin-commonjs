@@ -183,7 +183,7 @@ export default function commonjs ( options = {} ) {
 				const actualId = id.slice( PREFIX.length );
 				const name = getName( actualId );
 
-				return getIsCjsPromise( actualId )
+				return ( ( extensions.indexOf( extname( id ) ) === -1 ) ? Promise.resolve(false) : getIsCjsPromise( actualId ) )
 					.then( isCjs => {
 						if ( isCjs )
 							return `import { __moduleExports } from ${JSON.stringify( actualId )}; export default __moduleExports;`;
