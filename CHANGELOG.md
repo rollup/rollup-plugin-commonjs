@@ -1,5 +1,13 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.3
+*2018-04-30*
+* Fix a caching issue ([#316](https://github.com/rollup/rollup-plugin-commonjs/issues/316))
+
+## 9.1.2
+*2018-04-30*
+* Re-publication of 9.1.0
+
 ## 9.1.1
 *2018-04-30*
 * Fix ordering of modules when using rollup 0.58 ([#302](https://github.com/rollup/rollup-plugin-commonjs/issues/302))
