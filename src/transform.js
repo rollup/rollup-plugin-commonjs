@@ -5,7 +5,7 @@ import { extractNames, flatten, isReference, isTruthy, isFalsy } from './ast-uti
 import { PREFIX, HELPERS_ID } from './helpers.js';
 import { getName } from './utils.js';
 
-const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
+const reserved = 'abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for from function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split( ' ' );
 const blacklist = { __esModule: true };
 reserved.forEach( word => blacklist[ word ] = true );
 
