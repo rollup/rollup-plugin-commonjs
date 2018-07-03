@@ -70,12 +70,17 @@ export default function commonjs ( options = {} ) {
 	let entryModuleIdsPromise = null;
 
 	function resolveId ( importee, importer ) {
-		if ( importee === HELPERS_ID ) return importee;
-
-		if ( importer && startsWith( importer, PREFIX ) ) importer = importer.slice( PREFIX.length );
-
 		const isProxyModule = startsWith( importee, PREFIX );
-		if ( isProxyModule ) importee = importee.slice( PREFIX.length );
+		if ( isProxyModule ) {
+			importee = importee.slice( PREFIX.length );
+		}
+		else if ( startsWith( importee, '\0' ) ) {
+			return importee;
+		}
+
+		if ( importer && startsWith( importer, PREFIX ) ) {
+			importer = importer.slice( PREFIX.length );
+		}
 
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
