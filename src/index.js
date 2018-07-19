@@ -73,10 +73,10 @@ export default function commonjs ( options = {} ) {
 		if ( importee === HELPERS_ID ) return importee;
 
 		if ( importer && startsWith( importer, PREFIX ) ) importer = importer.slice( PREFIX.length );
-
+		
 		const isProxyModule = startsWith( importee, PREFIX );
 		if ( isProxyModule ) importee = importee.slice( PREFIX.length );
-
+		
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
 
