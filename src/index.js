@@ -159,8 +159,11 @@ export default function commonjs ( options = {} ) {
 			resolvers.unshift( id => isExternal( id ) ? false : null );
 
 			resolveUsingOtherResolvers = first( resolvers );
-
-			const entryModules = [].concat( options.input || options.entry );
+			let input = options.input || options.entry;
+			if(!Array.isArray(input)&&typeof input === "object") {
+			  input = Object.values(input);
+			}
+			const entryModules = [].concat( input );
 			entryModuleIdsPromise = Promise.all(
 				entryModules.map( entry => resolveId( entry ))
 			);
