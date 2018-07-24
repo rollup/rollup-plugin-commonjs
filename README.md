@@ -60,7 +60,24 @@ export default {
       // unconverted. Pass an array containing the IDs
       // or a `id => boolean` function. Only use this
       // option if you know what you're doing!
-      ignore: [ 'conditional-runtime-dependency' ]
+      ignore: [ 'conditional-runtime-dependency' ],
+
+      // some modules have dynamic `require` calls in them,
+      // or even circular dependencies (which are not handles well by EJS)
+      // so including them as `dynamicRequires` will simulate a CJS environment
+      // for them with support for dynamic and circular dependencies.
+      // note that this might hardcode some paths from your PC in the final js file,
+      // so you might want to search & replace the base path of the root js file.
+      dynamicRequires: [ // accepts either a string, or an array of strings
+        // include using a glob pattern (either a string or an array of strings)
+        'node_modules/logform/*.js',
+        
+        // exclude files that are known to not be required dynamically, this allows for better optimizations
+        '!node_modules/logform/index.js',
+        '!node_modules/logform/format.js',
+        '!node_modules/logform/levels.js',
+        '!node_modules/logform/browser.js'
+      ]
     })
   ]
 };
