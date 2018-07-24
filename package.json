@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "estree-walker": "^0.5.2",
+    "glob": "^7.1.2",
     "magic-string": "^0.25.1",
     "resolve": "^1.10.0",
     "rollup-pluginutils": "^2.3.3"
