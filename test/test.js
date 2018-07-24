@@ -607,6 +607,22 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
+		it('dynamic-require', async () => {
+			const bundle = await rollup({
+				input: 'samples/dynamic-require/main.js',
+				plugins: [
+					commonjs({
+						dynamicRequires: [
+							'samples/dynamic-require/submodule.js',
+						]
+					})
+				],
+			});
+
+			const { code } = await bundle.generate({ format: 'cjs' });
+			execute( code );
+		});
+
 		it('ignores virtual modules', async () => {
 			const bundle = await rollup({
 				input: 'samples/ignore-virtual-modules/main.js',
