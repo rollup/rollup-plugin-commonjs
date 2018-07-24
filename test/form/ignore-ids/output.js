@@ -1,7 +1,8 @@
+import * as commonjsHelpers from 'commonjsHelpers';
 import 'bar';
 import bar from 'commonjs-proxy:bar';
 
-var foo = require( 'foo' );
+var foo = commonjsHelpers.commonjsRequire( 'foo' ,null);
 
 var input = {
 
