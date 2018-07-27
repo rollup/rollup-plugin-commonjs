@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.4
+*2018-07-27*
+* Make "from" a reserved word ([#320](https://github.com/rollup/rollup-plugin-commonjs/issues/320))
+
 ## 9.1.3
 *2018-04-30*
 * Fix a caching issue ([#316](https://github.com/rollup/rollup-plugin-commonjs/issues/316))
