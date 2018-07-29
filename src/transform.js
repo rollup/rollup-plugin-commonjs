@@ -40,12 +40,7 @@ function tryParse(parse, code, id) {
 	}
 }
 
-const shouldLowercaseDynamicPaths = process.platform === 'win32';
-
 export function normalizeDynamicModulePath(path) {
-	if ( shouldLowercaseDynamicPaths )
-		path = path.toLowerCase();
-
 	return path.replace(/\\/g, '/');
 }
 
@@ -262,11 +257,6 @@ export function transformCommonjs(
 					if (node.name in uses) {
 						if (node.name === 'require') {
 							if (isRequireStatement(parent)) {
-								if ( shouldLowercaseDynamicPaths ) {
-									magicString.appendLeft( parent.arguments[0].start, '(' );
-									magicString.appendLeft( parent.arguments[0].end, ').toLowerCase()' );
-								}
-
 								magicString.appendLeft(
 									parent.end - 1,
 									',' +
