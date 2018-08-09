@@ -128,24 +128,24 @@ describe( 'rollup-plugin-commonjs', () => {
 				plugins: [ commonjs({ sourceMap: true }) ]
 			});
 
-			const generated = await bundle.generate({
+			const {code, map} = await bundle.generate({
 				format: 'cjs',
 				sourcemap: true,
 				sourcemapFile: path.resolve( 'bundle.js' )
 			});
 
-			const smc = new SourceMapConsumer( generated.map );
-			const locator = getLocator( generated.code, { offsetLine: 1 });
+			const smc = new SourceMapConsumer( map );
+			const locator = getLocator( code, { offsetLine: 1 });
 
 			let generatedLoc = locator( '42' );
 			let loc = smc.originalPositionFor( generatedLoc ); // 42
-			assert.equal( loc.source, 'foo.js' );
+			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
 			generatedLoc = locator( 'log' );
 			loc = smc.originalPositionFor( generatedLoc ); // log
-			assert.equal( loc.source, 'main.js' );
+			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
 		});
@@ -160,13 +160,34 @@ describe( 'rollup-plugin-commonjs', () => {
 				plugins: [ commonjs() ]
 			});
 
-			const generated = await bundle.generate({
+			const {output} = await bundle.generate({
 				format: 'cjs',
+				chunkFileNames: '[name].js'
+			});
+			//console.log(bundle);
+			assert.equal(Object.keys(output).length, 3);
+			assert.equal('b.js' in output, true);
+			assert.equal('c.js' in output, true);
+		});
+
+		it( 'supports multiple entry points as object for experimentalCodeSplitting', async () => {
+			const bundle = await rollup({
+				input: {
+					b: require.resolve('./samples/multiple-entry-points/b.js'),
+					c: require.resolve('./samples/multiple-entry-points/c.js')
+				},
+				experimentalCodeSplitting: true,
+				plugins: [ resolve(), commonjs() ]
 			});
 
-			assert.equal(Object.keys(generated).length, 3);
-			assert.equal(generated.hasOwnProperty('./b.js'), true);
-			assert.equal(generated.hasOwnProperty('./c.js'), true);
+			const {output} = await bundle.generate({
+				format: 'cjs',
+				chunkFileNames: '[name].js'
+			});
+
+			assert.equal(Object.keys(output).length, 3);
+			assert.equal('b.js' in output, true);
+			assert.equal('c.js' in output, true);
 		});
 
 		it( 'handles references to `global`', async () => {

@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.5
+*2018-08-09*
+* Handle object form of input ([#329](https://github.com/rollup/rollup-plugin-commonjs/issues/329))
+
 ## 9.1.4
 *2018-07-27*
 * Make "from" a reserved word ([#320](https://github.com/rollup/rollup-plugin-commonjs/issues/320))
