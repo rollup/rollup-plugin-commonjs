@@ -7,7 +7,11 @@ const { SourceMapConsumer } = require( 'source-map' );
 const { getLocator } = require( 'locate-character' );
 const { rollup } = require( 'rollup' );
 const resolve = require( 'rollup-plugin-node-resolve' );
-const commonjs = require( '..' );
+
+function commonjs (options) {
+	delete require.cache[require.resolve('..')];
+	return require('..')(options);
+}
 
 require( 'source-map-support' ).install();
 
@@ -544,6 +548,22 @@ describe( 'rollup-plugin-commonjs', () => {
 				onwarn: (warn) => warns.push( warn )
 			});
 			assert.equal( warns.length, 0 );
+		});
+
+		it( 'compiles with cache', async () => {
+			// specific commonjs require() to ensure same instance is used
+			const commonjs = require('..');
+
+			const bundle = await rollup({
+				input: 'function/index/main.js',
+				plugins: [ commonjs() ]
+			});
+
+			await rollup({
+				input: 'function/index/main.js',
+				plugins: [ commonjs() ],
+				cache: bundle
+			});
 		});
 
 		it( 'creates an error with a code frame when parsing fails', async () => {
