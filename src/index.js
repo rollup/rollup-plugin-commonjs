@@ -73,10 +73,10 @@ export default function commonjs ( options = {} ) {
 		if ( importee === HELPERS_ID ) return importee;
 
 		if ( importer && startsWith( importer, PREFIX ) ) importer = importer.slice( PREFIX.length );
-		
+
 		const isProxyModule = startsWith( importee, PREFIX );
 		if ( isProxyModule ) importee = importee.slice( PREFIX.length );
-		
+
 		return resolveUsingOtherResolvers( importee, importer ).then( resolved => {
 			if ( resolved ) return isProxyModule ? PREFIX + resolved : resolved;
 
@@ -159,11 +159,12 @@ export default function commonjs ( options = {} ) {
 			resolvers.unshift( id => isExternal( id ) ? false : null );
 
 			resolveUsingOtherResolvers = first( resolvers );
-			let input = options.input || options.entry;
-			if(!Array.isArray(input)&&typeof input === "object") {
-			  input = Object.values(input);
-			}
-			const entryModules = [].concat( input );
+			const input = options.input || options.entry;
+			const entryModules = Array.isArray(input) ?
+				input :
+				typeof input === 'object' && input !== null ?
+					Object.values(input) :
+					[input];
 			entryModuleIdsPromise = Promise.all(
 				entryModules.map( entry => resolveId( entry ))
 			);
