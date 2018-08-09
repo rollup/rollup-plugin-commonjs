@@ -37,6 +37,7 @@ function startsWith ( str, prefix ) {
 	return str.slice( 0, prefix.length ) === prefix;
 }
 
+const isCjsPromises = Object.create(null);
 
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
@@ -95,7 +96,6 @@ export default function commonjs ( options = {} ) {
 
 	let resolveUsingOtherResolvers;
 
-	const isCjsPromises = Object.create(null);
 	function getIsCjsPromise ( id ) {
 		let isCjsPromise = isCjsPromises[id];
 		if (isCjsPromise)
