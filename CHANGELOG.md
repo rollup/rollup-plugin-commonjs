@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.6
+*2018-08-24*
+* Keep commonJS detection between instantiations ([#338](https://github.com/rollup/rollup-plugin-commonjs/issues/338))
+
 ## 9.1.5
 *2018-08-09*
 * Handle object form of input ([#329](https://github.com/rollup/rollup-plugin-commonjs/issues/329))
