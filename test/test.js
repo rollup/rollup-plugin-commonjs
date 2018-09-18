@@ -535,5 +535,19 @@ describe( 'rollup-plugin-commonjs', () => {
 				assert.equal( error.frame, '1: export const foo = 2,\n                        ^' );
 			}
 		});
+
+		it('ignores virtual modules', async () => {
+			const bundle = await rollup({
+				input: 'samples/ignore-virtual-modules/main.js',
+				plugins: [ commonjs(), {
+					load (id) {
+						if (id === '\0virtual') {
+							return 'export default "Virtual export"';
+						}
+					}
+				} ]
+			});
+			assert.equal( (await executeBundle( bundle )).exports, 'Virtual export' );
+		});
 	});
 });
