@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.7
+*2018-09-18*
+* Ignore virtual modules created by other plugins ([#327](https://github.com/rollup/rollup-plugin-commonjs/issues/327))
+* Add "location" and "process" to reserved words ([#330](https://github.com/rollup/rollup-plugin-commonjs/issues/330))
+
 ## 9.1.6
 *2018-08-24*
 * Keep commonJS detection between instantiations ([#338](https://github.com/rollup/rollup-plugin-commonjs/issues/338))
