@@ -37,6 +37,7 @@ function startsWith ( str, prefix ) {
 	return str.slice( 0, prefix.length ) === prefix;
 }
 
+const isCjsPromises = Object.create(null);
 
 export default function commonjs ( options = {} ) {
 	const extensions = options.extensions || ['.js'];
@@ -100,7 +101,6 @@ export default function commonjs ( options = {} ) {
 
 	let resolveUsingOtherResolvers;
 
-	const isCjsPromises = Object.create(null);
 	function getIsCjsPromise ( id ) {
 		let isCjsPromise = isCjsPromises[id];
 		if (isCjsPromise)
@@ -164,8 +164,12 @@ export default function commonjs ( options = {} ) {
 			resolvers.unshift( id => isExternal( id ) ? false : null );
 
 			resolveUsingOtherResolvers = first( resolvers );
-
-			const entryModules = [].concat( options.input || options.entry );
+			const input = options.input || options.entry;
+			const entryModules = Array.isArray(input) ?
+				input :
+				typeof input === 'object' && input !== null ?
+					Object.values(input) :
+					[input];
 			entryModuleIdsPromise = Promise.all(
 				entryModules.map( entry => resolveId( entry ))
 			);

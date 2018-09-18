@@ -7,7 +7,11 @@ const { SourceMapConsumer } = require( 'source-map' );
 const { getLocator } = require( 'locate-character' );
 const { rollup } = require( 'rollup' );
 const resolve = require( 'rollup-plugin-node-resolve' );
-const commonjs = require( '..' );
+
+function commonjs (options) {
+	delete require.cache[require.resolve('..')];
+	return require('..')(options);
+}
 
 require( 'source-map-support' ).install();
 
@@ -128,24 +132,24 @@ describe( 'rollup-plugin-commonjs', () => {
 				plugins: [ commonjs({ sourceMap: true }) ]
 			});
 
-			const generated = await bundle.generate({
+			const {code, map} = await bundle.generate({
 				format: 'cjs',
 				sourcemap: true,
 				sourcemapFile: path.resolve( 'bundle.js' )
 			});
 
-			const smc = new SourceMapConsumer( generated.map );
-			const locator = getLocator( generated.code, { offsetLine: 1 });
+			const smc = new SourceMapConsumer( map );
+			const locator = getLocator( code, { offsetLine: 1 });
 
 			let generatedLoc = locator( '42' );
 			let loc = smc.originalPositionFor( generatedLoc ); // 42
-			assert.equal( loc.source, 'foo.js' );
+			assert.equal( loc.source, 'samples/sourcemap/foo.js' );
 			assert.equal( loc.line, 1 );
 			assert.equal( loc.column, 15 );
 
 			generatedLoc = locator( 'log' );
 			loc = smc.originalPositionFor( generatedLoc ); // log
-			assert.equal( loc.source, 'main.js' );
+			assert.equal( loc.source, 'samples/sourcemap/main.js' );
 			assert.equal( loc.line, 2 );
 			assert.equal( loc.column, 8 );
 		});
@@ -160,13 +164,34 @@ describe( 'rollup-plugin-commonjs', () => {
 				plugins: [ commonjs() ]
 			});
 
-			const generated = await bundle.generate({
+			const {output} = await bundle.generate({
 				format: 'cjs',
+				chunkFileNames: '[name].js'
+			});
+			//console.log(bundle);
+			assert.equal(Object.keys(output).length, 3);
+			assert.equal('b.js' in output, true);
+			assert.equal('c.js' in output, true);
+		});
+
+		it( 'supports multiple entry points as object for experimentalCodeSplitting', async () => {
+			const bundle = await rollup({
+				input: {
+					b: require.resolve('./samples/multiple-entry-points/b.js'),
+					c: require.resolve('./samples/multiple-entry-points/c.js')
+				},
+				experimentalCodeSplitting: true,
+				plugins: [ resolve(), commonjs() ]
 			});
 
-			assert.equal(Object.keys(generated).length, 3);
-			assert.equal(generated.hasOwnProperty('./b.js'), true);
-			assert.equal(generated.hasOwnProperty('./c.js'), true);
+			const {output} = await bundle.generate({
+				format: 'cjs',
+				chunkFileNames: '[name].js'
+			});
+
+			assert.equal(Object.keys(output).length, 3);
+			assert.equal('b.js' in output, true);
+			assert.equal('c.js' in output, true);
 		});
 
 		it( 'handles references to `global`', async () => {
@@ -523,6 +548,22 @@ describe( 'rollup-plugin-commonjs', () => {
 				onwarn: (warn) => warns.push( warn )
 			});
 			assert.equal( warns.length, 0 );
+		});
+
+		it( 'compiles with cache', async () => {
+			// specific commonjs require() to ensure same instance is used
+			const commonjs = require('..');
+
+			const bundle = await rollup({
+				input: 'function/index/main.js',
+				plugins: [ commonjs() ]
+			});
+
+			await rollup({
+				input: 'function/index/main.js',
+				plugins: [ commonjs() ],
+				cache: bundle
+			});
 		});
 
 		it( 'creates an error with a code frame when parsing fails', async () => {
