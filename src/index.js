@@ -159,12 +159,11 @@ export default function commonjs(options = {}) {
 				// Try our best to still export the module fully.
 				// The commonjs polyfill should take care of circular references.
 
-				return `
-				const { commonjsRegister } = require('${HELPERS_ID}');
-				commonjsRegister(${JSON.stringify(
+				return `require('${HELPERS_ID}').commonjsRegister(${JSON.stringify(
 					normalizedPath
-				)}, function (module, exports) {${readFileSync(normalizedPath, { encoding: 'utf8' })}});
-				`;
+				)}, function (module, exports) {
+  ${readFileSync(normalizedPath, { encoding: 'utf8' })}
+});`;
 			}
 
 			if (id.startsWith(PROXY_PREFIX)) {

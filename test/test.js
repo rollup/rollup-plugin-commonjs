@@ -607,12 +607,26 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
-		it('dynamic-require', async () => {
+		it('supports dynamic require', async () => {
 			const bundle = await rollup({
 				input: 'samples/dynamic-require/main.js',
 				plugins: [
 					commonjs({
 						dynamicRequires: ['samples/dynamic-require/submodule.js']
+					})
+				]
+			});
+
+			const { code } = await bundle.generate({ format: 'cjs' });
+			execute(code);
+		});
+
+		it('returns the same module instance if required with and without extension', async () => {
+			const bundle = await rollup({
+				input: 'samples/dynamic-require-extensions-and-instances/main.js',
+				plugins: [
+					commonjs({
+						dynamicRequires: ['samples/dynamic-require-extensions-and-instances/submodule.js']
 					})
 				]
 			});
