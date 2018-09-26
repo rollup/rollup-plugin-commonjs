@@ -2,7 +2,12 @@ import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
 import { extractNames, flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
-import { HELPERS_ID, PROXY_PREFIX, DYNAMIC_REGISTER_PREFIX } from './helpers.js';
+import {
+	HELPERS_ID,
+	PROXY_PREFIX,
+	DYNAMIC_REGISTER_PREFIX,
+	DYNAMIC_JSON_PREFIX
+} from './helpers.js';
 import { getName } from './utils.js';
 import { resolve, dirname } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
@@ -147,13 +152,17 @@ export function transformCommonjs(
 		if (existing === undefined) {
 			const isDynamic = hasDynamicModuleForPath(sourceId);
 
-			if (isDynamicRegister || !isDynamic)
-				sources.push(sourceId);
-
 			if (!name) {
 				do name = `require$$${uid++}`;
 				while (scope.contains(name));
 			}
+
+			if (isDynamicRegister && sourceId.endsWith('.json')) {
+				sourceId = DYNAMIC_JSON_PREFIX + sourceId;
+			}
+
+			if (isDynamicRegister || !isDynamic)
+				sources.push(sourceId);
 
 			required[sourceId] = { source: sourceId, name, importsDefault: false, isDynamic };
 		}

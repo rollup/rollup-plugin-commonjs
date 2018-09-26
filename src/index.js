@@ -3,9 +3,13 @@ import { extname, resolve, join } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import {
+	DYNAMIC_JSON_PREFIX,
+	DYNAMIC_PACKAGES_ID,
+	DYNAMIC_REGISTER_PREFIX,
 	EXTERNAL_PREFIX,
-	PROXY_PREFIX, HELPERS_ID, HELPERS,
-	DYNAMIC_REGISTER_PREFIX, DYNAMIC_PACKAGES_ID
+	HELPERS,
+	HELPERS_ID,
+	PROXY_PREFIX
 } from './helpers.js';
 import { checkEsModule, hasCjsKeywords, transformCommonjs, normalizeDynamicModulePath } from './transform.js';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
@@ -108,7 +112,6 @@ export default function commonjs(options = {}) {
 		resolveId,
 
 		load(id) {
-			// TODO JSON files must have virtual ids
 			if (id === HELPERS_ID) return HELPERS;
 
 			// generate proxy modules
@@ -153,7 +156,20 @@ export default function commonjs(options = {}) {
 				return code;
 			}
 
+			const isDynamicJson = id.startsWith(DYNAMIC_JSON_PREFIX);
+			if (isDynamicJson) {
+				id = id.slice(DYNAMIC_JSON_PREFIX.length);
+			}
+
 			const normalizedPath = normalizeDynamicModulePath(id);
+
+			if (isDynamicJson) {
+				return `require('${HELPERS_ID}').commonjsRegister(${JSON.stringify(
+					normalizedPath
+				)}, function (module, exports) {
+  module.exports = require(${JSON.stringify(normalizedPath)});
+});`;
+			}
 
 			if (dynamicRequireModuleSet.has(normalizedPath)) {
 				// Try our best to still export the module fully.
@@ -222,7 +238,7 @@ export default function commonjs(options = {}) {
 		},
 
 		transform(code, id) {
-			if (id !== DYNAMIC_PACKAGES_ID) {
+			if (id !== DYNAMIC_PACKAGES_ID && !id.startsWith(DYNAMIC_JSON_PREFIX)) {
 				if (!filter(id) || extensions.indexOf(extname(id)) === -1) {
 					setIsCjsPromise(id, Promise.resolve(null));
 					return null;

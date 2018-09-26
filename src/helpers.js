@@ -1,6 +1,7 @@
 export const PROXY_PREFIX = '\0commonjs-proxy:';
 export const EXTERNAL_PREFIX = '\0commonjs-external:';
 export const DYNAMIC_REGISTER_PREFIX = '\0commonjs-dynamic-register:';
+export const DYNAMIC_JSON_PREFIX = '\0commonjs-dynamic-json:';
 export const DYNAMIC_PACKAGES_ID = '\0commonjs-dynamic-packages';
 export const HELPERS_ID = '\0commonjsHelpers';
 

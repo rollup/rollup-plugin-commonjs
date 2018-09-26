@@ -1,7 +1,7 @@
 import { statSync } from 'fs';
 import { dirname, resolve, sep } from 'path';
 import defaultResolver from './default-resolver';
-import { EXTERNAL_PREFIX, PROXY_PREFIX } from './helpers';
+import { DYNAMIC_JSON_PREFIX, EXTERNAL_PREFIX, PROXY_PREFIX } from './helpers';
 import { first } from './utils';
 
 function getCandidatesForExtension(resolved, extension) {
@@ -23,6 +23,10 @@ export function getResolveId(extensions) {
 		if (isProxyModule) {
 			importee = importee.slice(PROXY_PREFIX.length);
 		} else if (importee.startsWith('\0')) {
+			return importee;
+		}
+
+		if (importee.startsWith(DYNAMIC_JSON_PREFIX)) {
 			return importee;
 		}
 
