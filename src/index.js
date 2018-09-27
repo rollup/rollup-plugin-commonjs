@@ -1,7 +1,8 @@
-import { statSync, readFileSync, existsSync } from 'fs';
+import { existsSync, readFileSync} from 'fs';
 import { extname, resolve, join } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
+import { getDynamicRequirePaths } from './dynamic-require-paths';
 import {
 	DYNAMIC_JSON_PREFIX,
 	DYNAMIC_PACKAGES_ID,
@@ -15,51 +16,14 @@ import { checkEsModule, hasCjsKeywords, transformCommonjs, normalizeDynamicModul
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { getName } from './utils.js';
-import glob from 'glob';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter(options.include, options.exclude);
 	const ignoreGlobal = options.ignoreGlobal;
 
-	let dynamicRequireModulePaths = [];
-	let dynamicRequireModuleDirPaths = [];
-
-	if (options.dynamicRequires) {
-		let patterns = options.dynamicRequires;
-
-		patterns = Array.isArray(patterns) ? patterns : [patterns];
-
-		for (const pattern of patterns) {
-			const negate = /^!/.test(pattern);
-			let paths = glob.sync(negate ? pattern.substr(1) : pattern);
-			paths = paths.map(x => resolve(x));
-			if (negate) {
-				dynamicRequireModulePaths = dynamicRequireModulePaths.filter(x => paths.indexOf(x) === -1);
-			} else {
-				dynamicRequireModulePaths = dynamicRequireModulePaths.concat(paths);
-			}
-		}
-
-		// Dedup
-		dynamicRequireModulePaths = dynamicRequireModulePaths.filter(
-			(v, i, a) => a.indexOf(v, i + 1) === -1
-		);
-
-		// We use this to register entry points separately
-		dynamicRequireModuleDirPaths = dynamicRequireModulePaths.filter(x => {
-			try {
-				if (statSync(x).isDirectory()) return true;
-			} catch (ignored) {
-				// We don't care about this.
-			}
-			return false;
-		});
-	}
-
-	// The map should contain the normalized, unique paths
-	const dynamicRequireModuleSet = new Set(
-		dynamicRequireModulePaths.map(id => normalizeDynamicModulePath(id))
+	const { dynamicRequireModuleSet, dynamicRequireModuleDirPaths } = getDynamicRequirePaths(
+		options.dynamicRequires
 	);
 
 	const customNamedExports = {};
@@ -211,12 +175,7 @@ export default function commonjs(options = {}) {
 				mainModuleId = id;
 				let code = readFileSync(id, {encoding: 'utf8'});
 
-				// There's a bug in rollup (or this plugin) that unescaped backslashes.
-				// We need to double encode (on top of JSON.stringify)
-				// When it's fixed, we can removed this weirdo. JSON.stringify should be enough.
-				const escapedWindowsPaths = dynamicRequireModulePaths.map(id => id.replace(/\\/g, '\\\\'));
-
-				let dynamicImports = escapedWindowsPaths
+				let dynamicImports = Array.from(dynamicRequireModuleSet)
 					.map(id => `require(${JSON.stringify(DYNAMIC_REGISTER_PREFIX + id)});`)
 					.join('\n');
 

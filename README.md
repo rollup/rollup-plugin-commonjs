@@ -63,7 +63,7 @@ export default {
       ignore: [ 'conditional-runtime-dependency' ],
 
       // some modules have dynamic `require` calls in them,
-      // or even circular dependencies (which are not handles well by EJS)
+      // or even circular dependencies (which are not handled well by EJS)
       // so including them as `dynamicRequires` will simulate a CJS environment
       // for them with support for dynamic and circular dependencies.
       // note that this might hardcode some paths from your PC in the final js file,
