@@ -29,7 +29,7 @@ let pathModule;
 const DYNAMIC_REQUIRE_LOADER_MAP = new Map();
 const DYNAMIC_REQUIRE_CACHE = Object.create(null);
 const DEFAULT_PARENT_MODULE = {
-	id: '<' + 'rollup' + '>', exports: {}, parent: undefined, filename: null, loaded: false, children: [], paths: []
+	id: '<' + 'rollup>', exports: {}, parent: undefined, filename: null, loaded: false, children: [], paths: []
 };
 const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 
@@ -46,14 +46,11 @@ export function commonjsRequire (path, originalModuleDir) {
 		} else {
 			relPath = pathModule.normalize(pathModule.join('/node_modules/', path));
 		}
-		let cachedModule = DYNAMIC_REQUIRE_CACHE[relPath] || DYNAMIC_REQUIRE_CACHE[relPath + '.js'] || DYNAMIC_REQUIRE_CACHE[relPath + '.json'];
-		if (!cachedModule) {
-			let resolvedPath, loader;
-			for (let extensionIndex = 0; extensionIndex < CHECKED_EXTENSIONS.length; extensionIndex++) {
-				resolvedPath = relPath + CHECKED_EXTENSIONS[extensionIndex];
-				loader = DYNAMIC_REQUIRE_LOADER_MAP.get(resolvedPath);
-				if (loader) break;
-			}
+		for (let extensionIndex = 0; extensionIndex < CHECKED_EXTENSIONS.length; extensionIndex++) {
+			const resolvedPath = relPath + CHECKED_EXTENSIONS[extensionIndex];
+			let cachedModule = DYNAMIC_REQUIRE_CACHE[resolvedPath];
+			if (cachedModule) return cachedModule.exports;
+			const loader = DYNAMIC_REQUIRE_LOADER_MAP.get(resolvedPath);
 			if (loader) {
 				DYNAMIC_REQUIRE_CACHE[resolvedPath] = cachedModule = {
 					id: resolvedPath,
@@ -66,14 +63,14 @@ export function commonjsRequire (path, originalModuleDir) {
 				};
 				try {
 					loader.call(commonjsGlobal, cachedModule, cachedModule.exports);
-				} catch (ex) {
+				} catch (error) {
 					delete DYNAMIC_REQUIRE_CACHE[resolvedPath];
-					throw ex;
+					throw error;
 				}
 				cachedModule.loaded = true;
-			}
+				return cachedModule.exports;
+			};
 		}
-		if (cachedModule) return cachedModule.exports;
 		if (isRelative) break;
 		const nextDir = pathModule.normalize(pathModule.join(originalModuleDir, '..'));
 		if (nextDir === originalModuleDir) break;
