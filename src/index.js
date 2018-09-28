@@ -1,4 +1,4 @@
-import { existsSync, readFileSync} from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { extname, resolve, join } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
@@ -12,9 +12,14 @@ import {
 	HELPERS_ID,
 	PROXY_PREFIX
 } from './helpers.js';
-import { checkEsModule, hasCjsKeywords, transformCommonjs, normalizeDynamicModulePath } from './transform.js';
-import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
-import { getResolveId } from './resolve-id';
+import {getIsCjsPromise, setIsCjsPromise} from './is-cjs';
+import {getResolveId} from './resolve-id';
+import {
+	checkEsModule,
+	normalizePathSlashes,
+	hasCjsKeywords,
+	transformCommonjs
+} from './transform.js';
 import { getName } from './utils.js';
 
 export default function commonjs(options = {}) {
@@ -93,7 +98,7 @@ export default function commonjs(options = {}) {
 			if (id === DYNAMIC_PACKAGES_ID) {
 				let code = `const { commonjsRegister } = require('${HELPERS_ID}');`;
 				for (const dir of dynamicRequireModuleDirPaths) {
-					const normalizedPath = normalizeDynamicModulePath(dir);
+					const normalizedPath = normalizePathSlashes(dir);
 
 					let pkg = {};
 
@@ -113,7 +118,7 @@ export default function commonjs(options = {}) {
 						normalizedPath
 					)}, function (module, exports) {
   module.exports = require(${JSON.stringify(
-		normalizeDynamicModulePath(join(normalizedPath, entryPoint))
+		normalizePathSlashes(join(normalizedPath, entryPoint))
 	)});
 });`;
 				}
@@ -125,7 +130,7 @@ export default function commonjs(options = {}) {
 				id = id.slice(DYNAMIC_JSON_PREFIX.length);
 			}
 
-			const normalizedPath = normalizeDynamicModulePath(id);
+			const normalizedPath = normalizePathSlashes(id);
 
 			if (isDynamicJson) {
 				return `require('${HELPERS_ID}').commonjsRegister(${JSON.stringify(
@@ -151,9 +156,9 @@ export default function commonjs(options = {}) {
 				const name = getName(actualId);
 
 				return getIsCjsPromise(actualId).then(isCjs => {
-					if (dynamicRequireModuleSet.has(normalizeDynamicModulePath(actualId)))
+					if (dynamicRequireModuleSet.has(normalizePathSlashes(actualId)))
 						return `import {commonjsRequire} from '${HELPERS_ID}'; const ${name} = commonjsRequire(${JSON.stringify(
-							normalizeDynamicModulePath(actualId)
+							normalizePathSlashes(actualId)
 						)}); export default (${name} && ${name}['default']) || ${name}`;
 					else if (isCjs)
 						return `import { __moduleExports } from ${JSON.stringify(
@@ -208,7 +213,7 @@ export default function commonjs(options = {}) {
 				.then(entryModuleIds => {
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					const isDynamicRequireModule = dynamicRequireModuleSet.has(
-						normalizeDynamicModulePath(id)
+						normalizePathSlashes(id)
 					);
 
 					if (isEsModule && !isDynamicRequireModule) {

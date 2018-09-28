@@ -34,16 +34,17 @@ const DEFAULT_PARENT_MODULE = {
 const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 
 export function commonjsRequire (path, originalModuleDir) {
-	if (!pathModule) pathModule = require('path');
-	const isRelative = /[/\\\\]/.test(path);
+  path = path.replace(/\\\\/g, '/');
+	if (!pathModule) pathModule = require('path').posix;
+	const isRelative = path.indexOf('/') !== -1;
 	let relPath;
 	while (true) {
 		if (isRelative) {
-			relPath = pathModule.normalize(pathModule.join(originalModuleDir || '', path)).replace(/\\\\/g, '/');
-		} else if (originalModuleDir)
-			relPath = pathModule.normalize(pathModule.join(originalModuleDir, '../node_modules/', path)).replace(/\\\\/g, '/');
-		else {
-			relPath = pathModule.normalize(pathModule.join('/node_modules/', path)).replace(/\\\\/g, '/');
+			relPath = pathModule.normalize(pathModule.join(originalModuleDir || '', path));
+		} else if (originalModuleDir) {
+			relPath = pathModule.normalize(pathModule.join(originalModuleDir, '../node_modules/', path));
+		} else {
+			relPath = pathModule.normalize(pathModule.join('/node_modules/', path));
 		}
 		let cachedModule = DYNAMIC_REQUIRE_CACHE[relPath] || DYNAMIC_REQUIRE_CACHE[relPath + '.js'] || DYNAMIC_REQUIRE_CACHE[relPath + '.json'];
 		if (!cachedModule) {
@@ -74,7 +75,7 @@ export function commonjsRequire (path, originalModuleDir) {
 		}
 		if (cachedModule) return cachedModule.exports;
 		if (isRelative) break;
-		const nextDir = pathModule.normalize(pathModule.join(originalModuleDir, '..')).replace(/\\\\/g, '/');
+		const nextDir = pathModule.normalize(pathModule.join(originalModuleDir, '..'));
 		if (nextDir === originalModuleDir) break;
 		originalModuleDir = nextDir;
 	}

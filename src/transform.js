@@ -10,6 +10,7 @@ import {
 } from './helpers.js';
 import { getName } from './utils.js';
 import { resolve, dirname } from 'path';
+// TODO can this be async?
 import { sync as nodeResolveSync } from 'resolve';
 
 const reserved = 'process location abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for from function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split(
@@ -45,7 +46,7 @@ function tryParse(parse, code, id) {
 	}
 }
 
-export function normalizeDynamicModulePath(path) {
+export function normalizePathSlashes(path) {
 	return path.replace(/\\/g, '/');
 }
 
@@ -173,7 +174,7 @@ export function transformCommonjs(
 	function hasDynamicModuleForPath(source) {
 		if (!/[/\\]/.test(source)) {
 			try {
-				const resolvedPath = normalizeDynamicModulePath(
+				const resolvedPath = normalizePathSlashes(
 					nodeResolveSync(source, { basedir: dirname(id) })
 				);
 				if (dynamicRequireModuleSet.has(resolvedPath)) return true;
@@ -186,7 +187,7 @@ export function transformCommonjs(
 		}
 
 		for (const attemptExt of ['', '.js', '.json']) {
-			const resolvedPath = normalizeDynamicModulePath(resolve(dirname(id), source + attemptExt));
+			const resolvedPath = normalizePathSlashes(resolve(dirname(id), source + attemptExt));
 			if (dynamicRequireModuleSet.has(resolvedPath)) return true;
 		}
 
@@ -269,8 +270,9 @@ export function transformCommonjs(
 								magicString.appendLeft(
 									parent.end - 1,
 									',' +
+									// TODO stringify(null) looks very wrong; find a test
 										JSON.stringify(
-											dirname(id) === '.' ? null : normalizeDynamicModulePath(dirname(id))
+											dirname(id) === '.' ? null : normalizePathSlashes(dirname(id))
 										)
 								);
 							}
@@ -376,9 +378,10 @@ export function transformCommonjs(
 						node.start,
 						node.end,
 						`${HELPERS_NAME}.commonjsRequire(${JSON.stringify(
-							normalizeDynamicModulePath(required.source)
+							normalizePathSlashes(required.source)
 						)}, ${JSON.stringify(
-							dirname(id) === '.' ? null : normalizeDynamicModulePath(dirname(id))
+							// TODO check if null is what we want
+							dirname(id) === '.' ? null : normalizePathSlashes(dirname(id))
 						)})`
 					);
 					usesHelpers = true;
