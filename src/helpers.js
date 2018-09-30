@@ -10,7 +10,7 @@ export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof glob
 'undefined' ? self : {};
 
 export function commonjsRegister (path, loader) {
-	DYNAMIC_REQUIRE_LOADER_MAP.set(path, loader);
+	DYNAMIC_REQUIRE_LOADERS[path] = loader;
 }
 
 export function unwrapExports (x) {
@@ -26,7 +26,7 @@ export function getCjsExportFromNamespace (n) {
 }
 
 let pathModule;
-const DYNAMIC_REQUIRE_LOADER_MAP = new Map();
+const DYNAMIC_REQUIRE_LOADERS = Object.create(null);
 const DYNAMIC_REQUIRE_CACHE = Object.create(null);
 const DEFAULT_PARENT_MODULE = {
 	id: '<' + 'rollup>', exports: {}, parent: undefined, filename: null, loaded: false, children: [], paths: []
@@ -34,8 +34,8 @@ const DEFAULT_PARENT_MODULE = {
 const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 
 export function commonjsRequire (path, originalModuleDir) {
-  path = path.replace(/\\\\/g, '/');
-  while (path.endsWith('/')) path = path.slice(0, -1);
+	path = path.replace(/\\\\/g, '/');
+	while (path.endsWith('/')) path = path.slice(0, -1);
 	if (!pathModule) pathModule = require('path').posix;
 	const isRelative = path[0] === '.' || path[0] === '/';
 	let relPath;
@@ -51,7 +51,7 @@ export function commonjsRequire (path, originalModuleDir) {
 			const resolvedPath = relPath + CHECKED_EXTENSIONS[extensionIndex];
 			let cachedModule = DYNAMIC_REQUIRE_CACHE[resolvedPath];
 			if (cachedModule) return cachedModule.exports;
-			const loader = DYNAMIC_REQUIRE_LOADER_MAP.get(resolvedPath);
+			const loader = DYNAMIC_REQUIRE_LOADERS[resolvedPath];
 			if (loader) {
 				DYNAMIC_REQUIRE_CACHE[resolvedPath] = cachedModule = {
 					id: resolvedPath,
