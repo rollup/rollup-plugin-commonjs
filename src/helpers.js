@@ -31,7 +31,7 @@ const DYNAMIC_REQUIRE_CACHE = Object.create(null);
 const DEFAULT_PARENT_MODULE = {
 	id: '<' + 'rollup>', exports: {}, parent: undefined, filename: null, loaded: false, children: [], paths: []
 };
-const CHECKED_EXTENSIONS = ['', '.js', '.json', '/index.js'];
+const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 
 export function commonjsRequire (path, originalModuleDir) {
   path = path.replace(/\\\\/g, '/');
