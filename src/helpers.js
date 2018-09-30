@@ -25,7 +25,6 @@ export function getCjsExportFromNamespace (n) {
 	return n && n.default || n;
 }
 
-let pathModule;
 const DYNAMIC_REQUIRE_LOADERS = Object.create(null);
 const DYNAMIC_REQUIRE_CACHE = Object.create(null);
 const DEFAULT_PARENT_MODULE = {
@@ -33,19 +32,33 @@ const DEFAULT_PARENT_MODULE = {
 };
 const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 
-export function commonjsRequire (path, originalModuleDir) {
+function normalize (path) {
 	path = path.replace(/\\\\/g, '/');
-	while (path.endsWith('/')) path = path.slice(0, -1);
-	if (!pathModule) pathModule = require('path').posix;
+	const parts = path.split('/');
+	const resolvedParts = [parts[0]];
+	for (let i = 1; i < parts.length; i++) {
+	  const part = parts[i];
+	  if (part === '..' && resolvedParts.length > 1 && resolvedParts[resolvedParts.length - 1] !== '..') {
+	    resolvedParts.pop();
+	  } else if (part && part !== '.') {
+	    resolvedParts.push(part);
+	  }
+	}
+	return resolvedParts.join('/');
+}
+
+export function commonjsRequire (path, originalModuleDir) {
 	const isRelative = path[0] === '.' || path[0] === '/';
+	path = normalize(path);
 	let relPath;
 	while (true) {
 		if (isRelative) {
-			relPath = pathModule.normalize(originalModuleDir ? pathModule.join(originalModuleDir, path) : path);
+			relPath = originalModuleDir ? normalize(originalModuleDir + '/' + path) : path;
 		} else if (originalModuleDir) {
-			relPath = pathModule.normalize(pathModule.join(originalModuleDir, 'node_modules', path));
+			relPath = normalize(originalModuleDir + '/node_modules/' + path);
 		} else {
-			relPath = pathModule.normalize(pathModule.join('node_modules', path));
+		  throw new Error('Missing test case');
+			// relPath = pathModule.normalize(pathModule.join('node_modules', path));
 		}
 		for (let extensionIndex = 0; extensionIndex < CHECKED_EXTENSIONS.length; extensionIndex++) {
 			const resolvedPath = relPath + CHECKED_EXTENSIONS[extensionIndex];
@@ -73,7 +86,7 @@ export function commonjsRequire (path, originalModuleDir) {
 			};
 		}
 		if (isRelative) break;
-		const nextDir = pathModule.normalize(pathModule.join(originalModuleDir, '..'));
+		const nextDir = normalize(originalModuleDir + '/..');
 		if (nextDir === originalModuleDir) break;
 		originalModuleDir = nextDir;
 	}

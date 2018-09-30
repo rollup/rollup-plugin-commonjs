@@ -1,4 +1,8 @@
+function takeModule(name) {
+	return require(name);
+}
+
 module.exports = {
-	parent: require('..'),
-	customModule: require('custom-module')
+	parent: takeModule('..'),
+	customModule: takeModule('custom-module')
 };
