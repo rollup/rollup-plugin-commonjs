@@ -98,27 +98,23 @@ export default function commonjs(options = {}) {
 			if (id === DYNAMIC_PACKAGES_ID) {
 				let code = `const { commonjsRegister } = require('${HELPERS_ID}');`;
 				for (const dir of dynamicRequireModuleDirPaths) {
-					const normalizedPath = normalizePathSlashes(dir);
-
-					let pkg = {};
+					let entryPoint = 'index.js';
 
 					try {
-						if (existsSync(join(normalizedPath, 'package.json'))) {
-							pkg = JSON.parse(
-								readFileSync(join(normalizedPath, 'package.json'), { encoding: 'utf8' })
-							);
+						if (existsSync(join(dir, 'package.json'))) {
+							entryPoint = JSON.parse(
+								readFileSync(join(dir, 'package.json'), { encoding: 'utf8' })
+							).main || entryPoint;
 						}
 					} catch (ignored) {
-						// We don't care about this, we fallback to default.
+						// ignored
 					}
 
-					const entryPoint = pkg.main || 'index.js';
-
 					code += `\ncommonjsRegister(${JSON.stringify(
-						normalizedPath
+						dir
 					)}, function (module, exports) {
   module.exports = require(${JSON.stringify(
-		normalizePathSlashes(join(normalizedPath, entryPoint))
+		normalizePathSlashes(join(dir, entryPoint))
 	)});
 });`;
 				}
@@ -175,7 +171,9 @@ export default function commonjs(options = {}) {
 				});
 			}
 
-			// Keep reference to this, so we know where to register dynamic modules
+			// TODO: For code splitting, the runtime probably needs to be imported by each entry point
+			// TODO: This does not work and will leave untranspiled requires if the entry point is an ES Module
+			// TODO: This also has a some performance impact for everyone using this plugin even if they do not use dynamic requires
 			if (!mainModuleId) {
 				mainModuleId = id;
 				let code = readFileSync(id, {encoding: 'utf8'});
@@ -190,12 +188,7 @@ export default function commonjs(options = {}) {
 					)});`;
 				}
 
-				const hasUseStrict = /^\s*(['"])use strict\1\s*;?/.test(code);
-				if (hasUseStrict) code = code.replace(/^\s*(['"])use strict\1\s*;?/, '');
-
 				code = dynamicImports + '\n' + code;
-
-				if (hasUseStrict) code = '"use strict";\n' + code;
 
 				return code;
 			}
