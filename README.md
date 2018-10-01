@@ -64,11 +64,11 @@ export default {
 
       // some modules have dynamic `require` calls in them,
       // or even circular dependencies (which are not handled well by EJS)
-      // so including them as `dynamicRequires` will simulate a CJS environment
+      // so including them as `dynamicRequireTargets` will simulate a CJS environment
       // for them with support for dynamic and circular dependencies.
       // note that this might hardcode some paths from your PC in the final js file,
       // so you might want to search & replace the base path of the root js file.
-      dynamicRequires: [ // accepts either a string, or an array of strings
+      dynamicRequireTargets: [ // accepts either a string, or an array of strings
         // include using a glob pattern (either a string or an array of strings)
         'node_modules/logform/*.js',
         

@@ -6,6 +6,6 @@ module.exports = {
 		plugins: [json()]
 	},
 	pluginOptions: {
-		dynamicRequires: ['function/dynamic-require-json/dynamic.json']
+		dynamicRequireTargets: ['function/dynamic-require-json/dynamic.json']
 	}
 };

@@ -28,7 +28,7 @@ export default function commonjs(options = {}) {
 	const ignoreGlobal = options.ignoreGlobal;
 
 	const { dynamicRequireModuleSet, dynamicRequireModuleDirPaths } = getDynamicRequirePaths(
-		options.dynamicRequires
+		options.dynamicRequireTargets
 	);
 
 	const customNamedExports = {};

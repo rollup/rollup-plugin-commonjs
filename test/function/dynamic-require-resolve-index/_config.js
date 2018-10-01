@@ -6,7 +6,7 @@ module.exports = {
 		plugins: [nodeResolve()]
 	},
 	pluginOptions: {
-		dynamicRequires: [
+		dynamicRequireTargets: [
 			'function/dynamic-require-resolve-index',
 			'function/dynamic-require-resolve-index/sub',
 			'function/dynamic-require-resolve-index/node_modules/custom-module'

@@ -6,7 +6,7 @@ module.exports = {
 		plugins: [nodeResolve()]
 	},
 	pluginOptions: {
-		dynamicRequires: [
+		dynamicRequireTargets: [
 			'function/dynamic-require-instances/direct',
 			'function/dynamic-require-instances/direct/index.js',
 			'function/dynamic-require-instances/package',

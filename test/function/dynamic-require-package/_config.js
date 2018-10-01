@@ -6,7 +6,7 @@ module.exports = {
 		plugins: [nodeResolve()]
 	},
 	pluginOptions: {
-		dynamicRequires: [
+		dynamicRequireTargets: [
 			'function/dynamic-require-package',
 			'function/dynamic-require-package/sub',
 			'function/dynamic-require-package/node_modules/custom-module'
