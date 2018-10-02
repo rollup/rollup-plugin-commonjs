@@ -1,9 +1,9 @@
-const assert = require( 'assert' );
+const assert = require('assert');
 
 module.exports = {
 	global: global => {
-		assert.equal( global.a, undefined );
-		assert.equal( global.b, 2 );
-		assert.equal( global.c, undefined );
+		assert.equal(global.a, undefined);
+		assert.equal(global.b, 2);
+		assert.equal(global.c, undefined);
 	}
 };

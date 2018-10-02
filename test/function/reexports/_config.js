@@ -1,9 +1,9 @@
-const path = require( 'path' );
+const path = require('path');
 
 module.exports = {
 	pluginOptions: {
 		namedExports: {
-			[ path.resolve( __dirname, 'foo.js' ) ]: [ 'named' ]
+			[path.resolve(__dirname, 'foo.js')]: ['named']
 		}
 	}
 };

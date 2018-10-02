@@ -1,10 +1,9 @@
 sudo: false
 language: node_js
 node_js:
-  - "node"
+  - "8"
+  - "10"
 env:
   global:
     - BUILD_TIMEOUT=10000
 install: npm install
-before_install:
-  - if [[ $TRAVIS_NODE_VERSION -lt 7 ]]; then npm install --global npm@4; fi

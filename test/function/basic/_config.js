@@ -1,7 +1,7 @@
-const assert = require( 'assert' );
+const assert = require('assert');
 
 module.exports = {
 	exports: exports => {
-		assert.equal( exports, 42 );
+		assert.equal(exports, 42);
 	}
 };
