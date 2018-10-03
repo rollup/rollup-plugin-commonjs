@@ -159,20 +159,21 @@ describe('rollup-plugin-commonjs', () => {
 				sourcemapFile: path.resolve('bundle.js')
 			});
 
-			const smc = new SourceMapConsumer(map);
-			const locator = getLocator(code, { offsetLine: 1 });
+			await SourceMapConsumer.with(map, null, async smc => {
+				const locator = getLocator(code, { offsetLine: 1 });
 
-			let generatedLoc = locator('42');
-			let loc = smc.originalPositionFor(generatedLoc); // 42
-			assert.equal(loc.source, 'samples/sourcemap/foo.js');
-			assert.equal(loc.line, 1);
-			assert.equal(loc.column, 15);
+				let generatedLoc = locator('42');
+				let loc = smc.originalPositionFor(generatedLoc); // 42
+				assert.equal(loc.source, 'samples/sourcemap/foo.js');
+				assert.equal(loc.line, 1);
+				assert.equal(loc.column, 15);
 
-			generatedLoc = locator('log');
-			loc = smc.originalPositionFor(generatedLoc); // log
-			assert.equal(loc.source, 'samples/sourcemap/main.js');
-			assert.equal(loc.line, 2);
-			assert.equal(loc.column, 8);
+				generatedLoc = locator('log');
+				loc = smc.originalPositionFor(generatedLoc); // log
+				assert.equal(loc.source, 'samples/sourcemap/main.js');
+				assert.equal(loc.line, 2);
+				assert.equal(loc.column, 8);
+			});
 		});
 
 		it('supports multiple entry points for experimentalCodeSplitting', async () => {
