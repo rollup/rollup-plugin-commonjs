@@ -47,6 +47,27 @@ function normalize (path) {
 	return resolvedParts.join('/');
 }
 
+function join () {
+    if (arguments.length === 0)
+      return '.';
+
+    let joined;
+    for (let i = 0; i < arguments.length; ++i) {
+      let arg = arguments[i];
+      if (arg.length > 0) {
+        if (joined === undefined)
+          joined = arg;
+        else
+          joined += '/' + arg;
+      }
+    }
+
+    if (joined === undefined)
+      return '.';
+  
+    return joined;
+}
+
 export function commonjsRequire (path, originalModuleDir) {
 	const isRelative = path[0] === '.' || path[0] === '/';
 	path = normalize(path);
@@ -57,8 +78,7 @@ export function commonjsRequire (path, originalModuleDir) {
 		} else if (originalModuleDir) {
 			relPath = normalize(originalModuleDir + '/node_modules/' + path);
 		} else {
-		  throw new Error('Missing test case');
-			// relPath = pathModule.normalize(pathModule.join('node_modules', path));
+			relPath = normalize(join('node_modules', path));
 		}
 		for (let extensionIndex = 0; extensionIndex < CHECKED_EXTENSIONS.length; extensionIndex++) {
 			const resolvedPath = relPath + CHECKED_EXTENSIONS[extensionIndex];

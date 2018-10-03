@@ -122,7 +122,7 @@ describe('rollup-plugin-commonjs', () => {
 			(config.solo ? it.only : it)(dir, async () => {
 				const options = Object.assign(
 					{
-						input: `function/${dir}/main.js`
+						input: `function/${dir}/${config.input || 'main.js'}`
 					},
 					config.options || {},
 					{
