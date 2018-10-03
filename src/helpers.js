@@ -35,16 +35,30 @@ const CHECKED_EXTENSIONS = ['', '.js', '.json'];
 function normalize (path) {
 	path = path.replace(/\\\\/g, '/');
 	const parts = path.split('/');
-	const resolvedParts = [parts[0]];
-	for (let i = 1; i < parts.length; i++) {
-	  const part = parts[i];
-	  if (part === '..' && resolvedParts.length > 1 && resolvedParts[resolvedParts.length - 1] !== '..') {
-	    resolvedParts.pop();
-	  } else if (part && part !== '.') {
-	    resolvedParts.push(part);
-	  }
-	}
-	return resolvedParts.join('/');
+    const slashed = parts[0] === '';
+
+    for (let i = 1; i < parts.length; i++) {
+        if (parts[i] === '.' || parts[i] === '') {
+            parts.splice(i--, 1);
+        }
+    }
+
+    for (let i = 1; i < parts.length; i++) {
+        if (parts[i] !== '..') continue;
+        if (i > 0 && parts[i - 1] !== '..' && parts[i - 1] !== '.') {
+            parts.splice(--i, 2);
+            i--;
+        }
+    }
+
+	path = parts.join('/');
+
+    if (slashed && path[0] !== '/')
+      path = '/' + path;
+    else if (path.length === 0)
+      path = '.';
+
+	return path;
 }
 
 function join () {
@@ -68,12 +82,27 @@ function join () {
     return joined;
 }
 
+function isPossibleNodeModulesPath (modulePath) {
+    let c0 = modulePath[0];
+    if (c0 === '/' || c0 === '\\\\') return false;
+
+    let c1 = modulePath[1], c2 = modulePath[2];
+
+    if ((c0 === '.' && (!c1 || c1 === '/' || c1 === '\\\\')) ||
+        (c0 === '.' && c1 === '.' && (!c2 || c2 === '/' || c2 === '\\\\'))) return false;
+
+    if (c1 === ':' && (c2 === '/' || c2 === '\\\\'))
+        return false;
+
+    return true;
+}
+
 export function commonjsRequire (path, originalModuleDir) {
-	const isRelative = path[0] === '.' || path[0] === '/';
+	const shouldTryNodeModules = isPossibleNodeModulesPath(path);
 	path = normalize(path);
 	let relPath;
 	while (true) {
-		if (isRelative) {
+		if (!shouldTryNodeModules) {
 			relPath = originalModuleDir ? normalize(originalModuleDir + '/' + path) : path;
 		} else if (originalModuleDir) {
 			relPath = normalize(originalModuleDir + '/node_modules/' + path);
@@ -105,7 +134,7 @@ export function commonjsRequire (path, originalModuleDir) {
 				return cachedModule.exports;
 			};
 		}
-		if (isRelative) break;
+		if (!shouldTryNodeModules) break;
 		const nextDir = normalize(originalModuleDir + '/..');
 		if (nextDir === originalModuleDir) break;
 		originalModuleDir = nextDir;
