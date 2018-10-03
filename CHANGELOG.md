@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.1.9
+*unreleased*
+* Refactor code and add prettier ([#346](https://github.com/rollup/rollup-plugin-commonjs/issues/346))
+
 ## 9.1.8
 *2018-09-18*
 * Ignore virtual modules created by other plugins ([#327](https://github.com/rollup/rollup-plugin-commonjs/issues/327))
