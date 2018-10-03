@@ -1,10 +1,10 @@
-const assert = require( 'assert' );
+const assert = require('assert');
 
 module.exports = {
 	options: {
-		external: [ 'foo' ]
+		external: ['foo']
 	},
 	exports: exports => {
-		assert.equal( exports, 'foo' );
+		assert.equal(exports, 'foo');
 	}
 };

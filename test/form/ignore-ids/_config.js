@@ -1,5 +1,5 @@
 module.exports = {
 	options: {
-		ignore: [ 'foo' ]
+		ignore: ['foo']
 	}
 };

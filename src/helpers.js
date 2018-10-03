@@ -1,3 +1,5 @@
+export const PROXY_PREFIX = '\0commonjs-proxy:';
+export const EXTERNAL_PREFIX = '\0commonjs-external:';
 export const HELPERS_ID = '\0commonjsHelpers';
 
 export const HELPERS = `
@@ -14,6 +16,3 @@ export function unwrapExports (x) {
 export function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }`;
-
-export const PREFIX = '\0commonjs-proxy:';
-export const EXTERNAL = '\0commonjs-external:';

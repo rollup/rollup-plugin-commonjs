@@ -2,4 +2,4 @@
 node_modules
 .gobble*
 dist
-!test/node_modules
+!test/**/node_modules
