@@ -609,5 +609,112 @@ describe('rollup-plugin-commonjs', () => {
 			});
 			assert.equal((await executeBundle(bundle)).exports, 'Virtual export');
 		});
+
+		it('does not produce warnings when importing .mjs without default export', async () => {
+			const bundle = await rollup({
+				input: 'main.mjs',
+				onwarn(warning) {
+					// The interop should not trigger a "default is not exported" warning
+					throw new Error(`Unexpected warning: ${warning.message}`);
+				},
+				plugins: [
+					commonjs(),
+					{
+						load(id) {
+							if (id === 'main.mjs') {
+								return 'import cjs from "cjs.js"; export default cjs;';
+							}
+							if (id === 'cjs.js') {
+								// CJS libraries expect to receive a CJS file here
+								return 'module.exports = require("fromNodeModules");';
+							}
+							if (id === 'fromNodeModules.mjs') {
+								return 'export const result = "from esm";';
+							}
+						},
+						resolveId(id) {
+							// rollup-plugin-node-resolve usually prefers ESM versions
+							if (id === 'fromNodeModules') {
+								return 'fromNodeModules.mjs';
+							}
+							return id;
+						}
+					}
+				]
+			});
+			assert.deepEqual((await executeBundle(bundle)).exports, { result: 'from esm' });
+		});
+
+		it('produces optimized code when importing esm with a known default export', async () => {
+			const bundle = await rollup({
+				input: 'main.js',
+				plugins: [
+					commonjs(),
+					{
+						load(id) {
+							if (id === 'main.js') {
+								return 'module.exports = require("esm.js")';
+							}
+							if (id === 'esm.js') {
+								return 'export const ignored = "ignored"; export default "default"';
+							}
+						},
+						resolveId(id) {
+							return id;
+						}
+					}
+				]
+			});
+			const { code } = await bundle.generate({ format: 'cjs' });
+			assert.equal(
+				code,
+				`'use strict';
+
+var require$$0 = "default";
+
+var main = require$$0;
+
+module.exports = main;
+`
+			);
+		});
+
+		it('produces optimized code when importing esm without a default export', async () => {
+			const bundle = await rollup({
+				input: 'main.js',
+				plugins: [
+					commonjs(),
+					{
+						load(id) {
+							if (id === 'main.js') {
+								return 'module.exports = require("esm.js")';
+							}
+							if (id === 'esm.js') {
+								return 'export const value = "value";';
+							}
+						},
+						resolveId(id) {
+							return id;
+						}
+					}
+				]
+			});
+			const { code } = await bundle.generate({ format: 'cjs' });
+			assert.equal(
+				code,
+				`'use strict';
+
+const value = "value";
+
+var esm = /*#__PURE__*/Object.freeze({
+	value: value
+});
+
+var main = esm;
+
+module.exports = main;
+`
+			);
+		});
 	});
 });

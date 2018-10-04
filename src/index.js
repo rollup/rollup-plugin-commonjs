@@ -1,11 +1,11 @@
-import {extname, resolve} from 'path';
-import {sync as nodeResolveSync} from 'resolve';
-import {createFilter} from 'rollup-pluginutils';
-import {EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX} from './helpers.js';
-import {getIsCjsPromise, setIsCjsPromise} from './is-cjs';
-import {getResolveId} from './resolve-id';
-import {checkEsModule, hasCjsKeywords, transformCommonjs} from './transform.js';
-import {getName} from './utils.js';
+import { extname, resolve } from 'path';
+import { sync as nodeResolveSync } from 'resolve';
+import { createFilter } from 'rollup-pluginutils';
+import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
+import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
+import { getResolveId } from './resolve-id';
+import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
+import { getName } from './utils.js';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
@@ -27,7 +27,8 @@ export default function commonjs(options = {}) {
 		});
 	}
 
-	const esModulesWithoutDefaultExport = [];
+	const esModulesWithoutDefaultExport = Object.create(null);
+	const esModulesWithDefaultExport = Object.create(null);
 	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
 
 	const ignoreRequire =
@@ -82,12 +83,15 @@ export default function commonjs(options = {}) {
 						return `import { __moduleExports } from ${JSON.stringify(
 							actualId
 						)}; export default __moduleExports;`;
-					else if (esModulesWithoutDefaultExport.indexOf(actualId) !== -1)
+					else if (esModulesWithoutDefaultExport[actualId])
 						return `import * as ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
+					else if (esModulesWithDefaultExport[actualId]) {
+						return `export {default} from ${JSON.stringify(actualId)};`;
+					}
 					else
 						return `import * as ${name} from ${JSON.stringify(
 							actualId
-						)}; export default ( ${name} && ${name}['default'] ) || ${name};`;
+						)}; import {getCjsExportFromNamespace} from "${HELPERS_ID}"; export default getCjsExportFromNamespace(${name})`;
 				});
 			}
 		},
@@ -100,14 +104,14 @@ export default function commonjs(options = {}) {
 				.then(entryModuleIds => {
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					if (isEsModule) {
-						if (!hasDefaultExport) esModulesWithoutDefaultExport.push(id);
-						return;
+						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[id] = true;
+						return null;
 					}
 
-					// it is not an ES module but not a commonjs module, too.
+					// it is not an ES module but it does not have CJS-specific elements.
 					if (!hasCjsKeywords(code, ignoreGlobal)) {
-						esModulesWithoutDefaultExport.push(id);
-						return;
+						esModulesWithoutDefaultExport[id] = true;
+						return null;
 					}
 
 					const transformed = transformCommonjs(
@@ -123,8 +127,8 @@ export default function commonjs(options = {}) {
 						ast
 					);
 					if (!transformed) {
-						esModulesWithoutDefaultExport.push(id);
-						return;
+						esModulesWithoutDefaultExport[id] = true;
+						return null;
 					}
 
 					return transformed;
@@ -133,8 +137,7 @@ export default function commonjs(options = {}) {
 					this.error(err, err.loc);
 				});
 
-			setIsCjsPromise(id, transformPromise.then(Boolean, () => true));
-
+			setIsCjsPromise(id, transformPromise.then(Boolean, () => false));
 			return transformPromise;
 		}
 	};
