@@ -22,9 +22,7 @@ process.chdir(__dirname);
 
 function execute(code, context = {}) {
 	let fn;
-
 	const contextKeys = Object.keys(context);
-
 	const argNames = contextKeys.concat('module', 'exports', 'require', 'global', 'assert', code);
 
 	try {
@@ -51,11 +49,15 @@ function execute(code, context = {}) {
 	};
 }
 
-async function executeBundle(bundle, { context, exports } = {}) {
-	const options = { format: 'cjs' };
-	if (exports) options.exports = exports;
+const getOutputFromGenerated = generated => (generated.output ? generated.output[0] : generated);
 
-	const { code } = await bundle.generate(options);
+async function getCodeFromBundle(bundle, customOptions = {}) {
+	const options = Object.assign({ format: 'cjs' }, customOptions);
+	return getOutputFromGenerated(await bundle.generate(options)).code;
+}
+
+async function executeBundle(bundle, { context, exports } = {}) {
+	const code = await getCodeFromBundle(bundle, exports ? { exports } : {});
 	return execute(code, context);
 }
 
@@ -132,7 +134,7 @@ describe('rollup-plugin-commonjs', () => {
 				);
 
 				const bundle = await rollup(options);
-				const { code } = await bundle.generate({ format: 'cjs' });
+				const code = await getCodeFromBundle(bundle);
 				if (config.show || config.solo) {
 					console.error(code);
 				}
@@ -153,11 +155,13 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [commonjs({ sourceMap: true })]
 			});
 
-			const { code, map } = await bundle.generate({
-				format: 'cjs',
-				sourcemap: true,
-				sourcemapFile: path.resolve('bundle.js')
-			});
+			const { code, map } = getOutputFromGenerated(
+				await bundle.generate({
+					format: 'cjs',
+					sourcemap: true,
+					sourcemapFile: path.resolve('bundle.js')
+				})
+			);
 
 			await SourceMapConsumer.with(map, null, async smc => {
 				const locator = getLocator(code, { offsetLine: 1 });
@@ -176,7 +180,7 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
-		it('supports multiple entry points for experimentalCodeSplitting', async () => {
+		it('supports an array of multiple entry points for experimentalCodeSplitting', async () => {
 			const bundle = await rollup({
 				input: ['samples/multiple-entry-points/b.js', 'samples/multiple-entry-points/c.js'],
 				experimentalCodeSplitting: true,
@@ -187,12 +191,18 @@ describe('rollup-plugin-commonjs', () => {
 				format: 'cjs',
 				chunkFileNames: '[name].js'
 			});
-			assert.equal(Object.keys(output).length, 3);
-			assert.equal('b.js' in output, true);
-			assert.equal('c.js' in output, true);
+			if (Array.isArray(output)) {
+				assert.equal(output.length, 3);
+				assert.ok(output.find(({ fileName }) => fileName === 'b.js'));
+				assert.ok(output.find(({ fileName }) => fileName === 'c.js'));
+			} else {
+				assert.equal(Object.keys(output).length, 3);
+				assert.equal('b.js' in output, true);
+				assert.equal('c.js' in output, true);
+			}
 		});
 
-		it('supports multiple entry points as object for experimentalCodeSplitting', async () => {
+		it('supports an object of multiple entry points as object for experimentalCodeSplitting', async () => {
 			const bundle = await rollup({
 				input: {
 					b: require.resolve('./samples/multiple-entry-points/b.js'),
@@ -207,9 +217,15 @@ describe('rollup-plugin-commonjs', () => {
 				chunkFileNames: '[name].js'
 			});
 
-			assert.equal(Object.keys(output).length, 3);
-			assert.equal('b.js' in output, true);
-			assert.equal('c.js' in output, true);
+			if (Array.isArray(output)) {
+				assert.equal(output.length, 3);
+				assert.ok(output.find(({ fileName }) => fileName === 'b.js'));
+				assert.ok(output.find(({ fileName }) => fileName === 'c.js'));
+			} else {
+				assert.equal(Object.keys(output).length, 3);
+				assert.equal('b.js' in output, true);
+				assert.equal('c.js' in output, true);
+			}
 		});
 
 		it('handles references to `global`', async () => {
@@ -218,27 +234,25 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [commonjs()]
 			});
 
-			const generated = await bundle.generate({
-				format: 'cjs'
-			});
+			const code = await getCodeFromBundle(bundle);
 
 			const mockWindow = {};
 			const mockGlobal = {};
 			const mockSelf = {};
 
-			const fn = new Function('module', 'window', 'global', 'self', generated.code);
+			const fn = new Function('module', 'window', 'global', 'self', code);
 
 			fn({}, mockWindow, mockGlobal, mockSelf);
-			assert.equal(mockWindow.foo, 'bar', generated.code);
-			assert.equal(mockGlobal.foo, undefined, generated.code);
-			assert.equal(mockSelf.foo, undefined, generated.code);
+			assert.equal(mockWindow.foo, 'bar', code);
+			assert.equal(mockGlobal.foo, undefined, code);
+			assert.equal(mockSelf.foo, undefined, code);
 
 			fn({}, undefined, mockGlobal, mockSelf);
-			assert.equal(mockGlobal.foo, 'bar', generated.code);
-			assert.equal(mockSelf.foo, undefined, generated.code);
+			assert.equal(mockGlobal.foo, 'bar', code);
+			assert.equal(mockSelf.foo, undefined, code);
 
 			fn({}, undefined, undefined, mockSelf);
-			assert.equal(mockSelf.foo, 'bar', generated.code);
+			assert.equal(mockSelf.foo, 'bar', code);
 		});
 
 		it('handles multiple references to `global`', async () => {
@@ -247,12 +261,8 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [commonjs()]
 			});
 
-			const generated = await bundle.generate({
-				format: 'cjs'
-			});
-
-			const fn = new Function('module', 'exports', 'window', generated.code);
-
+			const code = await getCodeFromBundle(bundle);
+			const fn = new Function('module', 'exports', 'window', code);
 			const module = { exports: {} };
 			const window = {};
 
@@ -269,16 +279,13 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [commonjs()]
 			});
 
-			const generated = await bundle.generate({
-				format: 'cjs'
-			});
-
+			const code = await getCodeFromBundle(bundle);
 			const module = { exports: {} };
 
-			const fn = new Function('module', 'exports', generated.code);
+			const fn = new Function('module', 'exports', code);
 			fn(module, module.exports);
 
-			assert.equal(module.exports, 'foobar', generated.code);
+			assert.equal(module.exports, 'foobar', code);
 		});
 
 		it('handles successive builds', async () => {
@@ -295,16 +302,14 @@ describe('rollup-plugin-commonjs', () => {
 				input: 'samples/corejs/literal-with-default.js',
 				plugins: [plugin]
 			});
-			const generated = await bundle.generate({
-				format: 'cjs'
-			});
+			const code = await getCodeFromBundle(bundle);
 
 			const module = { exports: {} };
 
-			const fn = new Function('module', 'exports', generated.code);
+			const fn = new Function('module', 'exports', code);
 			fn(module, module.exports);
 
-			assert.equal(module.exports, 'foobar', generated.code);
+			assert.equal(module.exports, 'foobar', code);
 		});
 
 		it('allows named exports to be added explicitly via config', async () => {
@@ -373,15 +378,12 @@ describe('rollup-plugin-commonjs', () => {
 				}
 			});
 
-			const generated = await bundle.generate({
-				format: 'cjs'
-			});
-
+			const code = await getCodeFromBundle(bundle);
 			const { exports, global } = await executeBundle(bundle);
 
-			assert.equal(exports.immediate1, global.setImmediate, generated.code);
-			assert.equal(exports.immediate2, global.setImmediate, generated.code);
-			assert.equal(exports.immediate3, null, generated.code);
+			assert.equal(exports.immediate1, global.setImmediate, code);
+			assert.equal(exports.immediate2, global.setImmediate, code);
+			assert.equal(exports.immediate3, null, code);
 		});
 
 		it('can handle parens around right have node while producing default export', async () => {
@@ -419,7 +421,7 @@ describe('rollup-plugin-commonjs', () => {
 					plugins: [commonjs()]
 				});
 
-				const { code } = await bundle.generate({ format: 'es' });
+				const { code } = getOutputFromGenerated(await bundle.generate({ format: 'es' }));
 
 				assert.equal(code.indexOf('typeof require'), -1, code);
 				// assert.notEqual( code.indexOf( 'typeof module' ), -1, code ); // #151 breaks this test
@@ -510,7 +512,7 @@ describe('rollup-plugin-commonjs', () => {
 				external: ['baz']
 			});
 
-			const { code } = await bundle.generate({ format: 'cjs' });
+			const code = await getCodeFromBundle(bundle);
 			assert.equal(code.indexOf('hello'), -1);
 
 			const { exports } = await executeBundle(bundle);
@@ -523,7 +525,7 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [commonjs()]
 			});
 
-			const { code } = await bundle.generate({ format: 'cjs' });
+			const code = await getCodeFromBundle(bundle);
 			assert.equal(code.indexOf('var index'), -1);
 			assert.notEqual(code.indexOf('var invalidVar'), -1);
 			assert.notEqual(code.indexOf('var validVar'), -1);
@@ -665,7 +667,7 @@ describe('rollup-plugin-commonjs', () => {
 					}
 				]
 			});
-			const { code } = await bundle.generate({ format: 'cjs' });
+			const code = await getCodeFromBundle(bundle);
 			assert.equal(
 				code,
 				`'use strict';
@@ -699,7 +701,7 @@ module.exports = main;
 					}
 				]
 			});
-			const { code } = await bundle.generate({ format: 'cjs' });
+			const code = await getCodeFromBundle(bundle);
 			assert.equal(
 				code,
 				`'use strict';
