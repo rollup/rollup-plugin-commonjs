@@ -75,10 +75,7 @@ export default function commonjs(options = {}) {
 				const actualId = id.slice(PROXY_PREFIX.length);
 				const name = getName(actualId);
 
-				return (extensions.indexOf(extname(id)) === -1
-					? Promise.resolve(false)
-					: getIsCjsPromise(actualId)
-				).then(isCjs => {
+				return getIsCjsPromise(actualId).then(isCjs => {
 					if (isCjs)
 						return `import { __moduleExports } from ${JSON.stringify(
 							actualId
@@ -97,8 +94,10 @@ export default function commonjs(options = {}) {
 		},
 
 		transform(code, id) {
-			if (!filter(id)) return null;
-			if (extensions.indexOf(extname(id)) === -1) return null;
+			if (!filter(id) || extensions.indexOf(extname(id)) === -1) {
+				setIsCjsPromise(id, Promise.resolve(null));
+				return null;
+			}
 
 			const transformPromise = entryModuleIdsPromise
 				.then(entryModuleIds => {
