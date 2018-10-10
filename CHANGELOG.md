@@ -1,7 +1,8 @@
 # rollup-plugin-commonjs changelog
 
-## 9.1.9
-*unreleased*
+## 9.2.0
+*2018-10-10*
+* Fix missing default warning, produce better code when importing known ESM default exports ([#349](https://github.com/rollup/rollup-plugin-commonjs/issues/349))
 * Refactor code and add prettier ([#346](https://github.com/rollup/rollup-plugin-commonjs/issues/346))
 
 ## 9.1.8
