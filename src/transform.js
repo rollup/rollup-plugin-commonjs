@@ -1,9 +1,9 @@
-import {walk} from 'estree-walker';
+import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import {attachScopes, makeLegalIdentifier} from 'rollup-pluginutils';
-import {extractNames, flatten, isFalsy, isReference, isTruthy} from './ast-utils.js';
-import {HELPERS_ID, PROXY_PREFIX} from './helpers.js';
-import {getName} from './utils.js';
+import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
+import { extractNames, flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
+import { HELPERS_ID, PROXY_PREFIX } from './helpers.js';
+import { getName } from './utils.js';
 
 const reserved = 'process location abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for from function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split(
 	' '
@@ -46,15 +46,21 @@ export function hasCjsKeywords(code, ignoreGlobal) {
 export function checkEsModule(parse, code, id) {
 	const ast = tryParse(parse, code, id);
 
-	// if there are top-level import/export declarations, this is ES not CommonJS
-	let hasDefaultExport = false;
 	let isEsModule = false;
 	for (const node of ast.body) {
-		if (node.type === 'ExportDefaultDeclaration') hasDefaultExport = true;
-		if (importExportDeclaration.test(node.type)) isEsModule = true;
+		if (node.type === 'ExportDefaultDeclaration')
+			return { isEsModule: true, hasDefaultExport: true, ast };
+		if (node.type === 'ExportNamedDeclaration') {
+			isEsModule = true;
+			for (const specifier of node.specifiers) {
+				if (specifier.exported.name === 'default') {
+					return { isEsModule: true, hasDefaultExport: true, ast };
+				}
+			}
+		} else if (importExportDeclaration.test(node.type)) isEsModule = true;
 	}
 
-	return { isEsModule, hasDefaultExport, ast };
+	return { isEsModule, hasDefaultExport: false, ast };
 }
 
 export function transformCommonjs(
