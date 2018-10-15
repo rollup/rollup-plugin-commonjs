@@ -30,6 +30,7 @@ export default function commonjs(options = {}) {
 	const { dynamicRequireModuleSet, dynamicRequireModuleDirPaths } = getDynamicRequirePaths(
 		options.dynamicRequireTargets
 	);
+	const isDynamicRequireModulesEnabled = dynamicRequireModuleSet.size > 0;
 
 	const customNamedExports = {};
 	if (options.namedExports) {
@@ -173,10 +174,18 @@ export default function commonjs(options = {}) {
 
 			// TODO: For code splitting, the runtime probably needs to be imported by each entry point
 			// TODO: This does not work and will leave untranspiled requires if the entry point is an ES Module
-			// TODO: This also has a some performance impact for everyone using this plugin even if they do not use dynamic requires
-			if (!mainModuleId) {
+
+			if (!mainModuleId && isDynamicRequireModulesEnabled) {
 				mainModuleId = id;
-				let code = readFileSync(id, {encoding: 'utf8'});
+
+				let code;
+
+				try {
+					code = readFileSync(id, {encoding: 'utf8'});
+				} catch (ex) {
+					this.warn(`Failed to read file ${id}, dynamic modules might not work correctly`);
+					return;
+				}
 
 				let dynamicImports = Array.from(dynamicRequireModuleSet)
 					.map(id => `require(${JSON.stringify(DYNAMIC_REGISTER_PREFIX + id)});`)
