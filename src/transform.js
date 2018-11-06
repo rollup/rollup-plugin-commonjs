@@ -459,7 +459,7 @@ export function transformCommonjs(
 			}
 		});
 
-		if (!hasDefaultExport) {
+		if (!hasDefaultExport && (names.length || !isEntry)) {
 			wrapperEnd = `\n\nvar ${moduleName} = {\n${names
 				.map(({ name, deconflicted }) => `\t${name}: ${deconflicted}`)
 				.join(',\n')}\n};`;
@@ -488,7 +488,11 @@ export function transformCommonjs(
 		.trim()
 		.prepend(importBlock + wrapperStart)
 		.trim()
-		.append(wrapperEnd + exportBlock);
+		.append(wrapperEnd);
+
+	if (hasDefaultExport || named.length > 0 || shouldWrap || !isEntry) {
+		magicString.append(exportBlock);
+	}
 
 	code = magicString.toString();
 	const map = sourceMap ? magicString.generateMap() : null;

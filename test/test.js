@@ -69,27 +69,22 @@ async function executeBundle(bundle, { context, exports } = {}) {
 	return execute(code, context);
 }
 
-const transformContext = {
-	getModuleInfo(id) {
-		return {
-			isEntry: id === 'main.js'
-		};
-	},
-	parse: (input, options) =>
-		acorn.parse(
-			input,
-			Object.assign(
-				{
-					ecmaVersion: 9,
-					sourceType: 'module'
-				},
-				options
-			)
-		)
-};
-
 describe('rollup-plugin-commonjs', () => {
 	describe('form', () => {
+		const transformContext = {
+			parse: (input, options) =>
+				acorn.parse(
+					input,
+					Object.assign(
+						{
+							ecmaVersion: 9,
+							sourceType: 'module'
+						},
+						options
+					)
+				)
+		};
+
 		fs.readdirSync('form').forEach(dir => {
 			let config;
 
@@ -101,8 +96,13 @@ describe('rollup-plugin-commonjs', () => {
 
 			(config.solo ? it.only : it)(dir, () => {
 				const { transform } = commonjs(config.options);
+				const id = `./form/${dir}/input.js`;
 
-				const input = fs.readFileSync(`form/${dir}/input.js`, 'utf-8');
+				transformContext.getModuleInfo = moduleId => ({
+					isEntry: config.entry && moduleId === id
+				});
+
+				const input = fs.readFileSync(id, 'utf-8');
 
 				let outputFile = `form/${dir}/output`;
 				if (fs.existsSync(`${outputFile}.${process.platform}.js`)) {
@@ -112,7 +112,8 @@ describe('rollup-plugin-commonjs', () => {
 				}
 
 				const expected = fs.readFileSync(outputFile, 'utf-8').trim();
-				const transformed = transform.call(transformContext, input, 'input.js');
+
+				const transformed = transform.call(transformContext, input, id);
 				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '_');
 				assert.equal(actual, expected);
 			});
