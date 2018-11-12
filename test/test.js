@@ -133,7 +133,15 @@ describe('rollup-plugin-commonjs', () => {
 					}
 				);
 
-				const bundle = await rollup(options);
+				let bundle;
+				try {
+					bundle = await rollup(options);
+				} catch (err) {
+					if (!config.err) throw err;
+					if (config.err !== err.message)
+						throw new Error('Expected error: "' + config.err + '" but got "' + err.message + '"');
+					return;
+				}
 				const code = await getCodeFromBundle(bundle);
 				if (config.show || config.solo) {
 					console.error(code);

@@ -13,8 +13,6 @@ reserved.forEach(word => (blacklist[word] = true));
 
 const exportsPattern = /^(?:module\.)?exports(?:\.([a-zA-Z_$][a-zA-Z_$0-9]*))?$/;
 
-const firstpassGlobal = /\b(?:require|module|exports|global)\b/;
-const firstpassNoGlobal = /\b(?:require|module|exports)\b/;
 const importExportDeclaration = /^(?:Import|Export(?:Named|Default))Declaration/;
 const functionType = /^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/;
 
@@ -29,9 +27,9 @@ function deconflict(scope, globals, identifier) {
 	return deconflicted;
 }
 
-function tryParse(parse, code, id) {
+function tryParse(parse, code, id, module) {
 	try {
-		return parse(code, { allowReturnOutsideFunction: true });
+		return parse(code, { allowReturnOutsideFunction: true, sourceType: module ? 'module' : 'script' });
 	} catch (err) {
 		err.message += ` in ${id}`;
 		throw err;
@@ -40,42 +38,51 @@ function tryParse(parse, code, id) {
 
 export function hasCjsKeywords(code, ignoreGlobal) {
 	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
-	return firstpass.test(code);
+  return firstpass.test(code);
 }
 
 export function checkEsModule(parse, code, id) {
-	const ast = tryParse(parse, code, id);
-
-	let isEsModule = false;
-	for (const node of ast.body) {
-		if (node.type === 'ExportDefaultDeclaration')
-			return { isEsModule: true, hasDefaultExport: true, ast };
-		if (node.type === 'ExportNamedDeclaration') {
-			isEsModule = true;
-			for (const specifier of node.specifiers) {
-				if (specifier.exported.name === 'default') {
-					return { isEsModule: true, hasDefaultExport: true, ast };
-				}
-			}
-		} else if (importExportDeclaration.test(node.type)) isEsModule = true;
+	// first try parse as "script", falling back to "module"
+	try {
+		const ast = tryParse(parse, code, id, false);
+		return { isEsModoule: false, hasDefaultExport: false, ast };
 	}
-
-	return { isEsModule, hasDefaultExport: false, ast };
+	catch (e) {
+		if (e instanceof SyntaxError === false)
+			throw e;
+		let isEsModule = false;
+		const ast = tryParse(parse, code, id, true);
+		for (const node of ast.body) {
+			if (node.type === 'ExportDefaultDeclaration')
+				return { isEsModule: true, hasDefaultExport: true, ast };
+			if (node.type === 'ExportNamedDeclaration') {
+				isEsModule = true;
+				for (const specifier of node.specifiers) {
+					if (specifier.exported.name === 'default') {
+						return { isEsModule: true, hasDefaultExport: true, ast };
+					}
+				}
+			} else if (importExportDeclaration.test(node.type)) isEsModule = true;
+		}
+		return { isEsModule, hasDefaultExport: false, ast };
+	}
 }
 
 export function transformCommonjs(
-	parse,
 	code,
+	ast,
 	id,
 	isEntry,
 	ignoreGlobal,
 	ignoreRequire,
 	customNamedExports,
 	sourceMap,
-	allowDynamicRequire,
-	astCache
+	allowDynamicRequire
 ) {
-	const ast = astCache || tryParse(parse, code, id);
+	if (!ast)
+		throw new Error('The AST must be provided');
+
+	const isStrict = ast.body[0] && ast.body[0].directive === 'use strict';
 
 	const magicString = new MagicString(code);
 
@@ -149,17 +156,49 @@ export function transformCommonjs(
 	// do a first pass, see which names are assigned to. This is necessary to prevent
 	// illegally replacing `var foo = require('foo')` with `import foo from 'foo'`,
 	// where `foo` is later reassigned. (This happens in the wild. CommonJS, sigh)
+	let hasCjsKeywords = false;
+	let hasDuplicateFunctionDecls = false;
 	const assignedTo = new Set();
+	const functionDecls = new Map();
 	walk(ast, {
 		enter(node) {
+			programDepth += 1;
+
+			if (!hasCjsKeywords && node.type === 'Identifier') {
+				if (node.name === 'require' || node.name === 'exports' || node.name === 'module' || !ignoreGlobal && node.name === 'global')
+					hasCjsKeywords = true;
+			}
+
+			if (!isStrict && programDepth === 2 && node.type === 'FunctionDeclaration') {
+				if (functionDecls.has(node.id.name))
+					hasDuplicateFunctionDecls = true;
+				functionDecls.set(node.id.name, node);
+				return;
+			}
+
 			if (node.type !== 'AssignmentExpression') return;
 			if (node.left.type === 'MemberExpression') return;
 
 			extractNames(node.left).forEach(name => {
 				assignedTo.add(name);
 			});
+		},
+		leave () {
+			programDepth -= 1;
 		}
 	});
+
+	// Early return when further transformation isn't necessary.
+	if (!hasCjsKeywords) {
+		if (Object.keys(namedExports).length) {
+			throw new Error(
+				`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
+			);
+		}
+		// Only early return when no strict conversion necessary.
+		if (!hasDuplicateFunctionDecls)
+			return null;
+	}
 
 	walk(ast, {
 		enter(node, parent) {
@@ -318,9 +357,12 @@ export function transformCommonjs(
 		leave(node) {
 			programDepth -= 1;
 			if (node.scope) scope = scope.parent;
-			if (functionType.test(node.type)) lexicalDepth -= 1;
+			if (functionType.test(node.type)) lexicalDepth--;
 
-			if (node.type === 'VariableDeclaration') {
+			if (!isStrict && programDepth === 1 && node.type === 'FunctionDeclaration' && hasDuplicateFunctionDecls && functionDecls.get(node.id.name) !== node) {
+				magicString.remove(node.start, node.end);
+			}
+			else if (node.type === 'VariableDeclaration') {
 				let keepDeclaration = false;
 				let c = node.declarations[0].start;
 
@@ -345,21 +387,6 @@ export function transformCommonjs(
 			}
 		}
 	});
-
-	if (
-		!sources.length &&
-		!uses.module &&
-		!uses.exports &&
-		!uses.require &&
-		(ignoreGlobal || !uses.global)
-	) {
-		if (Object.keys(namedExports).length) {
-			throw new Error(
-				`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
-			);
-		}
-		return null; // not a CommonJS module
-	}
 
 	const includeHelpers = shouldWrap || uses.global || uses.require;
 	const importBlock =
