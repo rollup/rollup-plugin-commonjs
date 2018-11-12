@@ -4,7 +4,7 @@ import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
-import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
+import { checkEsModule, transformCommonjs } from './transform.js';
 import { getName } from './utils.js';
 
 export default function commonjs(options = {}) {
@@ -107,14 +107,8 @@ export default function commonjs(options = {}) {
 						return null;
 					}
 
-					// it is not an ES module but it does not have CJS-specific elements.
-					if (!hasCjsKeywords(code, ignoreGlobal)) {
-						esModulesWithoutDefaultExport[id] = true;
-						return null;
-					}
-
-					const transformed = transformCommonjs(
-						this.parse,
+					return transformCommonjs.call(
+						this,
 						code,
 						id,
 						entryModuleIds.indexOf(id) !== -1,
@@ -124,13 +118,14 @@ export default function commonjs(options = {}) {
 						sourceMap,
 						allowDynamicRequire,
 						ast
-					);
-					if (!transformed) {
-						esModulesWithoutDefaultExport[id] = true;
-						return null;
-					}
-
-					return transformed;
+					)
+					.then(transformed => {
+						if (!transformed) {
+							esModulesWithoutDefaultExport[id] = true;
+							return null;
+						}
+						return transformed;
+					});
 				})
 				.catch(err => {
 					this.error(err, err.loc);

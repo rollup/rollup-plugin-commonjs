@@ -64,7 +64,6 @@ export function checkEsModule(parse, code, id) {
 }
 
 export function transformCommonjs(
-	parse,
 	code,
 	id,
 	isEntry,
@@ -75,423 +74,472 @@ export function transformCommonjs(
 	allowDynamicRequire,
 	astCache
 ) {
-	const ast = astCache || tryParse(parse, code, id);
+	return Promise.resolve()
+	.then(() => {
+		// it is not an ES module but it does not have CJS-specific elements.
+		if (!hasCjsKeywords(code, ignoreGlobal))
+			return null;
 
-	const magicString = new MagicString(code);
+		const ast = astCache || tryParse(this.parse, code, id);
 
-	const required = {};
-	// Because objects have no guaranteed ordering, yet we need it,
-	// we need to keep track of the order in a array
-	const sources = [];
+		const magicString = new MagicString(code);
 
-	let uid = 0;
+		const required = {};
+		// Because objects have no guaranteed ordering, yet we need it,
+		// we need to keep track of the order in a array
+		const sources = [];
 
-	let scope = attachScopes(ast, 'scope');
-	const uses = { module: false, exports: false, global: false, require: false };
+		let uid = 0;
 
-	let lexicalDepth = 0;
-	let programDepth = 0;
+		let scope = attachScopes(ast, 'scope');
+		const uses = { module: false, exports: false, global: false, require: false };
 
-	const globals = new Set();
+		let lexicalDepth = 0;
+		let programDepth = 0;
+		let tryCatchDepth = 0;
 
-	const HELPERS_NAME = deconflict(scope, globals, 'commonjsHelpers'); // TODO technically wrong since globals isn't populated yet, but ¯\_(ツ)_/¯
+		const globals = new Set();
 
-	const namedExports = {};
+		const HELPERS_NAME = deconflict(scope, globals, 'commonjsHelpers'); // TODO technically wrong since globals isn't populated yet, but ¯\_(ツ)_/¯
 
-	// TODO handle transpiled modules
-	let shouldWrap = /__esModule/.test(code);
+		const namedExports = {};
 
-	function isRequireStatement(node) {
-		if (!node) return;
-		if (node.type !== 'CallExpression') return;
-		if (node.callee.name !== 'require' || scope.contains('require')) return;
-		if (node.arguments.length === 0) return; // Weird case of require() without arguments
-		return true;
-	}
+		// TODO handle transpiled modules
+		let shouldWrap = /__esModule/.test(code);
 
-	function hasDynamicArguments(node) {
-		return (
-			node.arguments.length > 1 ||
-			(node.arguments[0].type !== 'Literal' &&
-				(node.arguments[0].type !== 'TemplateLiteral' || node.arguments[0].expressions.length > 0))
-		);
-	}
-
-	function isStaticRequireStatement(node) {
-		if (!isRequireStatement(node)) return;
-		if (hasDynamicArguments(node)) return;
-		if (ignoreRequire(node.arguments[0].value)) return;
-		return true;
-	}
-
-	function getRequireStringArg(node) {
-		return node.arguments[0].type === 'Literal'
-			? node.arguments[0].value
-			: node.arguments[0].quasis[0].value.cooked;
-	}
-
-	function getRequired(node, name) {
-		const sourceId = getRequireStringArg(node);
-		const existing = required[sourceId];
-		if (existing === undefined) {
-			if (!name) {
-				do name = `require$$${uid++}`;
-				while (scope.contains(name));
-			}
-
-			sources.push(sourceId);
-			required[sourceId] = { source: sourceId, name, importsDefault: false };
+		function isRequireStatement(node) {
+			if (!node) return;
+			if (node.type !== 'CallExpression') return;
+			if (node.callee.name !== 'require' || scope.contains('require')) return;
+			if (node.arguments.length === 0) return; // Weird case of require() without arguments
+			return true;
 		}
 
-		return required[sourceId];
-	}
-
-	// do a first pass, see which names are assigned to. This is necessary to prevent
-	// illegally replacing `var foo = require('foo')` with `import foo from 'foo'`,
-	// where `foo` is later reassigned. (This happens in the wild. CommonJS, sigh)
-	const assignedTo = new Set();
-	walk(ast, {
-		enter(node) {
-			if (node.type !== 'AssignmentExpression') return;
-			if (node.left.type === 'MemberExpression') return;
-
-			extractNames(node.left).forEach(name => {
-				assignedTo.add(name);
-			});
-		}
-	});
-
-	walk(ast, {
-		enter(node, parent) {
-			if (sourceMap) {
-				magicString.addSourcemapLocation(node.start);
-				magicString.addSourcemapLocation(node.end);
-			}
-
-			// skip dead branches
-			if (parent && (parent.type === 'IfStatement' || parent.type === 'ConditionalExpression')) {
-				if (node === parent.consequent && isFalsy(parent.test)) return this.skip();
-				if (node === parent.alternate && isTruthy(parent.test)) return this.skip();
-			}
-
-			if (node._skip) return this.skip();
-
-			programDepth += 1;
-
-			if (node.scope) scope = node.scope;
-			if (functionType.test(node.type)) lexicalDepth += 1;
-
-			// if toplevel return, we need to wrap it
-			if (node.type === 'ReturnStatement' && lexicalDepth === 0) {
-				shouldWrap = true;
-			}
-
-			// rewrite `this` as `commonjsHelpers.commonjsGlobal`
-			if (node.type === 'ThisExpression' && lexicalDepth === 0) {
-				uses.global = true;
-				if (!ignoreGlobal)
-					magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, {
-						storeName: true
-					});
-				return;
-			}
-
-			// rewrite `typeof module`, `typeof module.exports` and `typeof exports` (https://github.com/rollup/rollup-plugin-commonjs/issues/151)
-			if (node.type === 'UnaryExpression' && node.operator === 'typeof') {
-				const flattened = flatten(node.argument);
-				if (!flattened) return;
-
-				if (scope.contains(flattened.name)) return;
-
-				if (
-					flattened.keypath === 'module.exports' ||
-					flattened.keypath === 'module' ||
-					flattened.keypath === 'exports'
-				) {
-					magicString.overwrite(node.start, node.end, `'object'`, { storeName: false });
-				}
-			}
-
-			// rewrite `require` (if not already handled) `global` and `define`, and handle free references to
-			// `module` and `exports` as these mean we need to wrap the module in commonjsHelpers.createCommonjsModule
-			if (node.type === 'Identifier') {
-				if (isReference(node, parent) && !scope.contains(node.name)) {
-					if (node.name in uses) {
-						if (node.name === 'require') {
-							if (allowDynamicRequire) return;
-							magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, {
-								storeName: true
-							});
-						}
-
-						uses[node.name] = true;
-						if (node.name === 'global' && !ignoreGlobal) {
-							magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, {
-								storeName: true
-							});
-						}
-
-						// if module or exports are used outside the context of an assignment
-						// expression, we need to wrap the module
-						if (node.name === 'module' || node.name === 'exports') {
-							shouldWrap = true;
-						}
-					}
-
-					if (node.name === 'define') {
-						magicString.overwrite(node.start, node.end, 'undefined', { storeName: true });
-					}
-
-					globals.add(node.name);
-				}
-
-				return;
-			}
-
-			// Is this an assignment to exports or module.exports?
-			if (node.type === 'AssignmentExpression') {
-				if (node.left.type !== 'MemberExpression') return;
-
-				const flattened = flatten(node.left);
-				if (!flattened) return;
-
-				if (scope.contains(flattened.name)) return;
-
-				const match = exportsPattern.exec(flattened.keypath);
-				if (!match || flattened.keypath === 'exports') return;
-
-				uses[flattened.name] = true;
-
-				// we're dealing with `module.exports = ...` or `[module.]exports.foo = ...` –
-				// if this isn't top-level, we'll need to wrap the module
-				if (programDepth > 3) shouldWrap = true;
-
-				node.left._skip = true;
-
-				if (flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression') {
-					return node.right.properties.forEach(prop => {
-						if (prop.computed || prop.key.type !== 'Identifier') return;
-						const name = prop.key.name;
-						if (name === makeLegalIdentifier(name)) namedExports[name] = true;
-					});
-				}
-
-				if (match[1]) namedExports[match[1]] = true;
-				return;
-			}
-
-			// if this is `var x = require('x')`, we can do `import x from 'x'`
-			if (
-				node.type === 'VariableDeclarator' &&
-				node.id.type === 'Identifier' &&
-				isStaticRequireStatement(node.init)
-			) {
-				// for now, only do this for top-level requires. maybe fix this in future
-				if (scope.parent) return;
-
-				// edge case — CJS allows you to assign to imports. ES doesn't
-				if (assignedTo.has(node.id.name)) return;
-
-				const required = getRequired(node.init, node.id.name);
-				required.importsDefault = true;
-
-				if (required.name === node.id.name) {
-					node._shouldRemove = true;
-				}
-			}
-
-			if (!isStaticRequireStatement(node)) return;
-
-			const required = getRequired(node);
-
-			if (parent.type === 'ExpressionStatement') {
-				// is a bare import, e.g. `require('foo');`
-				magicString.remove(parent.start, parent.end);
-			} else {
-				required.importsDefault = true;
-				magicString.overwrite(node.start, node.end, required.name);
-			}
-
-			node.callee._skip = true;
-		},
-
-		leave(node) {
-			programDepth -= 1;
-			if (node.scope) scope = scope.parent;
-			if (functionType.test(node.type)) lexicalDepth -= 1;
-
-			if (node.type === 'VariableDeclaration') {
-				let keepDeclaration = false;
-				let c = node.declarations[0].start;
-
-				for (let i = 0; i < node.declarations.length; i += 1) {
-					const declarator = node.declarations[i];
-
-					if (declarator._shouldRemove) {
-						magicString.remove(c, declarator.end);
-					} else {
-						if (!keepDeclaration) {
-							magicString.remove(c, declarator.start);
-							keepDeclaration = true;
-						}
-
-						c = declarator.end;
-					}
-				}
-
-				if (!keepDeclaration) {
-					magicString.remove(node.start, node.end);
-				}
-			}
-		}
-	});
-
-	if (
-		!sources.length &&
-		!uses.module &&
-		!uses.exports &&
-		!uses.require &&
-		(ignoreGlobal || !uses.global)
-	) {
-		if (Object.keys(namedExports).length) {
-			throw new Error(
-				`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
+		function hasDynamicArguments(node) {
+			return (
+				node.arguments.length > 1 ||
+				(node.arguments[0].type !== 'Literal' &&
+					(node.arguments[0].type !== 'TemplateLiteral' || node.arguments[0].expressions.length > 0))
 			);
 		}
-		return null; // not a CommonJS module
-	}
 
-	const includeHelpers = shouldWrap || uses.global || uses.require;
-	const importBlock =
-		(includeHelpers ? [`import * as ${HELPERS_NAME} from '${HELPERS_ID}';`] : [])
-			.concat(
-				sources.map(source => {
-					// import the actual module before the proxy, so that we know
-					// what kind of proxy to build
-					return `import '${source}';`;
-				}),
-				sources.map(source => {
-					const { name, importsDefault } = required[source];
-					return `import ${importsDefault ? `${name} from ` : ``}'${PROXY_PREFIX}${source}';`;
-				})
-			)
-			.join('\n') + '\n\n';
+		function isStaticRequireStatement(node) {
+			if (!isRequireStatement(node)) return;
+			if (hasDynamicArguments(node)) return;
+			if (ignoreRequire(node.arguments[0].value)) return;
+			return true;
+		}
 
-	const namedExportDeclarations = [];
-	let wrapperStart = '';
-	let wrapperEnd = '';
+		function getRequireStringArg(node) {
+			return node.arguments[0].type === 'Literal'
+				? node.arguments[0].value
+				: node.arguments[0].quasis[0].value.cooked;
+		}
 
-	const moduleName = deconflict(scope, globals, getName(id));
-	if (!isEntry) {
-		const exportModuleExports = {
-			str: `export { ${moduleName} as __moduleExports };`,
-			name: '__moduleExports'
-		};
+		function getRequired(node, name) {
+			const sourceId = getRequireStringArg(node);
+			let require = required[sourceId];
+			if (require === undefined) {
+				if (!name) {
+					do name = `require$$${uid++}`;
+					while (scope.contains(name));
+				}
 
-		namedExportDeclarations.push(exportModuleExports);
-	}
+				sources.push(sourceId);
+				require = required[sourceId] = { source: sourceId, name, importsDefault: false, optional: [] };
+			} 
+			
+			if (tryCatchDepth > 0)
+				require.optional.push(node);
 
-	const name = getName(id);
+			return require;
+		}
 
-	function addExport(x) {
-		const deconflicted = deconflict(scope, globals, name);
+		// do a first pass, see which names are assigned to. This is necessary to prevent
+		// illegally replacing `var foo = require('foo')` with `import foo from 'foo'`,
+		// where `foo` is later reassigned. (This happens in the wild. CommonJS, sigh)
+		const assignedTo = new Set();
+		walk(ast, {
+			enter(node) {
+				if (node.type !== 'AssignmentExpression') return;
+				if (node.left.type === 'MemberExpression') return;
 
-		const declaration =
-			deconflicted === name
-				? `export var ${x} = ${moduleName}.${x};`
-				: `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
-
-		namedExportDeclarations.push({
-			str: declaration,
-			name: x
+				extractNames(node.left).forEach(name => {
+					assignedTo.add(name);
+				});
+			}
 		});
-	}
 
-	if (customNamedExports) customNamedExports.forEach(addExport);
+		walk(ast, {
+			enter(node, parent) {
+				if (sourceMap) {
+					magicString.addSourcemapLocation(node.start);
+					magicString.addSourcemapLocation(node.end);
+				}
 
-	const defaultExportPropertyAssignments = [];
-	let hasDefaultExport = false;
+				if (node.type === 'BlockStatement' && parent.type === 'TryStatement')
+					tryCatchDepth++;
 
-	if (shouldWrap) {
-		const args = `module${uses.exports ? ', exports' : ''}`;
+				// skip dead branches
+				if (parent && (parent.type === 'IfStatement' || parent.type === 'ConditionalExpression')) {
+					if (node === parent.consequent && isFalsy(parent.test)) return this.skip();
+					if (node === parent.alternate && isTruthy(parent.test)) return this.skip();
+				}
 
-		wrapperStart = `var ${moduleName} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
-		wrapperEnd = `\n});`;
-	} else {
-		const names = [];
+				if (node._skip) return this.skip();
 
-		ast.body.forEach(node => {
-			if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression') {
-				const left = node.expression.left;
-				const flattened = flatten(left);
+				programDepth += 1;
 
-				if (!flattened) return;
+				if (node.scope) scope = node.scope;
+				if (functionType.test(node.type)) lexicalDepth += 1;
 
-				const match = exportsPattern.exec(flattened.keypath);
-				if (!match) return;
+				// if toplevel return, we need to wrap it
+				if (node.type === 'ReturnStatement' && lexicalDepth === 0) {
+					shouldWrap = true;
+				}
 
-				if (flattened.keypath === 'module.exports') {
-					hasDefaultExport = true;
-					magicString.overwrite(left.start, left.end, `var ${moduleName}`);
-				} else {
-					const name = match[1];
-					const deconflicted = deconflict(scope, globals, name);
-
-					names.push({ name, deconflicted });
-
-					magicString.overwrite(node.start, left.end, `var ${deconflicted}`);
-
-					const declaration =
-						name === deconflicted
-							? `export { ${name} };`
-							: `export { ${deconflicted} as ${name} };`;
-
-					if (name !== 'default') {
-						namedExportDeclarations.push({
-							str: declaration,
-							name
+				// rewrite `this` as `commonjsHelpers.commonjsGlobal`
+				if (node.type === 'ThisExpression' && lexicalDepth === 0) {
+					uses.global = true;
+					if (!ignoreGlobal)
+						magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, {
+							storeName: true
 						});
-						delete namedExports[name];
+					return;
+				}
+
+				// rewrite `typeof module`, `typeof module.exports` and `typeof exports` (https://github.com/rollup/rollup-plugin-commonjs/issues/151)
+				if (node.type === 'UnaryExpression' && node.operator === 'typeof') {
+					const flattened = flatten(node.argument);
+					if (!flattened) return;
+
+					if (scope.contains(flattened.name)) return;
+
+					if (
+						flattened.keypath === 'module.exports' ||
+						flattened.keypath === 'module' ||
+						flattened.keypath === 'exports'
+					) {
+						magicString.overwrite(node.start, node.end, `'object'`, { storeName: false });
+					}
+				}
+
+				// rewrite `require` (if not already handled) `global` and `define`, and handle free references to
+				// `module` and `exports` as these mean we need to wrap the module in commonjsHelpers.createCommonjsModule
+				if (node.type === 'Identifier') {
+					if (isReference(node, parent) && !scope.contains(node.name)) {
+						if (node.name in uses) {
+							if (node.name === 'require') {
+								if (allowDynamicRequire) return;
+								magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, {
+									storeName: true
+								});
+							}
+
+							uses[node.name] = true;
+							if (node.name === 'global' && !ignoreGlobal) {
+								magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsGlobal`, {
+									storeName: true
+								});
+							}
+
+							// if module or exports are used outside the context of an assignment
+							// expression, we need to wrap the module
+							if (node.name === 'module' || node.name === 'exports') {
+								shouldWrap = true;
+							}
+						}
+
+						if (node.name === 'define') {
+							magicString.overwrite(node.start, node.end, 'undefined', { storeName: true });
+						}
+
+						globals.add(node.name);
 					}
 
-					defaultExportPropertyAssignments.push(`${moduleName}.${name} = ${deconflicted};`);
+					return;
+				}
+
+				// Is this an assignment to exports or module.exports?
+				if (node.type === 'AssignmentExpression') {
+					if (node.left.type !== 'MemberExpression') return;
+
+					const flattened = flatten(node.left);
+					if (!flattened) return;
+
+					if (scope.contains(flattened.name)) return;
+
+					const match = exportsPattern.exec(flattened.keypath);
+					if (!match || flattened.keypath === 'exports') return;
+
+					uses[flattened.name] = true;
+
+					// we're dealing with `module.exports = ...` or `[module.]exports.foo = ...` –
+					// if this isn't top-level, we'll need to wrap the module
+					if (programDepth > 3) shouldWrap = true;
+
+					node.left._skip = true;
+
+					if (flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression') {
+						return node.right.properties.forEach(prop => {
+							if (prop.computed || prop.key.type !== 'Identifier') return;
+							const name = prop.key.name;
+							if (name === makeLegalIdentifier(name)) namedExports[name] = true;
+						});
+					}
+
+					if (match[1]) namedExports[match[1]] = true;
+					return;
+				}
+
+				// if this is `var x = require('x')`, we can do `import x from 'x'`
+				if (
+					node.type === 'VariableDeclarator' &&
+					node.id.type === 'Identifier' &&
+					isStaticRequireStatement(node.init)
+				) {
+					// for now, only do this for top-level requires. maybe fix this in future
+					if (scope.parent) return;
+
+					// edge case — CJS allows you to assign to imports. ES doesn't
+					if (assignedTo.has(node.id.name)) return;
+
+					const required = getRequired(node.init, node.id.name);
+					required.importsDefault = true;
+
+					if (required.name === node.id.name) {
+						node._shouldRemove = true;
+					}
+				}
+
+				if (!isStaticRequireStatement(node)) return;
+
+				const required = getRequired(node);
+
+				if (parent.type === 'ExpressionStatement') {
+					// is a bare import, e.g. `require('foo');`
+					magicString.remove(parent.start, parent.end);
+				} else {
+					required.importsDefault = true;
+					magicString.overwrite(node.start, node.end, required.name);
+				}
+
+				node.callee._skip = true;
+			},
+
+			leave(node, parent) {
+				programDepth -= 1;
+				if (node.scope) scope = scope.parent;
+				if (functionType.test(node.type)) lexicalDepth -= 1;
+
+				if (node.type === 'BlockStatement' && parent.type === 'TryStatement')
+					tryCatchDepth--;
+
+				if (node.type === 'VariableDeclaration') {
+					let keepDeclaration = false;
+					let c = node.declarations[0].start;
+
+					for (let i = 0; i < node.declarations.length; i += 1) {
+						const declarator = node.declarations[i];
+
+						if (declarator._shouldRemove) {
+							magicString.remove(c, declarator.end);
+						} else {
+							if (!keepDeclaration) {
+								magicString.remove(c, declarator.start);
+								keepDeclaration = true;
+							}
+
+							c = declarator.end;
+						}
+					}
+
+					if (!keepDeclaration) {
+						magicString.remove(node.start, node.end);
+					}
 				}
 			}
 		});
 
-		if (!hasDefaultExport) {
-			wrapperEnd = `\n\nvar ${moduleName} = {\n${names
-				.map(({ name, deconflicted }) => `\t${name}: ${deconflicted}`)
-				.join(',\n')}\n};`;
+		if (
+			!sources.length &&
+			!uses.module &&
+			!uses.exports &&
+			!uses.require &&
+			(ignoreGlobal || !uses.global)
+		) {
+			if (Object.keys(namedExports).length) {
+				throw new Error(
+					`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
+				);
+			}
+			return null; // not a CommonJS module
 		}
-	}
-	Object.keys(namedExports)
-		.filter(key => !blacklist[key])
-		.forEach(addExport);
 
-	const defaultExport = /__esModule/.test(code)
-		? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
-		: `export default ${moduleName};`;
-
-	const named = namedExportDeclarations
-		.filter(x => x.name !== 'default' || !hasDefaultExport)
-		.map(x => x.str);
-
-	const exportBlock =
-		'\n\n' +
-		[defaultExport]
-			.concat(named)
-			.concat(hasDefaultExport ? defaultExportPropertyAssignments : [])
-			.join('\n');
-
-	magicString
-		.trim()
-		.prepend(importBlock + wrapperStart)
-		.trim()
-		.append(wrapperEnd + exportBlock);
-
-	code = magicString.toString();
-	const map = sourceMap ? magicString.generateMap() : null;
-
-	return { code, map };
+		let includeHelpers = shouldWrap || uses.global || uses.require;
+		return Promise.resolve()
+		.then(() => {
+			// before constructing the import block, remove any optional dependencies that won't resolve
+			let toError = [];
+			return Promise.all(sources.map((source, index) => {
+				if (required[source].optional.length) {
+					return this.resolveId(source, id)
+					.then(x => {
+						if (!x)
+							toError.push(index)
+					})
+					.catch(() => {
+						toError.push(index);
+					});
+				}
+			}))
+			.then(function () {
+				let removed = 0;
+				if (toError.length)
+					includeHelpers = true;
+				toError.sort().forEach(index => {
+					const source = sources[index];
+					required[source].optional.forEach(node => {
+						magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.notFoundRequire('${source}')`);
+					});
+					sources.splice(index - removed, 1);
+					removed++;
+				});
+			});
+		})
+		.then(() => {
+			return (includeHelpers ? [`import * as ${HELPERS_NAME} from '${HELPERS_ID}';`] : [])
+				.concat(
+					sources.map(source => {
+						// import the actual module before the proxy, so that we know
+						// what kind of proxy to build
+						return `import '${source}';`;
+					}),
+					sources.map(source => {
+						const { name, importsDefault } = required[source];
+						return `import ${importsDefault ? `${name} from ` : ``}'${PROXY_PREFIX}${source}';`;
+					})
+				)
+				.join('\n') + '\n\n';
+		})
+		.then(importBlock => {
+			const namedExportDeclarations = [];
+			let wrapperStart = '';
+			let wrapperEnd = '';
+	
+			const moduleName = deconflict(scope, globals, getName(id));
+			if (!isEntry) {
+				const exportModuleExports = {
+					str: `export { ${moduleName} as __moduleExports };`,
+					name: '__moduleExports'
+				};
+	
+				namedExportDeclarations.push(exportModuleExports);
+			}
+	
+			const name = getName(id);
+	
+			function addExport(x) {
+				const deconflicted = deconflict(scope, globals, name);
+	
+				const declaration =
+					deconflicted === name
+						? `export var ${x} = ${moduleName}.${x};`
+						: `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
+	
+				namedExportDeclarations.push({
+					str: declaration,
+					name: x
+				});
+			}
+	
+			if (customNamedExports) customNamedExports.forEach(addExport);
+	
+			const defaultExportPropertyAssignments = [];
+			let hasDefaultExport = false;
+	
+			if (shouldWrap) {
+				const args = `module${uses.exports ? ', exports' : ''}`;
+	
+				wrapperStart = `var ${moduleName} = ${HELPERS_NAME}.createCommonjsModule(function (${args}) {\n`;
+				wrapperEnd = `\n});`;
+			} else {
+				const names = [];
+	
+				ast.body.forEach(node => {
+					if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression') {
+						const left = node.expression.left;
+						const flattened = flatten(left);
+	
+						if (!flattened) return;
+	
+						const match = exportsPattern.exec(flattened.keypath);
+						if (!match) return;
+	
+						if (flattened.keypath === 'module.exports') {
+							hasDefaultExport = true;
+							magicString.overwrite(left.start, left.end, `var ${moduleName}`);
+						} else {
+							const name = match[1];
+							const deconflicted = deconflict(scope, globals, name);
+	
+							names.push({ name, deconflicted });
+	
+							magicString.overwrite(node.start, left.end, `var ${deconflicted}`);
+	
+							const declaration =
+								name === deconflicted
+									? `export { ${name} };`
+									: `export { ${deconflicted} as ${name} };`;
+	
+							if (name !== 'default') {
+								namedExportDeclarations.push({
+									str: declaration,
+									name
+								});
+								delete namedExports[name];
+							}
+	
+							defaultExportPropertyAssignments.push(`${moduleName}.${name} = ${deconflicted};`);
+						}
+					}
+				});
+	
+				if (!hasDefaultExport) {
+					wrapperEnd = `\n\nvar ${moduleName} = {\n${names
+						.map(({ name, deconflicted }) => `\t${name}: ${deconflicted}`)
+						.join(',\n')}\n};`;
+				}
+			}
+			Object.keys(namedExports)
+				.filter(key => !blacklist[key])
+				.forEach(addExport);
+	
+			const defaultExport = /__esModule/.test(code)
+				? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
+				: `export default ${moduleName};`;
+	
+			const named = namedExportDeclarations
+				.filter(x => x.name !== 'default' || !hasDefaultExport)
+				.map(x => x.str);
+	
+			const exportBlock =
+				'\n\n' +
+				[defaultExport]
+					.concat(named)
+					.concat(hasDefaultExport ? defaultExportPropertyAssignments : [])
+					.join('\n');
+	
+			magicString
+				.trim()
+				.prepend(importBlock + wrapperStart)
+				.trim()
+				.append(wrapperEnd + exportBlock);
+	
+			code = magicString.toString();
+			const map = sourceMap ? magicString.generateMap() : null;
+	
+			return { code, map };	
+		});
+	});
 }

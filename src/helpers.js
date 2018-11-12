@@ -19,4 +19,11 @@ export function createCommonjsModule(fn, module) {
 
 export function getCjsExportFromNamespace (n) {
 	return n && n.default || n;
-}`;
+}
+
+export function notFoundRequire (id) {
+	var e = new Error("Cannot find module '" + id + "'.");
+	e.code = 'MODULE_NOT_FOUND';
+	throw e;
+}
+`;
