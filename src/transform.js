@@ -36,11 +36,6 @@ function tryParse(parse, code, id, module) {
 	}
 }
 
-export function hasCjsKeywords(code, ignoreGlobal) {
-	const firstpass = ignoreGlobal ? firstpassNoGlobal : firstpassGlobal;
-  return firstpass.test(code);
-}
-
 export function checkEsModule(parse, code, id) {
 	// first try parse as "script", falling back to "module"
 	try {
@@ -157,6 +152,8 @@ export function transformCommonjs(
 	// illegally replacing `var foo = require('foo')` with `import foo from 'foo'`,
 	// where `foo` is later reassigned. (This happens in the wild. CommonJS, sigh)
 	let hasCjsKeywords = false;
+	// "function x () {}; function x () {}" supported in non-strict
+	// so we catch these duplicate cases for strict conversion
 	let hasDuplicateFunctionDecls = false;
 	const assignedTo = new Set();
 	const functionDecls = new Map();
@@ -188,17 +185,9 @@ export function transformCommonjs(
 		}
 	});
 
-	// Early return when further transformation isn't necessary.
-	if (!hasCjsKeywords) {
-		if (Object.keys(namedExports).length) {
-			throw new Error(
-				`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
-			);
-		}
-		// Only early return when no strict conversion necessary.
-		if (!hasDuplicateFunctionDecls)
-			return null;
-	}
+	// Early return when further transformation (CJS or strict conversion) isn't necessary.
+	if (!hasCjsKeywords && !hasDuplicateFunctionDecls)
+		return null;
 
 	walk(ast, {
 		enter(node, parent) {
@@ -387,6 +376,17 @@ export function transformCommonjs(
 			}
 		}
 	});
+
+	if (
+		!sources.length &&
+		!uses.module &&
+		!uses.exports &&
+		!uses.require &&
+		(ignoreGlobal || !uses.global) &&
+		!hasDuplicateFunctionDecls
+	) {
+		return null; // not a CommonJS module
+	}
 
 	const includeHelpers = shouldWrap || uses.global || uses.require;
 	const importBlock =

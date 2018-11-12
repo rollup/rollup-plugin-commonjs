@@ -107,6 +107,7 @@ export default function commonjs(options = {}) {
 						return null;
 					}
 
+					const namedExports = customNamedExports[id];
 					const transformed = transformCommonjs(
 						code,
 						ast,
@@ -114,11 +115,16 @@ export default function commonjs(options = {}) {
 						entryModuleIds.indexOf(id) !== -1,
 						ignoreGlobal,
 						ignoreRequire,
-						customNamedExports[id],
+						namedExports,
 						sourceMap,
 						allowDynamicRequire
 					);
 					if (!transformed) {
+						if (namedExports && Object.keys(namedExports).length) {
+							throw new Error(
+								`Custom named exports were specified for ${id} but it does not appear to be a CommonJS module`
+							);
+						}
 						esModulesWithoutDefaultExport[id] = true;
 						return null;
 					}
