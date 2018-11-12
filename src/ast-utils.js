@@ -37,6 +37,13 @@ export function extractNames(node) {
 	return names;
 }
 
+function getExtractor (type) {
+	const extractor = extractors[type];
+	if (!extractor)
+		throw new SyntaxError(`${type} pattern not supported.`);
+	return extractor;
+}
+
 const extractors = {
 	Identifier(names, node) {
 		names.push(node.name);
@@ -44,22 +51,23 @@ const extractors = {
 
 	ObjectPattern(names, node) {
 		node.properties.forEach(prop => {
-			extractors[prop.value.type](names, prop.value);
+			getExtractor(prop.value.type)(names, prop.value);
 		});
 	},
 
 	ArrayPattern(names, node) {
 		node.elements.forEach(element => {
-			if (element) extractors[element.type](names, element);
+			if (!element) return;
+			getExtractor(element.type)(names, element);
 		});
 	},
 
 	RestElement(names, node) {
-		extractors[node.argument.type](names, node.argument);
+		getExtractor(node.argument.type)(names, node.argument);
 	},
 
 	AssignmentPattern(names, node) {
-		extractors[node.left.type](names, node.left);
+		getExtractor(node.left.type)(names, node.left);
 	}
 };
 
