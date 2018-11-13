@@ -77,7 +77,7 @@ export function transformCommonjs(
 	if (!ast)
 		throw new Error('The AST must be provided');
 
-	const isStrict = ast.body[0] && ast.body[0].directive === 'use strict';
+	// const isStrict = ast.body[0] && ast.body[0].directive === 'use strict';
 
 	const magicString = new MagicString(code);
 
@@ -166,7 +166,7 @@ export function transformCommonjs(
 					hasCjsKeywords = true;
 			}
 
-			if (!isStrict && programDepth === 2 && node.type === 'FunctionDeclaration') {
+			if (programDepth === 2 && node.type === 'FunctionDeclaration') {
 				if (functionDecls.has(node.id.name))
 					hasDuplicateFunctionDecls = true;
 				functionDecls.set(node.id.name, node);
@@ -348,7 +348,7 @@ export function transformCommonjs(
 			if (node.scope) scope = scope.parent;
 			if (functionType.test(node.type)) lexicalDepth--;
 
-			if (!isStrict && programDepth === 1 && node.type === 'FunctionDeclaration' && hasDuplicateFunctionDecls && functionDecls.get(node.id.name) !== node) {
+			if (programDepth === 1 && node.type === 'FunctionDeclaration' && hasDuplicateFunctionDecls && functionDecls.get(node.id.name) !== node) {
 				magicString.remove(node.start, node.end);
 			}
 			else if (node.type === 'VariableDeclaration') {
