@@ -27,7 +27,8 @@
     "estree-walker": "^0.5.2",
     "magic-string": "^0.25.1",
     "resolve": "^1.8.1",
-    "rollup-pluginutils": "^2.3.3"
+    "rollup-pluginutils": "^2.3.3",
+    "typescript-parser": "^2.6.1"
   },
   "devDependencies": {
     "acorn": "^6.0.2",

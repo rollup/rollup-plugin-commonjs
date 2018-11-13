@@ -719,4 +719,42 @@ module.exports = main;
 			);
 		});
 	});
+
+	describe('typed', () => {
+		fs.readdirSync('typed').forEach(dir => {
+			let config;
+
+			try {
+				config = require(`./typed/${dir}/_config.js`);
+			} catch (err) {
+				config = {};
+			}
+
+			(config.solo ? it.only : it)(dir, async () => {
+				const options = Object.assign(
+					{
+						input: `typed/${dir}/test.js`
+					},
+					config.options || {},
+					{
+						plugins: [
+							...((config.options && config.options.plugins) || []),
+							commonjs(config.pluginOptions)
+						]
+					}
+				);
+
+				const bundle = await rollup(options);
+				const code = await getCodeFromBundle(bundle);
+				if (config.show || config.solo) {
+					console.error(code);
+				}
+
+				const { exports, global } = execute(code, config.context);
+
+				if (config.exports) config.exports(exports);
+				if (config.global) config.global(global);
+			});
+		});
+	});
 });

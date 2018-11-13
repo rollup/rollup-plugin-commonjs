@@ -1,5 +1,7 @@
-import {basename, dirname, extname, sep} from 'path';
-import {makeLegalIdentifier} from 'rollup-pluginutils';
+import { readFileSync } from 'fs';
+import { basename, dirname, extname, resolve, sep } from 'path';
+import { makeLegalIdentifier } from 'rollup-pluginutils';
+import { TypescriptParser } from 'typescript-parser';
 
 export function getName(id) {
 	const name = makeLegalIdentifier(basename(id, extname(id)));
@@ -21,4 +23,33 @@ export function first(candidates) {
 			);
 		}, Promise.resolve());
 	};
+}
+
+export async function getTypeInfoNamedExports(importDir) {
+	const pkgFile = resolve(importDir, 'package.json');
+
+	try {
+		const pkg = JSON.parse(readFileSync(pkgFile, { encoding: 'utf-8' }));
+
+		if (typeof pkg.types === 'string') {
+			const parsed = await new TypescriptParser().parseFile(
+				resolve(importDir, pkg.types),
+				importDir
+			);
+
+			const typesExports = parsed.declarations
+				.map(declaration => {
+					if (declaration.isExported) {
+						return declaration.name;
+					}
+					return null;
+				})
+				.filter(name => name !== null)
+				.filter((name, pos, arr) => arr.indexOf(name) === pos);
+
+			return typesExports;
+		}
+	} catch (err) {
+		return [];
+	}
 }

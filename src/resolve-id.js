@@ -1,8 +1,8 @@
-import {statSync} from 'fs';
-import {dirname, resolve, sep} from 'path';
+import { statSync } from 'fs';
+import { dirname, resolve, sep } from 'path';
 import defaultResolver from './default-resolver';
-import {EXTERNAL_PREFIX, PROXY_PREFIX} from './helpers';
-import {first} from './utils';
+import { EXTERNAL_PREFIX, PROXY_PREFIX } from './helpers';
+import { first } from './utils';
 
 function getCandidatesForExtension(resolved, extension) {
 	return [resolved + extension, resolved + `${sep}index${extension}`];

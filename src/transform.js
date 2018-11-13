@@ -377,18 +377,13 @@ export function transformCommonjs(
 			)
 			.join('\n') + '\n\n';
 
-	const namedExportDeclarations = [];
+	const namedExportDeclarations = new NamedExportDeclarations();
 	let wrapperStart = '';
 	let wrapperEnd = '';
 
 	const moduleName = deconflict(scope, globals, getName(id));
 	if (!isEntry) {
-		const exportModuleExports = {
-			str: `export { ${moduleName} as __moduleExports };`,
-			name: '__moduleExports'
-		};
-
-		namedExportDeclarations.push(exportModuleExports);
+		namedExportDeclarations.add(`export { ${moduleName} as __moduleExports };`, '__moduleExports');
 	}
 
 	const name = getName(id);
@@ -401,10 +396,7 @@ export function transformCommonjs(
 				? `export var ${x} = ${moduleName}.${x};`
 				: `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 
-		namedExportDeclarations.push({
-			str: declaration,
-			name: x
-		});
+		namedExportDeclarations.add(declaration, x);
 	}
 
 	if (customNamedExports) customNamedExports.forEach(addExport);
@@ -447,10 +439,7 @@ export function transformCommonjs(
 							: `export { ${deconflicted} as ${name} };`;
 
 					if (name !== 'default') {
-						namedExportDeclarations.push({
-							str: declaration,
-							name
-						});
+						namedExportDeclarations.add(declaration, name);
 						delete namedExports[name];
 					}
 
@@ -473,9 +462,7 @@ export function transformCommonjs(
 		? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
 		: `export default ${moduleName};`;
 
-	const named = namedExportDeclarations
-		.filter(x => x.name !== 'default' || !hasDefaultExport)
-		.map(x => x.str);
+	const named = namedExportDeclarations.getAll(hasDefaultExport);
 
 	const exportBlock =
 		'\n\n' +
@@ -494,4 +481,25 @@ export function transformCommonjs(
 	const map = sourceMap ? magicString.generateMap() : null;
 
 	return { code, map };
+}
+
+class NamedExportDeclarations {
+	constructor() {
+		this.values = [];
+		this.names = {};
+	}
+
+	add(str, name) {
+		if (this.names[name] !== undefined) {
+			// throw new Error(`Cannot add duplicate named export '${name}'`);
+			return;
+		}
+
+		this.values.push({ str, name });
+		this.names[name] = true;
+	}
+
+	getAll(hasDefaultExport = false) {
+		return this.values.filter(x => x.name !== 'default' || !hasDefaultExport).map(x => x.str);
+	}
 }

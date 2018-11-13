@@ -1,11 +1,11 @@
-import { extname, resolve } from 'path';
+import { dirname, extname, resolve } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
-import { getName } from './utils.js';
+import { getName, getTypeInfoNamedExports } from './utils.js';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
@@ -84,8 +84,7 @@ export default function commonjs(options = {}) {
 						return `import * as ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
 					else if (esModulesWithDefaultExport[actualId]) {
 						return `export {default} from ${JSON.stringify(actualId)};`;
-					}
-					else
+					} else
 						return `import * as ${name} from ${JSON.stringify(
 							actualId
 						)}; import {getCjsExportFromNamespace} from "${HELPERS_ID}"; export default getCjsExportFromNamespace(${name})`;
@@ -98,12 +97,17 @@ export default function commonjs(options = {}) {
 				setIsCjsPromise(id, Promise.resolve(null));
 				return null;
 			}
+			const typeInfoNamedExportsPromise = getTypeInfoNamedExports(dirname(id));
 
-			const transformPromise = entryModuleIdsPromise
-				.then(entryModuleIds => {
+			const transformPromise = typeInfoNamedExportsPromise
+				.then(typeInfoNamedExports => Promise.all([typeInfoNamedExports, entryModuleIdsPromise]))
+				.then(promises => {
+					const [typeInfoNamedExports, entryModuleIds] = promises;
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					if (isEsModule) {
-						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[id] = true;
+						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
+							id
+						] = true;
 						return null;
 					}
 
@@ -113,6 +117,11 @@ export default function commonjs(options = {}) {
 						return null;
 					}
 
+					const namedExports =
+						customNamedExports[id] === undefined
+							? typeInfoNamedExports
+							: [...customNamedExports[id], ...typeInfoNamedExports];
+
 					const transformed = transformCommonjs(
 						this.parse,
 						code,
@@ -120,7 +129,7 @@ export default function commonjs(options = {}) {
 						entryModuleIds.indexOf(id) !== -1,
 						ignoreGlobal,
 						ignoreRequire,
-						customNamedExports[id],
+						namedExports,
 						sourceMap,
 						allowDynamicRequire,
 						ast
