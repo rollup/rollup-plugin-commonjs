@@ -27,9 +27,22 @@ function deconflict(scope, globals, identifier) {
 	return deconflicted;
 }
 
+const initialCommentWsRegEx = /^(\/\*[\s\S]*\*\/|(^|\s)\/\/.+(\r|\n|$)|\s*)*/;
+const stringRegEx = /('((\\')?[^\\\r\n]+)'|"((\\")?[^\\\r\n]+)")/g;
+
 function tryParse(parse, code, id, module) {
 	try {
-		return parse(code, { allowReturnOutsideFunction: true, sourceType: module ? 'module' : 'script' });
+		if (module)
+			return parse(code, { sourceType: 'module' });
+		// parse CJS exactly as it would parse in Node
+		stringRegEx.lastIndex = code.match(initialCommentWsRegEx)[0].length;
+		const strictMatch = stringRegEx.exec(code);
+		// remove "use strict" as CJS is parsed with a wrapper which
+		// means Node is more relaxed than a pure script strict parse
+		if (strictMatch && strictMatch[0].substr(1, strictMatch[0].length - 2) === 'use strict') {
+			code = code.substr(0, strictMatch.index + 1) + '          ' + code.substr(strictMatch.index + 11);
+		}
+		return parse(code, { sourceType: 'script', allowReturnOutsideFunction: true });
 	} catch (err) {
 		err.message += ` in ${id}`;
 		throw err;
