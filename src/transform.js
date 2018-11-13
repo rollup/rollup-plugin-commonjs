@@ -384,10 +384,6 @@ export function transformCommonjs(
 			return Promise.all(sources.map((source, index) => {
 				if (required[source].optional.length) {
 					return this.resolveId(source, id)
-					.then(x => {
-						if (!x)
-							toError.push(index)
-					})
 					.catch(() => {
 						toError.push(index);
 					});
