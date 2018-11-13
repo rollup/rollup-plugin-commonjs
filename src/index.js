@@ -117,7 +117,8 @@ export default function commonjs(options = {}) {
 						customNamedExports[id],
 						sourceMap,
 						allowDynamicRequire,
-						ast
+						ast,
+						options.isMissing
 					)
 					.then(transformed => {
 						if (!transformed) {

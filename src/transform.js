@@ -72,7 +72,8 @@ export function transformCommonjs(
 	customNamedExports,
 	sourceMap,
 	allowDynamicRequire,
-	astCache
+	astCache,
+	isMissing
 ) {
 	return Promise.resolve()
 	.then(() => {
@@ -382,10 +383,14 @@ export function transformCommonjs(
 			// before constructing the import block, remove any optional dependencies that won't resolve
 			let toError = [];
 			return Promise.all(sources.map((source, index) => {
-				if (required[source].optional.length) {
-					return this.resolveId(source, id)
-					.catch(() => {
-						toError.push(index);
+				if (required[source].optional.length && typeof isMissing === 'function') {
+					return Promise.resolve()
+					.then(function () {
+						return isMissing(source, id);
+					})
+					.then(isMissing => {
+						if (isMissing)
+							toError.push(index);
 					});
 				}
 			}))

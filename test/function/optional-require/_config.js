@@ -1,7 +1,11 @@
 const assert = require('assert');
 
 module.exports = {
-	solo: true,
+	pluginOptions: {
+		isMissing(id) {
+			return id === 'does-not-exist';
+		}
+	},
 	exports: exports => {
 		assert.equal(exports.caughtOk, true);
 	}

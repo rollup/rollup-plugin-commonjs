@@ -56,6 +56,10 @@ export default {
       // (see below for more details)
       namedExports: { './module.js': ['foo', 'bar' ] },  // Default: undefined
 
+      // specify which module resolutions are missing and should be replaced
+      // with an explicit not found error in the build itself
+      isMissing: (id, parentId) => id === 'supports-color';
+
       // sometimes you have to leave require statements
       // unconverted. Pass an array containing the IDs
       // or a `id => boolean` function. Only use this
