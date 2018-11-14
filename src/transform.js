@@ -377,26 +377,31 @@ export function transformCommonjs(
 			)
 			.join('\n') + '\n\n';
 
-	const namedExportDeclarations = new NamedExportDeclarations();
+	const exportDeclarations = new ExportDeclarations();
 	let wrapperStart = '';
 	let wrapperEnd = '';
 
 	const moduleName = deconflict(scope, globals, getName(id));
 	if (!isEntry) {
-		namedExportDeclarations.add(`export { ${moduleName} as __moduleExports };`, '__moduleExports');
+		exportDeclarations.addNamed(`export { ${moduleName} as __moduleExports };`, '__moduleExports');
 	}
 
 	const name = getName(id);
 
 	function addExport(x) {
-		const deconflicted = deconflict(scope, globals, name);
+		if (x === 'default') {
+			const declaration = `export default ${moduleName}.${x};`;
+			exportDeclarations.addDefault(declaration);
+		} else {
+			const deconflicted = deconflict(scope, globals, name);
 
-		const declaration =
-			deconflicted === name
-				? `export var ${x} = ${moduleName}.${x};`
-				: `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
+			const declaration =
+				deconflicted === name
+					? `export var ${x} = ${moduleName}.${x};`
+					: `var ${deconflicted} = ${moduleName}.${x};\nexport { ${deconflicted} as ${x} };`;
 
-		namedExportDeclarations.add(declaration, x);
+			exportDeclarations.addNamed(declaration, x);
+		}
 	}
 
 	if (customNamedExports) customNamedExports.forEach(addExport);
@@ -439,7 +444,7 @@ export function transformCommonjs(
 							: `export { ${deconflicted} as ${name} };`;
 
 					if (name !== 'default') {
-						namedExportDeclarations.add(declaration, name);
+						exportDeclarations.addNamed(declaration, name);
 						delete namedExports[name];
 					}
 
@@ -458,16 +463,16 @@ export function transformCommonjs(
 		.filter(key => !blacklist[key])
 		.forEach(addExport);
 
-	const defaultExport = /__esModule/.test(code)
-		? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
-		: `export default ${moduleName};`;
-
-	const named = namedExportDeclarations.getAll(hasDefaultExport);
+	const defaultExport = exportDeclarations.hasDefault()
+		? exportDeclarations.getDefault()
+		: /__esModule/.test(code)
+			? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
+			: `export default ${moduleName};`;
 
 	const exportBlock =
 		'\n\n' +
 		[defaultExport]
-			.concat(named)
+			.concat(exportDeclarations.getNamed())
 			.concat(hasDefaultExport ? defaultExportPropertyAssignments : [])
 			.join('\n');
 
@@ -483,23 +488,49 @@ export function transformCommonjs(
 	return { code, map };
 }
 
-class NamedExportDeclarations {
+class ExportDeclarations {
 	constructor() {
-		this.values = [];
-		this.names = {};
+		this.default = undefined;
+		this.values = {};
 	}
 
-	add(str, name) {
-		if (this.names[name] !== undefined) {
+	addNamed(str, name) {
+		if (this.name === 'default') {
+			throw new Error(`Cannot add default export as named export`);
+		}
+		if (this.values[name] !== undefined) {
 			// throw new Error(`Cannot add duplicate named export '${name}'`);
 			return;
 		}
 
-		this.values.push({ str, name });
-		this.names[name] = true;
+		this.values[name] = str;
 	}
 
-	getAll(hasDefaultExport = false) {
-		return this.values.filter(x => x.name !== 'default' || !hasDefaultExport).map(x => x.str);
+	addDefault(str) {
+		if (this.default !== undefined) {
+			// throw new Error(`Cannot add multiple default exports`);
+			return;
+		}
+
+		this.default = str;
+	}
+
+	getNamed(name) {
+		if (name === undefined) {
+			return (
+				Object.entries(this.values)
+					// eslint-disable-next-line no-unused-vars
+					.map(([_name, value]) => value)
+			);
+		}
+		return this.values[name];
+	}
+
+	getDefault() {
+		return this.default;
+	}
+
+	hasDefault() {
+		return this.default !== undefined;
 	}
 }

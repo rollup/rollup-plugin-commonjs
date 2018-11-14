@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { basename, dirname, extname, resolve, sep } from 'path';
 import { makeLegalIdentifier } from 'rollup-pluginutils';
-import { TypescriptParser } from 'typescript-parser';
+import { TypescriptParser, DefaultDeclaration } from 'typescript-parser';
 
 export function getName(id) {
 	const name = makeLegalIdentifier(basename(id, extname(id)));
@@ -40,7 +40,11 @@ export async function getTypeInfoNamedExports(importDir) {
 			const typesExports = parsed.declarations
 				.map(declaration => {
 					if (declaration.isExported) {
-						return declaration.name;
+						if (declaration instanceof DefaultDeclaration) {
+							return 'default';
+						} else {
+							return declaration.name;
+						}
 					}
 					return null;
 				})
