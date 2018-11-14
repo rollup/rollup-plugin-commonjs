@@ -1,0 +1,5 @@
+{
+  "name": "test",
+  "main": "cjs/main.js",
+  "types": "types/altname.d.ts"
+}

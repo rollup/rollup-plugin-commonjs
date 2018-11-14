@@ -1,11 +1,11 @@
-import { dirname, extname, resolve } from 'path';
+import { extname, resolve } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
-import { getName, getTypeInfoNamedExports } from './utils.js';
+import { getName, getTypeInfoExports } from './utils.js';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
@@ -97,12 +97,12 @@ export default function commonjs(options = {}) {
 				setIsCjsPromise(id, Promise.resolve(null));
 				return null;
 			}
-			const typeInfoNamedExportsPromise = getTypeInfoNamedExports(dirname(id));
+			const typeInfoExportsPromise = getTypeInfoExports(id);
 
-			const transformPromise = typeInfoNamedExportsPromise
-				.then(typeInfoNamedExports => Promise.all([typeInfoNamedExports, entryModuleIdsPromise]))
+			const transformPromise = typeInfoExportsPromise
+				.then(typeInfoExports => Promise.all([typeInfoExports, entryModuleIdsPromise]))
 				.then(promises => {
-					const [typeInfoNamedExports, entryModuleIds] = promises;
+					const [typeInfoExports, entryModuleIds] = promises;
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					if (isEsModule) {
 						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
@@ -119,8 +119,8 @@ export default function commonjs(options = {}) {
 
 					const namedExports =
 						customNamedExports[id] === undefined
-							? typeInfoNamedExports
-							: [...customNamedExports[id], ...typeInfoNamedExports];
+							? typeInfoExports
+							: [...customNamedExports[id], ...typeInfoExports];
 
 					const transformed = transformCommonjs(
 						this.parse,

@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { basename, dirname, extname, resolve, sep } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { basename, dirname, extname, resolve, sep, relative, join } from 'path';
 import { makeLegalIdentifier } from 'rollup-pluginutils';
 import { TypescriptParser, DefaultDeclaration } from 'typescript-parser';
 
@@ -25,19 +25,52 @@ export function first(candidates) {
 	};
 }
 
-export async function getTypeInfoNamedExports(importDir) {
-	const pkgFile = resolve(importDir, 'package.json');
+export async function getTypeInfoExports(id) {
+	const cwd = process.cwd();
+	const pkgFile = (dir => {
+		let testPkgFile = resolve(dir, 'package.json');
+		while (!existsSync(testPkgFile)) {
+			if (dir === cwd) {
+				return null;
+			}
+			dir = resolve(dir, '..');
+			testPkgFile = resolve(dir, 'package.json');
+		}
+
+		return testPkgFile;
+	})(dirname(id));
+
+	if (pkgFile === null) {
+		return [];
+	}
 
 	try {
 		const pkg = JSON.parse(readFileSync(pkgFile, { encoding: 'utf-8' }));
 
-		if (typeof pkg.types === 'string') {
-			const parsed = await new TypescriptParser().parseFile(
-				resolve(importDir, pkg.types),
-				importDir
+		if (typeof pkg.types === 'string' && typeof pkg.main === 'string') {
+			const pkgDir = dirname(pkgFile);
+			const relativeImport = id.substring(`${pkgDir}/`.length);
+			const typesDirRelativeToCodeDir = join(relative(dirname(pkg.main), pkg.types), '..');
+			const typesDir = join(pkgDir, dirname(pkg.main), typesDirRelativeToCodeDir);
+			const typeFile =
+				relativeImport === pkg.main
+					? join(pkgDir, pkg.types)
+					: join(typesDir, `${basename(relativeImport, '.js')}.d.ts`); // TODO: Check other extensions?
+
+			const parsedDeclarationFile = await new TypescriptParser().parseFile(typeFile, pkgDir);
+
+			const blockExports = [].concat(
+				...parsedDeclarationFile.exports.map(exp => {
+					if (exp.specifiers) {
+						return exp.specifiers.map(
+							specifier => (specifier.alias ? specifier.alias : specifier.specifier)
+						);
+					}
+					return [];
+				})
 			);
 
-			const typesExports = parsed.declarations
+			const declarationExports = parsedDeclarationFile.declarations
 				.map(declaration => {
 					if (declaration.isExported) {
 						if (declaration instanceof DefaultDeclaration) {
@@ -51,9 +84,10 @@ export async function getTypeInfoNamedExports(importDir) {
 				.filter(name => name !== null)
 				.filter((name, pos, arr) => arr.indexOf(name) === pos);
 
-			return typesExports;
+			return [...blockExports, ...declarationExports];
 		}
 	} catch (err) {
+		// console.error(err);
 		return [];
 	}
 }
