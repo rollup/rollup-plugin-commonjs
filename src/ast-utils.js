@@ -10,6 +10,9 @@ export function isReference(node, parent) {
 	// disregard the `bar` in `export { foo as bar }`
 	if (parent.type === 'ExportSpecifier' && node !== parent.local) return false;
 
+	// disregard assigned references
+	if (parent.type === 'AssignmentExpression' && parent.left === node) return false;
+
 	return true;
 }
 
