@@ -84,8 +84,7 @@ export default function commonjs(options = {}) {
 						return `import * as ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
 					else if (esModulesWithDefaultExport[actualId]) {
 						return `export {default} from ${JSON.stringify(actualId)};`;
-					}
-					else
+					} else
 						return `import * as ${name} from ${JSON.stringify(
 							actualId
 						)}; import {getCjsExportFromNamespace} from "${HELPERS_ID}"; export default getCjsExportFromNamespace(${name})`;
@@ -103,7 +102,9 @@ export default function commonjs(options = {}) {
 				.then(entryModuleIds => {
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					if (isEsModule) {
-						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[id] = true;
+						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
+							id
+						] = true;
 						return null;
 					}
 

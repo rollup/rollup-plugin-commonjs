@@ -180,10 +180,9 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
-		it('supports an array of multiple entry points for experimentalCodeSplitting', async () => {
+		it('supports an array of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: ['samples/multiple-entry-points/b.js', 'samples/multiple-entry-points/c.js'],
-				experimentalCodeSplitting: true,
 				plugins: [commonjs()]
 			});
 
@@ -202,13 +201,12 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
-		it('supports an object of multiple entry points as object for experimentalCodeSplitting', async () => {
+		it('supports an object of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: {
 					b: require.resolve('./samples/multiple-entry-points/b.js'),
 					c: require.resolve('./samples/multiple-entry-points/c.js')
 				},
-				experimentalCodeSplitting: true,
 				plugins: [resolve(), commonjs()]
 			});
 
@@ -327,6 +325,20 @@ describe('rollup-plugin-commonjs', () => {
 			});
 
 			await executeBundle(bundle);
+		});
+
+		it('handles warnings without error when resolving named exports', () => {
+			return rollup({
+				input: 'samples/custom-named-exports-warn-builtins/main.js',
+				plugins: [
+					resolve(),
+					commonjs({
+						namedExports: {
+							events: ['message']
+						}
+					})
+				]
+			});
 		});
 
 		it('ignores false positives with namedExports (#36)', async () => {
