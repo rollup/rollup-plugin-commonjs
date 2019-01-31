@@ -1,5 +1,5 @@
-export const PROXY_PREFIX = '\0commonjs-proxy:';
-export const EXTERNAL_PREFIX = '\0commonjs-external:';
+export const PROXY_PREFIX = '\0commonjs-proxy-';
+export const EXTERNAL_PREFIX = '\0commonjs-external-';
 export const HELPERS_ID = '\0commonjsHelpers';
 
 export const HELPERS = `

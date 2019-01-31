@@ -1,5 +1,5 @@
 import './a';
-import a from 'commonjs-proxy:./a';
+import a from 'commonjs-proxy-./a';
 
 var b = 42;
 
