@@ -66,6 +66,16 @@ export default {
 };
 ```
 
+### Usage in monorepo
+
+In case you are using a monorepo, you may want to use a regular expression for `include` as the string 'node_modules' will not match if your `node_modules` is not in your current working directory (i.e. '../node_modules'). Try this:
+
+```
+commonjs({
+  include: /node_modules/
+})
+```
+
 ### Custom named exports
 
 This plugin will attempt to create named exports, where appropriate, so you can do this...
