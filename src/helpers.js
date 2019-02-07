@@ -1,6 +1,6 @@
 export const PROXY_PREFIX = '\0commonjs-proxy:';
 export const EXTERNAL_PREFIX = '\0commonjs-external:';
-export const HELPERS_ID = '\0commonjsHelpers';
+export const HELPERS_ID = '\0commonjsHelpers.js';
 
 export const HELPERS = `
 export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
