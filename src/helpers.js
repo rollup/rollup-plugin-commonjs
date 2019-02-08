@@ -3,7 +3,7 @@ export const EXTERNAL_PREFIX = '\0commonjs-external:';
 export const HELPERS_ID = '\0commonjsHelpers.js';
 
 export const HELPERS = `
-export var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+export var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 export function commonjsRequire () {
 	throw new Error('Dynamic requires are not currently supported by rollup-plugin-commonjs');
