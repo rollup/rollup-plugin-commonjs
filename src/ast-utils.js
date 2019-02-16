@@ -50,7 +50,9 @@ const extractors = {
 
 	ArrayPattern(names, node) {
 		node.elements.forEach(element => {
-			if (element) extractors[element.type](names, element);
+			if (element && element.type !== 'MemberExpression') {
+				extractors[element.type](names, element);
+			}
 		});
 	},
 
