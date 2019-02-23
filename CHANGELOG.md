@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.2.1
+*2019-02-23*
+* Use correct context when manually resolving ids ([#370](https://github.com/rollup/rollup-plugin-commonjs/issues/370))
+
 ## 9.2.0
 *2018-10-10*
 * Fix missing default warning, produce better code when importing known ESM default exports ([#349](https://github.com/rollup/rollup-plugin-commonjs/issues/349))
