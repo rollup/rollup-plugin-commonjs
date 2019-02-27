@@ -85,7 +85,8 @@ export function transformCommonjs(
 	customNamedExports,
 	sourceMap,
 	dynamicRequireModuleSet,
-	astCache
+	astCache,
+	avoidAddingDefaultExport
 ) {
 	const ast = astCache || tryParse(parse, code, id);
 
@@ -537,36 +538,41 @@ export function transformCommonjs(
 			}
 		});
 
-		if (!hasDefaultExport) {
+		if (!hasDefaultExport && !avoidAddingDefaultExport) {
 			wrapperEnd = `\n\nvar ${moduleName} = {\n${names
 				.map(({ name, deconflicted }) => `\t${name}: ${deconflicted}`)
 				.join(',\n')}\n};`;
 		}
 	}
+
 	Object.keys(namedExports)
 		.filter(key => !blacklist[key])
 		.forEach(addExport);
-
-	const defaultExport = /__esModule/.test(code)
-		? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
-		: `export default ${moduleName};`;
-
-	const named = namedExportDeclarations
-		.filter(x => x.name !== 'default' || !hasDefaultExport)
-		.map(x => x.str);
-
-	const exportBlock =
-		'\n\n' +
-		[defaultExport]
-			.concat(named)
-			.concat(hasDefaultExport ? defaultExportPropertyAssignments : [])
-			.join('\n');
 
 	magicString
 		.trim()
 		.prepend(importBlock + wrapperStart)
 		.trim()
-		.append(wrapperEnd + exportBlock);
+		.append(wrapperEnd);
+
+	if (!avoidAddingDefaultExport) {
+		const defaultExport = /__esModule/.test(code)
+			? `export default ${HELPERS_NAME}.unwrapExports(${moduleName});`
+			: `export default ${moduleName};`;
+
+		const named = namedExportDeclarations
+			.filter(x => x.name !== 'default' || !hasDefaultExport)
+			.map(x => x.str);
+
+		const exportBlock =
+			'\n\n' +
+			[defaultExport]
+				.concat(named)
+				.concat(hasDefaultExport ? defaultExportPropertyAssignments : [])
+				.join('\n');
+
+		magicString.append(exportBlock);
+	}
 
 	code = magicString.toString();
 	const map = sourceMap ? magicString.generateMap() : null;

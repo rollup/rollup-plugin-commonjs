@@ -209,15 +209,17 @@ export default function commonjs(options = {}) {
 						normalizePathSlashes(id)
 					);
 
+					let avoidAddingDefaultExport = false;
+
 					if (isEsModule && !isDynamicRequireModule) {
 						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
 							id
 						] = true;
-						return null;
-					}
 
+						avoidAddingDefaultExport = true;
+					}
 					// it is not an ES module but it does not have CJS-specific elements.
-					if (!hasCjsKeywords(code, ignoreGlobal)) {
+					else if (!hasCjsKeywords(code, ignoreGlobal)) {
 						esModulesWithoutDefaultExport[id] = true;
 						return null;
 					}
@@ -232,10 +234,13 @@ export default function commonjs(options = {}) {
 						customNamedExports[id],
 						sourceMap,
 						dynamicRequireModuleSet,
-						ast
+						ast,
+						avoidAddingDefaultExport
 					);
+
 					if (!transformed) {
-						esModulesWithoutDefaultExport[id] = true;
+						if (!isEsModule || isDynamicRequireModule)
+							esModulesWithoutDefaultExport[id] = true;
 						return null;
 					}
 
