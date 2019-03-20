@@ -211,14 +211,14 @@ export default function commonjs(options = {}) {
 				}
 			}
 
+			let avoidAddingDefaultExport = false;
+
 			const transformPromise = entryModuleIdsPromise
 				.then(entryModuleIds => {
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					const isDynamicRequireModule = dynamicRequireModuleSet.has(
 						normalizePathSlashes(id)
 					);
-
-					let avoidAddingDefaultExport = false;
 
 					if (isEsModule && !isDynamicRequireModule) {
 						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
@@ -238,7 +238,7 @@ export default function commonjs(options = {}) {
 						code,
 						id,
 						entryModuleIds.indexOf(id) !== -1,
-						ignoreGlobal,
+						ignoreGlobal || isEsModule,
 						ignoreRequire,
 						customNamedExports[id],
 						sourceMap,
@@ -259,7 +259,7 @@ export default function commonjs(options = {}) {
 					this.error(err, err.loc);
 				});
 
-			setIsCjsPromise(id, transformPromise.then(Boolean, () => false));
+			setIsCjsPromise(id, transformPromise.then(avoidAddingDefaultExport ? () => false : Boolean, () => false));
 			return transformPromise;
 		}
 	};
