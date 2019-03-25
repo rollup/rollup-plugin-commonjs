@@ -16,8 +16,8 @@ export function getName(id) {
 export function first(candidates) {
 	return function(...args) {
 		return candidates.reduce((promise, candidate) => {
-			return promise.then(
-				result => (result != null ? result : Promise.resolve(candidate.call(this, ...args)))
+			return promise.then(result =>
+				result != null ? result : Promise.resolve(candidate.call(this, ...args))
 			);
 		}, Promise.resolve());
 	};

@@ -63,7 +63,7 @@ const extractors = {
 	},
 
 	MemberExpression(names, node) {
-		extractors[node.property.type](names, node.property)
+		extractors[node.property.type](names, node.property);
 	}
 };
 
