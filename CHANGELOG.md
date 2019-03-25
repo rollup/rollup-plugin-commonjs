@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.2.2
+*2019-03-25*
+* Handle array destructuring assignment ([#379](https://github.com/rollup/rollup-plugin-commonjs/issues/379))
+
 ## 9.2.1
 *2019-02-23*
 * Use correct context when manually resolving ids ([#370](https://github.com/rollup/rollup-plugin-commonjs/issues/370))
