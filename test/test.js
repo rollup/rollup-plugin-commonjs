@@ -730,5 +730,37 @@ module.exports = main;
 `
 			);
 		});
+
+		it('handles array destructuring assignment', async () => {
+			const bundle = await rollup({
+				input: 'samples/array-destructuring-assignment/main.js',
+				plugins: [commonjs({ sourceMap: true })]
+			});
+
+			const code = await getCodeFromBundle(bundle);
+			assert.equal(
+				code,
+				`'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+var shuffleArray_1 = shuffleArray;
+
+var main = {
+	shuffleArray: shuffleArray_1
+};
+
+exports.default = main;
+exports.shuffleArray = shuffleArray_1;
+`
+			);
+		});
 	});
 });
