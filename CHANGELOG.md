@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.2.3
+*2019-03-30*
+* Added support for ES3 ancient browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+
 ## 9.2.2
 *2019-03-25*
 * Handle array destructuring assignment ([#379](https://github.com/rollup/rollup-plugin-commonjs/issues/379))
