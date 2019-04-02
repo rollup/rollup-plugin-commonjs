@@ -1,8 +1,10 @@
 # rollup-plugin-commonjs changelog
 
 ## 9.2.3
-*unreleased*
-* Added support for ES3 ancient browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+*2019-04-02*
+* Improve support for ES3 browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+* Add note about monorepo usage to readme ([#372](https://github.com/rollup/rollup-plugin-commonjs/issues/372))
+* Add .js extension to generated helper file ([#373](https://github.com/rollup/rollup-plugin-commonjs/issues/373))
 
 ## 9.2.2
 *2019-03-25*
