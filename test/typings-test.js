@@ -1,7 +1,7 @@
 // @ts-check
-import commonjs from '.';
+import commonjs from '..';
 
-/** @type {import("rollup").RollupFileOptions} */
+/** @type {import("rollup").RollupOptions} */
 const config = {
 	input: 'main.js',
 	output: {
