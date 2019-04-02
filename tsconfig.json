@@ -11,6 +11,6 @@
     },
     "files": [
         "index.d.ts",
-        "test/typings-test.js"
+        "typings-test.js"
     ]
 }

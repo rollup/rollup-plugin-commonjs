@@ -1,5 +1,5 @@
 // @ts-check
-import commonjs from '..';
+import commonjs from '.';
 
 /** @type {import("rollup").RollupOptions} */
 const config = {
