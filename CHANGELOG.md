@@ -1,5 +1,17 @@
 # rollup-plugin-commonjs changelog
 
+## 9.2.3
+*unreleased*
+* Added support for ES3 ancient browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+
+## 9.2.2
+*2019-03-25*
+* Handle array destructuring assignment ([#379](https://github.com/rollup/rollup-plugin-commonjs/issues/379))
+
+## 9.2.1
+*2019-02-23*
+* Use correct context when manually resolving ids ([#370](https://github.com/rollup/rollup-plugin-commonjs/issues/370))
+
 ## 9.2.0
 *2018-10-10*
 * Fix missing default warning, produce better code when importing known ESM default exports ([#349](https://github.com/rollup/rollup-plugin-commonjs/issues/349))

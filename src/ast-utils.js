@@ -60,6 +60,10 @@ const extractors = {
 
 	AssignmentPattern(names, node) {
 		extractors[node.left.type](names, node.left);
+	},
+
+	MemberExpression(names, node) {
+		extractors[node.property.type](names, node.property);
 	}
 };
 

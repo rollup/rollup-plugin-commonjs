@@ -1,5 +1,5 @@
-import {basename, dirname, extname, sep} from 'path';
-import {makeLegalIdentifier} from 'rollup-pluginutils';
+import { basename, dirname, extname, sep } from 'path';
+import { makeLegalIdentifier } from 'rollup-pluginutils';
 
 export function getName(id) {
 	const name = makeLegalIdentifier(basename(id, extname(id)));
@@ -16,8 +16,8 @@ export function getName(id) {
 export function first(candidates) {
 	return function(...args) {
 		return candidates.reduce((promise, candidate) => {
-			return promise.then(
-				result => (result != null ? result : Promise.resolve(candidate(...args)))
+			return promise.then(result =>
+				result != null ? result : Promise.resolve(candidate.call(this, ...args))
 			);
 		}, Promise.resolve());
 	};
