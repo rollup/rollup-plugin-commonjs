@@ -7,7 +7,7 @@
   "jsnext:main": "dist/rollup-plugin-commonjs.es.js",
   "scripts": {
     "test": "npm run test:only",
-    "test:only": "mocha",
+    "test:only": "mocha && tsc",
     "pretest": "npm run build",
     "build": "shx rm -rf dist/* && rollup -c",
     "dev": "rollup -c -w",
@@ -44,7 +44,8 @@
     "rollup-plugin-node-resolve": "^4.0.1",
     "shx": "^0.3.2",
     "source-map": "^0.7.3",
-    "source-map-support": "^0.5.11"
+    "source-map-support": "^0.5.11",
+    "typescript": "^3.4.1"
   },
   "repository": "rollup/rollup-plugin-commonjs",
   "author": "Rich Harris",
