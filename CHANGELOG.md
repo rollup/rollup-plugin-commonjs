@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.0
+*2019-04-03*
+* Add TypeScript types ([#363](https://github.com/rollup/rollup-plugin-commonjs/issues/363))
+
 ## 9.2.3
 *2019-04-02*
 * Improve support for ES3 browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
