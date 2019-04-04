@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.1
+*2019-04-04*
+* Include typings in release ([#382](https://github.com/rollup/rollup-plugin-commonjs/issues/382))
+
 ## 9.3.0
 *2019-04-03*
 * Add TypeScript types ([#363](https://github.com/rollup/rollup-plugin-commonjs/issues/363))
