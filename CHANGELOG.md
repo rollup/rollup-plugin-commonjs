@@ -1,5 +1,31 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.2
+*2019-04-04*
+* Use shared extractAssignedNames, fix destructuring issue ([#303](https://github.com/rollup/rollup-plugin-commonjs/issues/303))
+
+## 9.3.1
+*2019-04-04*
+* Include typings in release ([#382](https://github.com/rollup/rollup-plugin-commonjs/issues/382))
+
+## 9.3.0
+*2019-04-03*
+* Add TypeScript types ([#363](https://github.com/rollup/rollup-plugin-commonjs/issues/363))
+
+## 9.2.3
+*2019-04-02*
+* Improve support for ES3 browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+* Add note about monorepo usage to readme ([#372](https://github.com/rollup/rollup-plugin-commonjs/issues/372))
+* Add .js extension to generated helper file ([#373](https://github.com/rollup/rollup-plugin-commonjs/issues/373))
+
+## 9.2.2
+*2019-03-25*
+* Handle array destructuring assignment ([#379](https://github.com/rollup/rollup-plugin-commonjs/issues/379))
+
+## 9.2.1
+*2019-02-23*
+* Use correct context when manually resolving ids ([#370](https://github.com/rollup/rollup-plugin-commonjs/issues/370))
+
 ## 9.2.0
 *2018-10-10*
 * Fix missing default warning, produce better code when importing known ESM default exports ([#349](https://github.com/rollup/rollup-plugin-commonjs/issues/349))

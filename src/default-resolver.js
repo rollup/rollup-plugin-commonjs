@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import {dirname, resolve} from 'path';
+import { dirname, resolve } from 'path';
 
 function isFile(file) {
 	try {

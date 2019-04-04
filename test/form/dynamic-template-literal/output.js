@@ -1,4 +1,4 @@
-import * as commonjsHelpers from 'commonjsHelpers';
+import * as commonjsHelpers from 'commonjsHelpers.js';
 
 var pe = 'pe';
 var foo = commonjsHelpers.commonjsRequire(`ta${pe}`);

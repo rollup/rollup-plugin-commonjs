@@ -180,10 +180,9 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
-		it('supports an array of multiple entry points for experimentalCodeSplitting', async () => {
+		it('supports an array of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: ['samples/multiple-entry-points/b.js', 'samples/multiple-entry-points/c.js'],
-				experimentalCodeSplitting: true,
 				plugins: [commonjs()]
 			});
 
@@ -202,13 +201,12 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
-		it('supports an object of multiple entry points as object for experimentalCodeSplitting', async () => {
+		it('supports an object of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: {
 					b: require.resolve('./samples/multiple-entry-points/b.js'),
 					c: require.resolve('./samples/multiple-entry-points/c.js')
 				},
-				experimentalCodeSplitting: true,
 				plugins: [resolve(), commonjs()]
 			});
 
@@ -327,6 +325,20 @@ describe('rollup-plugin-commonjs', () => {
 			});
 
 			await executeBundle(bundle);
+		});
+
+		it('handles warnings without error when resolving named exports', () => {
+			return rollup({
+				input: 'samples/custom-named-exports-warn-builtins/main.js',
+				plugins: [
+					resolve(),
+					commonjs({
+						namedExports: {
+							events: ['message']
+						}
+					})
+				]
+			});
 		});
 
 		it('ignores false positives with namedExports (#36)', async () => {
@@ -715,6 +727,38 @@ var esm = /*#__PURE__*/Object.freeze({
 var main = esm;
 
 module.exports = main;
+`
+			);
+		});
+
+		it('handles array destructuring assignment', async () => {
+			const bundle = await rollup({
+				input: 'samples/array-destructuring-assignment/main.js',
+				plugins: [commonjs({ sourceMap: true })]
+			});
+
+			const code = await getCodeFromBundle(bundle);
+			assert.equal(
+				code,
+				`'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+var shuffleArray_1 = shuffleArray;
+
+var main = {
+	shuffleArray: shuffleArray_1
+};
+
+exports.default = main;
+exports.shuffleArray = shuffleArray_1;
 `
 			);
 		});
