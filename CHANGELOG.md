@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.2
+*2019-04-04*
+* Use shared extractAssignedNames, fix destructuring issue ([#303](https://github.com/rollup/rollup-plugin-commonjs/issues/303))
+
 ## 9.3.1
 *2019-04-04*
 * Include typings in release ([#382](https://github.com/rollup/rollup-plugin-commonjs/issues/382))
