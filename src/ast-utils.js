@@ -31,42 +31,6 @@ export function flatten(node) {
 	return { name, keypath: parts.join('.') };
 }
 
-export function extractNames(node) {
-	const names = [];
-	extractors[node.type](names, node);
-	return names;
-}
-
-const extractors = {
-	Identifier(names, node) {
-		names.push(node.name);
-	},
-
-	ObjectPattern(names, node) {
-		node.properties.forEach(prop => {
-			extractors[prop.value.type](names, prop.value);
-		});
-	},
-
-	ArrayPattern(names, node) {
-		node.elements.forEach(element => {
-			if (element) extractors[element.type](names, element);
-		});
-	},
-
-	RestElement(names, node) {
-		extractors[node.argument.type](names, node.argument);
-	},
-
-	AssignmentPattern(names, node) {
-		extractors[node.left.type](names, node.left);
-	},
-
-	MemberExpression(names, node) {
-		extractors[node.property.type](names, node.property);
-	}
-};
-
 export function isTruthy(node) {
 	if (node.type === 'Literal') return !!node.value;
 	if (node.type === 'ParenthesizedExpression') return isTruthy(node.expression);
