@@ -1,7 +1,7 @@
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
-import { extractNames, flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
+import { attachScopes, extractAssignedNames, makeLegalIdentifier } from 'rollup-pluginutils';
+import { flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
 import { HELPERS_ID, PROXY_PREFIX } from './helpers.js';
 import { getName } from './utils.js';
 
@@ -155,7 +155,7 @@ export function transformCommonjs(
 			if (node.type !== 'AssignmentExpression') return;
 			if (node.left.type === 'MemberExpression') return;
 
-			extractNames(node.left).forEach(name => {
+			extractAssignedNames(node.left).forEach(name => {
 				assignedTo.add(name);
 			});
 		}
