@@ -18,7 +18,7 @@ interface RollupCommonJSOptions {
 	 * be transpiled by a previous plugin!)
 	 * @default [ '.js' ]
 	 */
-	extensions: ReadonlyArray<string | RegExp>,
+	extensions?: ReadonlyArray<string | RegExp>,
 	/**
 	 * if true then uses of `global` won't be dealt with by this plugin
 	 * @default false
