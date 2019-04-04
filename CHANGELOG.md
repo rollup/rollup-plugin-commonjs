@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.3
+*2019-04-04*
+* Remove colon from module prefixes ([#371](https://github.com/rollup/rollup-plugin-commonjs/issues/371))
+
 ## 9.3.2
 *2019-04-04*
 * Use shared extractAssignedNames, fix destructuring issue ([#303](https://github.com/rollup/rollup-plugin-commonjs/issues/303))
