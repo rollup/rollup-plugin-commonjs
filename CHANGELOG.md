@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 9.3.4
+*2019-04-04*
+* Make "extensions" optional ([#384](https://github.com/rollup/rollup-plugin-commonjs/issues/384))
+* Use same typing for include and exclude properties ([#385](https://github.com/rollup/rollup-plugin-commonjs/issues/385))
+
 ## 9.3.3
 *2019-04-04*
 * Remove colon from module prefixes ([#371](https://github.com/rollup/rollup-plugin-commonjs/issues/371))
