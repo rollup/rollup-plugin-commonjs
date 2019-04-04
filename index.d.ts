@@ -6,13 +6,13 @@ interface RollupCommonJSOptions {
 	 * specifically include/exclude files
 	 * @default undefined
 	 */
-	include?: string | RegExp,
+	include?: string | RegExp | ReadonlyArray<string | RegExp>,
 	/**
 	 * non-CommonJS modules will be ignored, but you can also
 	 * specifically include/exclude files
 	 * @default undefined
 	 */
-	exclude?: ReadonlyArray<string | RegExp>
+	exclude?: string | RegExp | ReadonlyArray<string | RegExp>,
 	/**
 	 * search for files other than .js files (must already
 	 * be transpiled by a previous plugin!)
