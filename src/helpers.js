@@ -1,5 +1,5 @@
-export const PROXY_PREFIX = '\0commonjs-proxy:';
-export const EXTERNAL_PREFIX = '\0commonjs-external:';
+export const PROXY_PREFIX = '\0commonjs-proxy-';
+export const EXTERNAL_PREFIX = '\0commonjs-external-';
 export const HELPERS_ID = '\0commonjsHelpers.js';
 
 // `x['default']` is used instead of `x.default` for backward compatibility with ES3 browsers.

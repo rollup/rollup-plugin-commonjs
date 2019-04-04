@@ -1,5 +1,5 @@
 import 'tape';
-import foo from 'commonjs-proxy:tape';
+import foo from 'commonjs-proxy-tape';
 
 console.log(foo);
 
