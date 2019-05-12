@@ -314,7 +314,7 @@ describe('rollup-plugin-commonjs', () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							'samples/custom-named-exports/secret-named-exporter.js': ['named'],
@@ -345,7 +345,7 @@ describe('rollup-plugin-commonjs', () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports-false-positive/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							irrelevant: ['lol']
