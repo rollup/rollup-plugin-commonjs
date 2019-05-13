@@ -28,8 +28,8 @@ export default function commonjs(options = {}) {
 		});
 	}
 
-	const esModulesWithoutDefaultExport = Object.create(null);
-	const esModulesWithDefaultExport = Object.create(null);
+	const esModulesWithoutDefaultExport = new Set();
+	const esModulesWithDefaultExport = new Set();
 	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
 
 	const ignoreRequire =
@@ -81,9 +81,9 @@ export default function commonjs(options = {}) {
 						return `import { __moduleExports } from ${JSON.stringify(
 							actualId
 						)}; export default __moduleExports;`;
-					else if (esModulesWithoutDefaultExport[actualId])
+					else if (esModulesWithoutDefaultExport.has(actualId))
 						return `import * as ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
-					else if (esModulesWithDefaultExport[actualId]) {
+					else if (esModulesWithDefaultExport.has(actualId)) {
 						return `export {default} from ${JSON.stringify(actualId)};`;
 					} else
 						return `import * as ${name} from ${JSON.stringify(
@@ -100,44 +100,40 @@ export default function commonjs(options = {}) {
 			}
 
 			// TODO Lukas make sync
-			const transformPromise = Promise.resolve()
-				.then(() => {
-					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
-					if (isEsModule) {
-						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
-							id
-						] = true;
-						return null;
-					}
+			const transformPromise = new Promise(resolve => {
+				const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
+				if (isEsModule) {
+					(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport).add(id);
+					return resolve(null);
+				}
 
-					// it is not an ES module but it does not have CJS-specific elements.
-					if (!hasCjsKeywords(code, ignoreGlobal)) {
-						esModulesWithoutDefaultExport[id] = true;
-						return null;
-					}
+				// it is not an ES module but it does not have CJS-specific elements.
+				if (!hasCjsKeywords(code, ignoreGlobal)) {
+					esModulesWithoutDefaultExport.add(id);
+					return resolve(null);
+				}
 
-					const transformed = transformCommonjs(
-						this.parse,
-						code,
-						id,
-						this.getModuleInfo(id).isEntry,
-						ignoreGlobal,
-						ignoreRequire,
-						customNamedExports[id],
-						sourceMap,
-						allowDynamicRequire,
-						ast
-					);
-					if (!transformed) {
-						esModulesWithoutDefaultExport[id] = true;
-						return null;
-					}
+				const transformed = transformCommonjs(
+					this.parse,
+					code,
+					id,
+					this.getModuleInfo(id).isEntry,
+					ignoreGlobal,
+					ignoreRequire,
+					customNamedExports[id],
+					sourceMap,
+					allowDynamicRequire,
+					ast
+				);
+				if (!transformed) {
+					esModulesWithoutDefaultExport.add(id);
+					return resolve(null);
+				}
 
-					return transformed;
-				})
-				.catch(err => {
-					this.error(err, err.loc);
-				});
+				return resolve(transformed);
+			}).catch(err => {
+				this.error(err, err.loc);
+			});
 
 			setIsCjsPromise(id, transformPromise.then(Boolean, () => false));
 			return transformPromise;
