@@ -22,7 +22,7 @@
     "README.md"
   ],
   "peerDependencies": {
-    "rollup": ">=0.56.0"
+    "rollup": ">=1.11.3"
   },
   "dependencies": {
     "estree-walker": "^0.6.0",
@@ -40,8 +40,9 @@
     "mocha": "^6.1.4",
     "prettier": "^1.17.0",
     "require-relative": "^0.8.7",
-    "rollup": "^1.11.3",
+    "rollup": "github:rollup/rollup#module-side-effects",
     "rollup-plugin-buble": "^0.19.6",
+    "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^4.2.4",
     "shx": "^0.3.2",
     "source-map": "^0.7.3",

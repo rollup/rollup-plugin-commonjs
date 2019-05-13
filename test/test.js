@@ -62,6 +62,11 @@ async function executeBundle(bundle, { context, exports } = {}) {
 }
 
 const transformContext = {
+	getModuleInfo(id) {
+		return {
+			isEntry: id === 'main.js'
+		};
+	},
 	parse: (input, options) =>
 		acorn.parse(
 			input,
@@ -87,8 +92,7 @@ describe('rollup-plugin-commonjs', () => {
 			}
 
 			(config.solo ? it.only : it)(dir, () => {
-				const { transform, options } = commonjs(config.options);
-				options({ input: 'main.js' });
+				const { transform } = commonjs(config.options);
 
 				const input = fs.readFileSync(`form/${dir}/input.js`, 'utf-8');
 

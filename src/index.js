@@ -1,6 +1,7 @@
 import { extname, resolve } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
+import { peerDependencies } from '../package.json';
 import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
@@ -38,8 +39,6 @@ export default function commonjs(options = {}) {
 				? id => options.ignore.includes(id)
 				: () => false;
 
-	let entryModuleIdsPromise = null;
-
 	const resolveId = getResolveId(extensions);
 
 	const sourceMap = options.sourceMap !== false;
@@ -47,15 +46,17 @@ export default function commonjs(options = {}) {
 	return {
 		name: 'commonjs',
 
-		options(options) {
-			resolveId.setRollupOptions(options);
-			const input = options.input || options.entry;
-			const entryModules = Array.isArray(input)
-				? input
-				: typeof input === 'object' && input !== null
-					? Object.values(input)
-					: [input];
-			entryModuleIdsPromise = Promise.all(entryModules.map(entry => resolveId(entry)));
+		buildStart() {
+			const [major, minor] = this.meta.rollupVersion.split('.').map(Number);
+			const minVersion = peerDependencies.rollup.slice(2);
+			const [minMajor, minMinor] = minVersion.split('.').map(Number);
+			if (major < minMajor || (major === minMajor && minor < minMinor)) {
+				this.error(
+					`Insufficient Rollup version: "rollup-plugin-commonjs" requires at least rollup@${minVersion} but found rollup@${
+						this.meta.rollupVersion
+					}.`
+				);
+			}
 		},
 
 		resolveId,
@@ -98,8 +99,9 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
-			const transformPromise = entryModuleIdsPromise
-				.then(entryModuleIds => {
+			// TODO Lukas make sync
+			const transformPromise = Promise.resolve()
+				.then(() => {
 					const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
 					if (isEsModule) {
 						(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport)[
@@ -118,7 +120,7 @@ export default function commonjs(options = {}) {
 						this.parse,
 						code,
 						id,
-						entryModuleIds.indexOf(id) !== -1,
+						this.getModuleInfo(id).isEntry,
 						ignoreGlobal,
 						ignoreRequire,
 						customNamedExports[id],
