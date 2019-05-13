@@ -43,6 +43,41 @@ export default function commonjs(options = {}) {
 
 	const sourceMap = options.sourceMap !== false;
 
+	function transformAndCheckExports(code, id) {
+		{
+			const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
+			if (isEsModule) {
+				(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport).add(id);
+				return null;
+			}
+
+			// it is not an ES module but it does not have CJS-specific elements.
+			if (!hasCjsKeywords(code, ignoreGlobal)) {
+				esModulesWithoutDefaultExport.add(id);
+				return null;
+			}
+
+			const transformed = transformCommonjs(
+				this.parse,
+				code,
+				id,
+				this.getModuleInfo(id).isEntry,
+				ignoreGlobal,
+				ignoreRequire,
+				customNamedExports[id],
+				sourceMap,
+				allowDynamicRequire,
+				ast
+			);
+			if (!transformed) {
+				esModulesWithoutDefaultExport.add(id);
+				return null;
+			}
+
+			return transformed;
+		}
+	}
+
 	return {
 		name: 'commonjs',
 
@@ -99,44 +134,16 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
-			// TODO Lukas make sync
-			const transformPromise = new Promise(resolve => {
-				const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
-				if (isEsModule) {
-					(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport).add(id);
-					return resolve(null);
-				}
-
-				// it is not an ES module but it does not have CJS-specific elements.
-				if (!hasCjsKeywords(code, ignoreGlobal)) {
-					esModulesWithoutDefaultExport.add(id);
-					return resolve(null);
-				}
-
-				const transformed = transformCommonjs(
-					this.parse,
-					code,
-					id,
-					this.getModuleInfo(id).isEntry,
-					ignoreGlobal,
-					ignoreRequire,
-					customNamedExports[id],
-					sourceMap,
-					allowDynamicRequire,
-					ast
-				);
-				if (!transformed) {
-					esModulesWithoutDefaultExport.add(id);
-					return resolve(null);
-				}
-
-				return resolve(transformed);
-			}).catch(err => {
+			let transformed;
+			try {
+				transformed = transformAndCheckExports.call(this, code, id);
+			} catch (err) {
+				transformed = null;
 				this.error(err, err.loc);
-			});
+			}
 
-			setIsCjsPromise(id, transformPromise.then(Boolean, () => false));
-			return transformPromise;
+			setIsCjsPromise(id, Boolean(transformed));
+			return transformed;
 		}
 	};
 }

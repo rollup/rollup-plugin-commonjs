@@ -104,11 +104,9 @@ describe('rollup-plugin-commonjs', () => {
 				}
 
 				const expected = fs.readFileSync(outputFile, 'utf-8').trim();
-
-				return transform.call(transformContext, input, 'input.js').then(transformed => {
-					const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '');
-					assert.equal(actual, expected);
-				});
+				const transformed = transform.call(transformContext, input, 'input.js');
+				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '');
+				assert.equal(actual, expected);
 			});
 		});
 	});
