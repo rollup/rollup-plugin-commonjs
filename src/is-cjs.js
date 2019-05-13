@@ -16,14 +16,14 @@ export function getIsCjsPromise(id) {
 	return promise;
 }
 
-export function setIsCjsPromise(id, promise) {
+export function setIsCjsPromise(id, resolution) {
 	const isCjsPromise = isCjsPromises.get(id);
 	if (isCjsPromise) {
 		if (isCjsPromise.resolve) {
-			isCjsPromise.resolve(promise);
+			isCjsPromise.resolve(resolution);
 			isCjsPromise.resolve = undefined;
 		}
 	} else {
-		isCjsPromises.set(id, { promise, resolve: undefined });
+		isCjsPromises.set(id, { promise: Promise.resolve(resolution), resolve: undefined });
 	}
 }

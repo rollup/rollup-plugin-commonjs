@@ -130,7 +130,7 @@ export default function commonjs(options = {}) {
 
 		transform(code, id) {
 			if (!filter(id) || extensions.indexOf(extname(id)) === -1) {
-				setIsCjsPromise(id, Promise.resolve(null));
+				setIsCjsPromise(id,null);
 				return null;
 			}
 
