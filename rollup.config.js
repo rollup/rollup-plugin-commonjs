@@ -1,4 +1,4 @@
-import buble from 'rollup-plugin-buble';
+import babel from 'rollup-plugin-babel';
 import json from 'rollup-plugin-json';
 import pkg from './package.json';
 
@@ -6,8 +6,12 @@ export default {
 	input: 'src/index.js',
 	plugins: [
 		json(),
-		buble({
-			transforms: { dangerousForOf: true }
+		babel({
+			presets: [['@babel/preset-env', {
+				targets: {
+					node: 6
+				}
+			}]]
 		})
 	],
 	external: Object.keys( pkg.dependencies ).concat([ 'fs', 'path' ]),
