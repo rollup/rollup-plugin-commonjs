@@ -105,7 +105,7 @@ describe('rollup-plugin-commonjs', () => {
 
 				const expected = fs.readFileSync(outputFile, 'utf-8').trim();
 				const transformed = transform.call(transformContext, input, 'input.js');
-				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '');
+				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '_');
 				assert.equal(actual, expected);
 			});
 		});
@@ -615,8 +615,13 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [
 					commonjs(),
 					{
+						resolveId(id) {
+							if (id === '\0virtual' || id === '\0resolved-virtual') {
+								return '\0resolved-virtual';
+							}
+						},
 						load(id) {
-							if (id === '\0virtual') {
+							if (id === '\0resolved-virtual') {
 								return 'export default "Virtual export"';
 							}
 						}

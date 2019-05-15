@@ -1,5 +1,11 @@
-export const PROXY_PREFIX = '\0commonjs-proxy-';
-export const EXTERNAL_PREFIX = '\0commonjs-external-';
+export const PROXY_SUFFIX = '?commonjs-proxy';
+export const getProxyId = id => `\0${id}${PROXY_SUFFIX}`;
+export const getIdFromProxyId = proxyId => proxyId.slice(1, -PROXY_SUFFIX.length);
+
+export const EXTERNAL_SUFFIX = '?commonjs-external';
+export const getExternalProxyId = id => `\0${id}${EXTERNAL_SUFFIX}`;
+export const getIdFromExternalProxyId = proxyId => proxyId.slice(1, -EXTERNAL_SUFFIX.length);
+
 export const HELPERS_ID = '\0commonjsHelpers.js';
 
 // `x['default']` is used instead of `x.default` for backward compatibility with ES3 browsers.

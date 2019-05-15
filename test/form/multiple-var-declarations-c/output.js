@@ -1,5 +1,5 @@
+import b from '_./b?commonjs-proxy';
 import './b';
-import b from 'commonjs-proxy-./b';
 
 var a = 'a'
   , c = 'c';

@@ -2,7 +2,7 @@ import { extname, resolve } from 'path';
 import { sync as nodeResolveSync } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
-import { EXTERNAL_PREFIX, HELPERS, HELPERS_ID, PROXY_PREFIX } from './helpers.js';
+import { EXTERNAL_SUFFIX, getIdFromExternalProxyId, getIdFromProxyId, HELPERS, HELPERS_ID, PROXY_SUFFIX } from './helpers';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
@@ -100,15 +100,15 @@ export default function commonjs(options = {}) {
 			if (id === HELPERS_ID) return HELPERS;
 
 			// generate proxy modules
-			if (id.startsWith(EXTERNAL_PREFIX)) {
-				const actualId = id.slice(EXTERNAL_PREFIX.length);
+			if (id.endsWith(EXTERNAL_SUFFIX)) {
+				const actualId = getIdFromExternalProxyId(id);
 				const name = getName(actualId);
 
 				return `import ${name} from ${JSON.stringify(actualId)}; export default ${name};`;
 			}
 
-			if (id.startsWith(PROXY_PREFIX)) {
-				const actualId = id.slice(PROXY_PREFIX.length);
+			if (id.endsWith(PROXY_SUFFIX)) {
+				const actualId = getIdFromProxyId(id);
 				const name = getName(actualId);
 
 				return getIsCjsPromise(actualId).then(isCjs => {
@@ -130,7 +130,7 @@ export default function commonjs(options = {}) {
 
 		transform(code, id) {
 			if (!filter(id) || extensions.indexOf(extname(id)) === -1) {
-				setIsCjsPromise(id,null);
+				setIsCjsPromise(id, null);
 				return null;
 			}
 

@@ -1,6 +1,6 @@
 import { statSync } from 'fs';
 import { dirname, resolve, sep } from 'path';
-import { EXTERNAL_PREFIX, PROXY_PREFIX } from './helpers';
+import { getExternalProxyId, getIdFromProxyId, getProxyId, HELPERS_ID, PROXY_SUFFIX } from './helpers';
 
 function getCandidatesForExtension(resolved, extension) {
 	return [resolved + extension, resolved + `${sep}index${extension}`];
@@ -23,7 +23,7 @@ export function getResolveId(extensions) {
 		for (let i = 0; i < candidates.length; i += 1) {
 			try {
 				const stats = statSync(candidates[i]);
-				if (stats.isFile()) return {id: candidates[i]};
+				if (stats.isFile()) return { id: candidates[i] };
 			} catch (err) {
 				/* noop */
 			}
@@ -31,15 +31,18 @@ export function getResolveId(extensions) {
 	}
 
 	function resolveId(importee, importer) {
-		const isProxyModule = importee.startsWith(PROXY_PREFIX);
+		const isProxyModule = importee.endsWith(PROXY_SUFFIX);
 		if (isProxyModule) {
-			importee = importee.slice(PROXY_PREFIX.length);
+			importee = getIdFromProxyId(importee);
 		} else if (importee.startsWith('\0')) {
-			return importee;
+			if (importee === HELPERS_ID) {
+				return importee;
+			}
+			return null;
 		}
 
-		if (importer && importer.startsWith(PROXY_PREFIX)) {
-			importer = importer.slice(PROXY_PREFIX.length);
+		if (importer && importer.endsWith(PROXY_SUFFIX)) {
+			importer = getIdFromProxyId(importer);
 		}
 
 		return this.resolve(importee, importer, { skipSelf: true }).then(resolved => {
@@ -48,9 +51,9 @@ export function getResolveId(extensions) {
 			}
 			if (isProxyModule) {
 				if (!resolved) {
-					return { id: EXTERNAL_PREFIX + importee, external: false };
+					return { id: getExternalProxyId(importee), external: false };
 				}
-				resolved.id = (resolved.external ? EXTERNAL_PREFIX : PROXY_PREFIX) + resolved.id;
+				resolved.id = (resolved.external ? getExternalProxyId : getProxyId)(resolved.id);
 				resolved.external = false;
 				return resolved;
 			}
