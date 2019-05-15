@@ -29,7 +29,7 @@
     "is-reference": "^1.1.2",
     "magic-string": "^0.25.2",
     "resolve": "^1.10.1",
-    "rollup-pluginutils": "^2.6.0"
+    "rollup-pluginutils": "^2.7.0"
   },
   "devDependencies": {
     "@babel/core": "7.4.4",

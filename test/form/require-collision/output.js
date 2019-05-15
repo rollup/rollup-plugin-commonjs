@@ -1,5 +1,5 @@
-import require$$1 from '_foo?commonjs-proxy';
 import 'foo';
+import require$$1 from '_foo?commonjs-proxy';
 
 (function() {
   var foo = require$$1;
