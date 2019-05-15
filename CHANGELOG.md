@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 10.0.0
+*2019-05-15*
+* Use new Rollup@1.12 context functions, fix issue when resolveId returns an object ([#387](https://github.com/rollup/rollup-plugin-commonjs/issues/387))
+
 ## 9.3.4
 *2019-04-04*
 * Make "extensions" optional ([#384](https://github.com/rollup/rollup-plugin-commonjs/issues/384))
