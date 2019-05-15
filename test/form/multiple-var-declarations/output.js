@@ -1,7 +1,7 @@
 import './a';
 import './b';
-import require$$0 from 'commonjs-proxy-./a';
-import b from 'commonjs-proxy-./b';
+import require$$0 from '_./a?commonjs-proxy';
+import b from '_./b?commonjs-proxy';
 
 var a = require$$0();
 

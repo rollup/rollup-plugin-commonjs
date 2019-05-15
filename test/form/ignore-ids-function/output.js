@@ -1,5 +1,5 @@
 import 'bar';
-import bar from 'commonjs-proxy-bar';
+import bar from '_bar?commonjs-proxy';
 
 var foo = require( 'foo' );
 

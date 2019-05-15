@@ -1,4 +1,4 @@
-import * as commonjsHelpers from 'commonjsHelpers.js';
+import * as commonjsHelpers from '_commonjsHelpers.js';
 
 var input = commonjsHelpers.createCommonjsModule(function (module, exports) {
 var foo = 42;

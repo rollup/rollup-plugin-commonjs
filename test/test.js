@@ -62,6 +62,11 @@ async function executeBundle(bundle, { context, exports } = {}) {
 }
 
 const transformContext = {
+	getModuleInfo(id) {
+		return {
+			isEntry: id === 'main.js'
+		};
+	},
 	parse: (input, options) =>
 		acorn.parse(
 			input,
@@ -87,8 +92,7 @@ describe('rollup-plugin-commonjs', () => {
 			}
 
 			(config.solo ? it.only : it)(dir, () => {
-				const { transform, options } = commonjs(config.options);
-				options({ input: 'main.js' });
+				const { transform } = commonjs(config.options);
 
 				const input = fs.readFileSync(`form/${dir}/input.js`, 'utf-8');
 
@@ -100,11 +104,9 @@ describe('rollup-plugin-commonjs', () => {
 				}
 
 				const expected = fs.readFileSync(outputFile, 'utf-8').trim();
-
-				return transform.call(transformContext, input, 'input.js').then(transformed => {
-					const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '');
-					assert.equal(actual, expected);
-				});
+				const transformed = transform.call(transformContext, input, 'input.js');
+				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '_');
+				assert.equal(actual, expected);
 			});
 		});
 	});
@@ -314,7 +316,7 @@ describe('rollup-plugin-commonjs', () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							'samples/custom-named-exports/secret-named-exporter.js': ['named'],
@@ -345,7 +347,7 @@ describe('rollup-plugin-commonjs', () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports-false-positive/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							irrelevant: ['lol']
@@ -613,8 +615,13 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [
 					commonjs(),
 					{
+						resolveId(id) {
+							if (id === '\0virtual' || id === '\0resolved-virtual') {
+								return '\0resolved-virtual';
+							}
+						},
 						load(id) {
-							if (id === '\0virtual') {
+							if (id === '\0resolved-virtual') {
 								return 'export default "Virtual export"';
 							}
 						}
