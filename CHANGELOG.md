@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 10.0.1
+*unreleased*
+* Make tests run with Node 6 again and update dependencies ([#389](https://github.com/rollup/rollup-plugin-commonjs/issues/389))
+
 ## 10.0.0
 *2019-05-15*
 * Use new Rollup@1.12 context functions, fix issue when resolveId returns an object ([#387](https://github.com/rollup/rollup-plugin-commonjs/issues/387))
