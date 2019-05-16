@@ -6,15 +6,9 @@ export default {
 	input: 'src/index.js',
 	plugins: [
 		json(),
-		babel({
-			presets: [['@babel/preset-env', {
-				targets: {
-					node: 6
-				}
-			}]]
-		})
+		babel()
 	],
-	external: Object.keys( pkg.dependencies ).concat([ 'fs', 'path' ]),
+	external: Object.keys(pkg.dependencies).concat(['fs', 'path']),
 	output: [
 		{
 			format: 'es',

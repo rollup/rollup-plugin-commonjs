@@ -165,21 +165,20 @@ describe('rollup-plugin-commonjs', () => {
 				})
 			);
 
-			await SourceMapConsumer.with(map, null, async smc => {
-				const locator = getLocator(code, { offsetLine: 1 });
+			const smc = new SourceMapConsumer(map);
+			const locator = getLocator(code, { offsetLine: 1 });
 
-				let generatedLoc = locator('42');
-				let loc = smc.originalPositionFor(generatedLoc); // 42
-				assert.equal(loc.source, 'samples/sourcemap/foo.js');
-				assert.equal(loc.line, 1);
-				assert.equal(loc.column, 15);
+			let generatedLoc = locator('42');
+			let loc = smc.originalPositionFor(generatedLoc); // 42
+			assert.equal(loc.source, 'samples/sourcemap/foo.js');
+			assert.equal(loc.line, 1);
+			assert.equal(loc.column, 15);
 
-				generatedLoc = locator('log');
-				loc = smc.originalPositionFor(generatedLoc); // log
-				assert.equal(loc.source, 'samples/sourcemap/main.js');
-				assert.equal(loc.line, 2);
-				assert.equal(loc.column, 8);
-			});
+			generatedLoc = locator('log');
+			loc = smc.originalPositionFor(generatedLoc); // log
+			assert.equal(loc.source, 'samples/sourcemap/main.js');
+			assert.equal(loc.line, 2);
+			assert.equal(loc.column, 8);
 		});
 
 		it('supports an array of multiple entry points', async () => {
