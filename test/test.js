@@ -342,6 +342,24 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
+		it('handles named exports for built-in shims', async () => {
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports-browser-shims/main.js',
+				plugins: [
+					resolve({
+						preferBuiltins: false
+					}),
+					commonjs({
+						namedExports: {
+							events: ['foo']
+						}
+					})
+				]
+			});
+
+			await executeBundle(bundle);
+		});
+
 		it('ignores false positives with namedExports (#36)', async () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports-false-positive/main.js',
