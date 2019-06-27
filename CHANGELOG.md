@@ -1,8 +1,9 @@
 # rollup-plugin-commonjs changelog
 
 ## 10.0.1
-*unreleased*
+*2019-06-27*
 * Make tests run with Node 6 again and update dependencies ([#389](https://github.com/rollup/rollup-plugin-commonjs/issues/389))
+* Handle builtins appropriately for resolve 1.11.0 ([#395](https://github.com/rollup/rollup-plugin-commonjs/issues/395))
 
 ## 10.0.0
 *2019-05-15*
