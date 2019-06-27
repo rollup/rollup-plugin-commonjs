@@ -1,5 +1,5 @@
 import { extname, resolve } from 'path';
-import { sync as nodeResolveSync } from 'resolve';
+import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
 import { EXTERNAL_SUFFIX, getIdFromExternalProxyId, getIdFromProxyId, HELPERS, HELPERS_ID, PROXY_SUFFIX } from './helpers';
@@ -16,10 +16,19 @@ export default function commonjs(options = {}) {
 	const customNamedExports = {};
 	if (options.namedExports) {
 		Object.keys(options.namedExports).forEach(id => {
+			let resolveId = id;
 			let resolvedId;
 
+			if (isCore(id)) {
+				// resolve will not find npm modules with the same name as
+				// core modules without a trailing slash. Since core modules
+				// must be external, we can assume any core modules defined
+				// here are npm modules by that name.
+				resolveId += '/';
+			}
+
 			try {
-				resolvedId = nodeResolveSync(id, { basedir: process.cwd() });
+				resolvedId = nodeResolveSync(resolveId, { basedir: process.cwd() });
 			} catch (err) {
 				resolvedId = resolve(id);
 			}

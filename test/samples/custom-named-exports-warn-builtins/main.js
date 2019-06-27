@@ -1,3 +1,3 @@
-import events from 'events';
+import { message } from 'events';
 
-assert.equal( events, 'x' );
+assert.equal( message, 'this is not builtin' );
