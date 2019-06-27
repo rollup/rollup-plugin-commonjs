@@ -1,6 +1,12 @@
 import { statSync } from 'fs';
 import { dirname, resolve, sep } from 'path';
-import { getExternalProxyId, getIdFromProxyId, getProxyId, HELPERS_ID, PROXY_SUFFIX } from './helpers';
+import {
+	getExternalProxyId,
+	getIdFromProxyId,
+	getProxyId,
+	HELPERS_ID,
+	PROXY_SUFFIX
+} from './helpers';
 
 function getCandidatesForExtension(resolved, extension) {
 	return [resolved + extension, resolved + `${sep}index${extension}`];

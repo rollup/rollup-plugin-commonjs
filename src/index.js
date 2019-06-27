@@ -2,7 +2,14 @@ import { extname, resolve } from 'path';
 import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
-import { EXTERNAL_SUFFIX, getIdFromExternalProxyId, getIdFromProxyId, HELPERS, HELPERS_ID, PROXY_SUFFIX } from './helpers';
+import {
+	EXTERNAL_SUFFIX,
+	getIdFromExternalProxyId,
+	getIdFromProxyId,
+	HELPERS,
+	HELPERS_ID,
+	PROXY_SUFFIX
+} from './helpers';
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
@@ -96,9 +103,7 @@ export default function commonjs(options = {}) {
 			const [minMajor, minMinor] = minVersion.split('.').map(Number);
 			if (major < minMajor || (major === minMajor && minor < minMinor)) {
 				this.error(
-					`Insufficient Rollup version: "rollup-plugin-commonjs" requires at least rollup@${minVersion} but found rollup@${
-						this.meta.rollupVersion
-					}.`
+					`Insufficient Rollup version: "rollup-plugin-commonjs" requires at least rollup@${minVersion} but found rollup@${this.meta.rollupVersion}.`
 				);
 			}
 		},

@@ -1,4 +1,4 @@
-export {default as isReference} from 'is-reference';
+export { default as isReference } from 'is-reference';
 
 export function flatten(node) {
 	const parts = [];
