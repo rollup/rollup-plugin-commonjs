@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-commonjs",
-  "version": "10.0.0",
+  "version": "10.0.1",
   "description": "Convert CommonJS modules to ES2015",
   "main": "dist/rollup-plugin-commonjs.cjs.js",
   "module": "dist/rollup-plugin-commonjs.es.js",
