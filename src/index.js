@@ -1,3 +1,4 @@
+import { realpathSync } from 'fs';
 import { extname, resolve } from 'path';
 import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
@@ -41,6 +42,11 @@ export default function commonjs(options = {}) {
 			}
 
 			customNamedExports[resolvedId] = options.namedExports[id];
+
+			const realpath = realpathSync(resolvedId);
+			if (realpath !== resolvedId) {
+				customNamedExports[realpath] = options.namedExports[id];
+			}
 		});
 	}
 
