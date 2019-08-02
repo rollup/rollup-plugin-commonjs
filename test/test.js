@@ -367,7 +367,15 @@ describe('rollup-plugin-commonjs', () => {
 						}
 					})
 				]
-			}).finally(() => process.chdir(cwd));
+			})
+				.then(v => {
+					process.chdir(cwd);
+					return v;
+				})
+				.catch(err => {
+					process.chdir(cwd);
+					throw err;
+				});
 		});
 
 		it('handles named exports for built-in shims', async () => {
