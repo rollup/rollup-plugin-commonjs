@@ -353,7 +353,7 @@ describe('rollup-plugin-commonjs', () => {
 			return rollup({
 				input: './index.js',
 				onwarn(warning) {
-					// The interop should not trigger a "default is not exported" warning
+					// should not get a warning about unknown export 'foo'
 					throw new Error(`Unexpected warning: ${warning.message}`);
 				},
 				plugins: [
