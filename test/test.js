@@ -342,7 +342,7 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
-		it.only('handles symlinked node_modules with preserveSymlinks: false', () => {
+		it('handles symlinked node_modules with preserveSymlinks: false', () => {
 			const cwd = process.cwd();
 
 			// ensure we resolve starting from a directory with
