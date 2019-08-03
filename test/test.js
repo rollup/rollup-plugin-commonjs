@@ -342,6 +342,42 @@ describe('rollup-plugin-commonjs', () => {
 			});
 		});
 
+		it('handles symlinked node_modules with preserveSymlinks: false', () => {
+			const cwd = process.cwd();
+
+			// ensure we resolve starting from a directory with
+			// symlinks in node_modules.
+
+			process.chdir('samples/symlinked-node-modules');
+
+			return rollup({
+				input: './index.js',
+				onwarn(warning) {
+					// should not get a warning about unknown export 'foo'
+					throw new Error(`Unexpected warning: ${warning.message}`);
+				},
+				plugins: [
+					resolve({
+						preserveSymlinks: false,
+						preferBuiltins: false
+					}),
+					commonjs({
+						namedExports: {
+							events: ['foo']
+						}
+					})
+				]
+			})
+				.then(v => {
+					process.chdir(cwd);
+					return v;
+				})
+				.catch(err => {
+					process.chdir(cwd);
+					throw err;
+				});
+		});
+
 		it('handles named exports for built-in shims', async () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports-browser-shims/main.js',
