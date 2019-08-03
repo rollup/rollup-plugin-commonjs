@@ -1,5 +1,9 @@
 # rollup-plugin-commonjs changelog
 
+## 10.0.2
+*2019-08-03*
+* Support preserveSymlinks: false ([#401](https://github.com/rollup/rollup-plugin-commonjs/issues/401))
+
 ## 10.0.1
 *2019-06-27*
 * Make tests run with Node 6 again and update dependencies ([#389](https://github.com/rollup/rollup-plugin-commonjs/issues/389))
