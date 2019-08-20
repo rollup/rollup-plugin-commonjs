@@ -66,15 +66,17 @@ export default {
 };
 ```
 
-### Usage in monorepo
+### Usage with Symlinks
 
-In case you are using a monorepo, you may want to use a regular expression for `include` as the string 'node_modules' will not match if your `node_modules` is not in your current working directory (i.e. '../node_modules'). Try this:
+Symlinks are common in monorepos and are also created by the command `npm link`. Rollup with rollup-plugin-node-resolve resolves modules to their real paths by default. So include and exclude paths should handle real paths not symlinked paths (e.g. `../common/node_modules/**` instead of `node_modules/**`). You may also use a regular expression for `include` that works regardless of base path. Try this:
 
 ```
 commonjs({
   include: /node_modules/
 })
 ```
+
+Whether symlinked module paths are realpathed or preserved depends on Rollup's preserveSymlinks setting. It is false by default, matching Node's default behavior. Setting preserveSymlinks to true in your Rollup config will cause import and export to match based on symlinked paths.
 
 ### Custom named exports
 
