@@ -1,5 +1,5 @@
 import { realpathSync, existsSync } from 'fs';
-import { extname, resolve } from 'path';
+import { extname, resolve, normalize } from 'path';
 import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
@@ -40,11 +40,14 @@ export default function commonjs(options = {}) {
 			} catch (err) {
 				resolvedId = resolve(id);
 			}
+
+			// ASSERT: resolvedId is a normalized path
 			customNamedExports[resolvedId] = options.namedExports[id];
 
 			if (existsSync(resolvedId)) {
 				const realpath = realpathSync(resolvedId);
 				if (realpath !== resolvedId) {
+					// ASSERT: realpath is a normalized path
 					customNamedExports[realpath] = options.namedExports[id];
 				}
 			}
@@ -81,6 +84,8 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
+			const normalizedId = normalize(id);
+
 			const transformed = transformCommonjs(
 				this.parse,
 				code,
@@ -88,7 +93,7 @@ export default function commonjs(options = {}) {
 				this.getModuleInfo(id).isEntry,
 				ignoreGlobal,
 				ignoreRequire,
-				customNamedExports[id],
+				customNamedExports[normalizedId],
 				sourceMap,
 				allowDynamicRequire,
 				ast
