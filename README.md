@@ -54,7 +54,7 @@ export default {
 
       // explicitly specify unresolvable named exports
       // (see below for more details)
-      namedExports: { './module.js': ['foo', 'bar' ] },  // Default: undefined
+      namedExports: { 'react': ['createElement', 'Component' ] },  // Default: undefined
 
       // sometimes you have to leave require statements
       // unconverted. Pass an array containing the IDs
@@ -66,15 +66,17 @@ export default {
 };
 ```
 
-### Usage in monorepo
+### Usage with symlinks
 
-In case you are using a monorepo, you may want to use a regular expression for `include` as the string 'node_modules' will not match if your `node_modules` is not in your current working directory (i.e. '../node_modules'). Try this:
+Symlinks are common in monorepos and are also created by the `npm link` command. Rollup with `rollup-plugin-node-resolve` resolves modules to their real paths by default. So `include` and `exclude` paths should handle real paths rather than symlinked paths (e.g. `../common/node_modules/**` instead of `node_modules/**`). You may also use a regular expression for `include` that works regardless of base path. Try this:
 
 ```
 commonjs({
   include: /node_modules/
 })
 ```
+
+Whether symlinked module paths are [realpathed](http://man7.org/linux/man-pages/man3/realpath.3.html) or preserved depends on Rollup's `preserveSymlinks` setting, which is false by default, matching Node.js' default behavior. Setting `preserveSymlinks` to true in your Rollup config will cause `import` and `export` to match based on symlinked paths instead.
 
 ### Custom named exports
 
@@ -107,7 +109,7 @@ commonjs({
     // left-hand side can be an absolute path, a path
     // relative to the current directory, or the name
     // of a module in node_modules
-    'node_modules/my-lib/index.js': [ 'named' ]
+    'my-lib': [ 'named' ]
   }
 })
 ```
