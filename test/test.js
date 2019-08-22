@@ -823,20 +823,18 @@ exports.shuffleArray = shuffleArray_1;
 			);
 		});
 
-		it.only('normalizes paths used in the named export map', async () => {
+		it('normalizes paths used in the named export map', async () => {
 			// Deliberately denormalizes file paths and ensures named exports
 			// continue to work.
 			function hookedResolve() {
 				const resolvePlugin = resolve();
 				const oldResolve = resolvePlugin.resolveId;
-				resolvePlugin.resolveId = async function(source) {
+				resolvePlugin.resolveId = async function() {
 					const result = await oldResolve.apply(resolvePlugin, arguments);
-					if (source === 'external') {
-						result.id = result.id.replace(/\\/g, '/');
-						return result;
-					} else if (source.match(/custom-named-exports/)) {
-						result.id = result.id.replace(/\//g, '\\');
+					if (result) {
+						result.id = result.id.replace(/\/|\\/, path.sep);
 					}
+
 					return result;
 				};
 
