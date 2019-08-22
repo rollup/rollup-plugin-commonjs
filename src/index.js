@@ -41,13 +41,14 @@ export default function commonjs(options = {}) {
 				resolvedId = resolve(id);
 			}
 
-			// ASSERT: resolvedId is a normalized path
+			// Note: customNamedExport's keys must be normalized file paths.
+			// resolve and nodeResolveSync both return normalized file paths
+			// so no additional normalization is necessary.
 			customNamedExports[resolvedId] = options.namedExports[id];
 
 			if (existsSync(resolvedId)) {
 				const realpath = realpathSync(resolvedId);
 				if (realpath !== resolvedId) {
-					// ASSERT: realpath is a normalized path
 					customNamedExports[realpath] = options.namedExports[id];
 				}
 			}
