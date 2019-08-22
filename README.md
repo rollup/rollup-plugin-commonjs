@@ -54,7 +54,7 @@ export default {
 
       // explicitly specify unresolvable named exports
       // (see below for more details)
-      namedExports: { './module.js': ['foo', 'bar' ] },  // Default: undefined
+      namedExports: { 'react': ['createElement', 'Component' ] },  // Default: undefined
 
       // sometimes you have to leave require statements
       // unconverted. Pass an array containing the IDs
@@ -109,7 +109,7 @@ commonjs({
     // left-hand side can be an absolute path, a path
     // relative to the current directory, or the name
     // of a module in node_modules
-    'node_modules/my-lib/index.js': [ 'named' ]
+    'my-lib': [ 'named' ]
   }
 })
 ```
