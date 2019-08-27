@@ -52,7 +52,6 @@ export default function commonjs(options = {}) {
 					customNamedExports[realpath] = options.namedExports[id];
 				}
 			}
-
 		});
 	}
 
