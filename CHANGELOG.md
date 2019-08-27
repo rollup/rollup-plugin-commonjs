@@ -1,5 +1,10 @@
 # rollup-plugin-commonjs changelog
 
+## 10.1.0
+*2019-08-27*
+* Normalize ids before looking up in named export map ([#406](https://github.com/rollup/rollup-plugin-commonjs/issues/406))
+* Update README.md with note on symlinks ([#405](https://github.com/rollup/rollup-plugin-commonjs/issues/405))
+
 ## 10.0.2
 *2019-08-03*
 * Support preserveSymlinks: false ([#401](https://github.com/rollup/rollup-plugin-commonjs/issues/401))
