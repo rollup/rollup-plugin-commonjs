@@ -822,5 +822,39 @@ exports.shuffleArray = shuffleArray_1;
 `
 			);
 		});
+
+		it('normalizes paths used in the named export map', async () => {
+			// Deliberately denormalizes file paths and ensures named exports
+			// continue to work.
+			function hookedResolve() {
+				const resolvePlugin = resolve();
+				const oldResolve = resolvePlugin.resolveId;
+				resolvePlugin.resolveId = async function() {
+					const result = await oldResolve.apply(resolvePlugin, arguments);
+					if (result) {
+						result.id = result.id.replace(/\/|\\/, path.sep);
+					}
+
+					return result;
+				};
+
+				return resolvePlugin;
+			}
+
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports/main.js',
+				plugins: [
+					hookedResolve(),
+					commonjs({
+						namedExports: {
+							'samples/custom-named-exports/secret-named-exporter.js': ['named'],
+							external: ['message']
+						}
+					})
+				]
+			});
+
+			await executeBundle(bundle);
+		});
 	});
 });

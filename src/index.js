@@ -1,5 +1,5 @@
 import { realpathSync, existsSync } from 'fs';
-import { extname, resolve } from 'path';
+import { extname, resolve, normalize } from 'path';
 import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
@@ -40,6 +40,10 @@ export default function commonjs(options = {}) {
 			} catch (err) {
 				resolvedId = resolve(id);
 			}
+
+			// Note: customNamedExport's keys must be normalized file paths.
+			// resolve and nodeResolveSync both return normalized file paths
+			// so no additional normalization is necessary.
 			customNamedExports[resolvedId] = options.namedExports[id];
 
 			if (existsSync(resolvedId)) {
@@ -81,6 +85,8 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
+			const normalizedId = normalize(id);
+
 			const transformed = transformCommonjs(
 				this.parse,
 				code,
@@ -88,7 +94,7 @@ export default function commonjs(options = {}) {
 				this.getModuleInfo(id).isEntry,
 				ignoreGlobal,
 				ignoreRequire,
-				customNamedExports[id],
+				customNamedExports[normalizedId],
 				sourceMap,
 				allowDynamicRequire,
 				ast
