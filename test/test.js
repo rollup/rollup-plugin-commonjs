@@ -23,7 +23,15 @@ process.chdir(__dirname);
 function execute(code, context = {}) {
 	let fn;
 	const contextKeys = Object.keys(context);
-	const argNames = contextKeys.concat('module', 'exports', 'require', 'global', 'assert', code);
+	const argNames = contextKeys.concat(
+		'module',
+		'exports',
+		'require',
+		'global',
+		'assert',
+		'globalThis',
+		code
+	);
 
 	try {
 		fn = new Function(...argNames);
@@ -38,7 +46,7 @@ function execute(code, context = {}) {
 
 	const argValues = contextKeys
 		.map(key => context[key])
-		.concat(module, module.exports, name => relative(name, 'test/x.js'), global, assert);
+		.concat(module, module.exports, name => relative(name, 'test/x.js'), global, assert, global);
 
 	fn(...argValues);
 
@@ -239,18 +247,18 @@ describe('rollup-plugin-commonjs', () => {
 			const mockGlobal = {};
 			const mockSelf = {};
 
-			const fn = new Function('module', 'window', 'global', 'self', code);
+			const fn = new Function('module', 'globalThis', 'window', 'global', 'self', code);
 
-			fn({}, mockWindow, mockGlobal, mockSelf);
+			fn({}, undefined, mockWindow, mockGlobal, mockSelf);
 			assert.equal(mockWindow.foo, 'bar', code);
 			assert.equal(mockGlobal.foo, undefined, code);
 			assert.equal(mockSelf.foo, undefined, code);
 
-			fn({}, undefined, mockGlobal, mockSelf);
+			fn({}, undefined, undefined, mockGlobal, mockSelf);
 			assert.equal(mockGlobal.foo, 'bar', code);
 			assert.equal(mockSelf.foo, undefined, code);
 
-			fn({}, undefined, undefined, mockSelf);
+			fn({}, undefined, undefined, undefined, mockSelf);
 			assert.equal(mockSelf.foo, 'bar', code);
 		});
 
@@ -261,15 +269,15 @@ describe('rollup-plugin-commonjs', () => {
 			});
 
 			const code = await getCodeFromBundle(bundle);
-			const fn = new Function('module', 'exports', 'window', code);
+			const fn = new Function('module', 'exports', 'globalThis', code);
 			const module = { exports: {} };
-			const window = {};
+			const globalThis = {};
 
-			fn(module, module.exports, window);
-			assert.equal(window.count, 1);
+			fn(module, module.exports, globalThis);
+			assert.equal(globalThis.count, 1);
 
-			fn(module, module.exports, window);
-			assert.equal(window.count, 2);
+			fn(module, module.exports, globalThis);
+			assert.equal(globalThis.count, 2);
 		});
 
 		it('handles transpiled CommonJS modules', async () => {
