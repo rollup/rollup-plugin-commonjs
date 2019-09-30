@@ -20,6 +20,7 @@ export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
 	const filter = createFilter(options.include, options.exclude);
 	const ignoreGlobal = options.ignoreGlobal;
+	const noMixingModuleSyntax = options.noMixingModuleSyntax;
 
 	const customNamedExports = {};
 	if (options.namedExports) {
@@ -73,6 +74,16 @@ export default function commonjs(options = {}) {
 	function transformAndCheckExports(code, id) {
 		{
 			const { isEsModule, hasDefaultExport, ast } = checkEsModule(this.parse, code, id);
+
+			// Throw error if ESM and CommonJS syntax both exist in same file
+			if (noMixingModuleSyntax) {
+				if (isEsModule && hasCjsKeywords(code, ignoreGlobal)) {
+					this.error(
+						`rollup-plugin-commonjs could not transform file includes CommonJS and ESM syntax at same time`
+					);
+				}
+			}
+
 			if (isEsModule) {
 				(hasDefaultExport ? esModulesWithDefaultExport : esModulesWithoutDefaultExport).add(id);
 				return null;

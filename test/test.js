@@ -670,6 +670,20 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
+		it('emit an error if CommonJS and ESM syntax both exist', async () => {
+			try {
+				await rollup({
+					input: 'samples/cjs-and-esm/main.js',
+					plugins: [commonjs({ noMixingModuleSyntax: true })]
+				});
+			} catch (err) {
+				assert.equal(
+					err.message,
+					'rollup-plugin-commonjs could not transform file includes CommonJS and ESM syntax at same time'
+				);
+			}
+		});
+
 		it('ignores virtual modules', async () => {
 			const bundle = await rollup({
 				input: 'samples/ignore-virtual-modules/main.js',
