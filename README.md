@@ -50,7 +50,10 @@ export default {
       ignoreGlobal: false,  // Default: false
 
       // if false then skip sourceMap generation for CommonJS modules
-      sourceMap: false,  // Default: true
+			sourceMap: false,  // Default: true
+			
+			// if true then emit error if CommonJS and ESM syntax exist in same file
+			noMixingModuleSyntax: true, // Default: false
 
       // explicitly specify unresolvable named exports
       // (see below for more details)
