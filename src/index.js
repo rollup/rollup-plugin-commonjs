@@ -76,10 +76,13 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
-			
-			const moduleName = getPackageJsonModuleName(id);
-			const normalizedId = normalize(id);
-			const namedExports = customNamedExports[moduleName] || customNamedExports[normalizedId];
+			let namedExports = [];
+
+			if (Object.keys(customNamedExports).length > 0) {
+				const moduleName = getPackageJsonModuleName(id);
+				const normalizedId = normalize(id);
+				namedExports = customNamedExports[moduleName] || customNamedExports[normalizedId];
+			}
 
 			const transformed = transformCommonjs(
 				this.parse,
