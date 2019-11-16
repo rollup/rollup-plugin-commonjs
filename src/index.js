@@ -14,7 +14,7 @@ import {
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
-import { getName } from './utils.js';
+import { getName, getPackageJsonModuleName } from './utils.js';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
@@ -23,27 +23,20 @@ export default function commonjs(options = {}) {
 
 	const customNamedExports = {};
 	if (options.namedExports) {
+		// Each namedExports key will be added to customNamedExports in the following forms:
+		//
+		// 1. As-is: used for finding modules by module name such as `jquery`.
+		// 2. Resolved via path.resolve: used for finding modules by file path.
+		// 3. Realpathed: used for finding modules by file path when node_modules is symlinked.
+		//
+		// We do not attempt to detect which case applies up front. While node only considers
+		// module specifiers starting with `/`, `./`, or `../` as file path based specifiers, this
+		// plugin historically allows named export keys that specify relative paths without the
+		// leading `./`. So we map both in `customNamedExports` and check both when checking
+		// exports.
 		Object.keys(options.namedExports).forEach(id => {
-			let resolveId = id;
-			let resolvedId;
-
-			if (isCore(id)) {
-				// resolve will not find npm modules with the same name as
-				// core modules without a trailing slash. Since core modules
-				// must be external, we can assume any core modules defined
-				// here are npm modules by that name.
-				resolveId += '/';
-			}
-
-			try {
-				resolvedId = nodeResolveSync(resolveId, { basedir: process.cwd() });
-			} catch (err) {
-				resolvedId = resolve(id);
-			}
-
-			// Note: customNamedExport's keys must be normalized file paths.
-			// resolve and nodeResolveSync both return normalized file paths
-			// so no additional normalization is necessary.
+			const resolvedId = resolve(id);
+			customNamedExports[id] = options.namedExports[id];
 			customNamedExports[resolvedId] = options.namedExports[id];
 
 			if (existsSync(resolvedId)) {
@@ -84,7 +77,10 @@ export default function commonjs(options = {}) {
 				return null;
 			}
 
+			
+			const moduleName = getPackageJsonModuleName(id);
 			const normalizedId = normalize(id);
+			const namedExports = customNamedExports[moduleName] || customNamedExports[normalizedId];
 
 			const transformed = transformCommonjs(
 				this.parse,
@@ -93,7 +89,7 @@ export default function commonjs(options = {}) {
 				this.getModuleInfo(id).isEntry,
 				ignoreGlobal,
 				ignoreRequire,
-				customNamedExports[normalizedId],
+				namedExports,
 				sourceMap,
 				allowDynamicRequire,
 				ast
