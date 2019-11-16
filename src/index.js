@@ -1,6 +1,5 @@
 import { realpathSync, existsSync } from 'fs';
 import { extname, resolve, normalize } from 'path';
-import { sync as nodeResolveSync, isCore } from 'resolve';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
 import {
