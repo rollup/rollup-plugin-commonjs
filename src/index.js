@@ -1,5 +1,5 @@
 import { realpathSync, existsSync } from 'fs';
-import { extname, resolve, normalize } from 'path';
+import { extname, resolve, normalize, dirname, relative} from 'path';
 import { createFilter } from 'rollup-pluginutils';
 import { peerDependencies } from '../package.json';
 import {
@@ -13,7 +13,7 @@ import {
 import { getIsCjsPromise, setIsCjsPromise } from './is-cjs';
 import { getResolveId } from './resolve-id';
 import { checkEsModule, hasCjsKeywords, transformCommonjs } from './transform.js';
-import { getName, getPackageJsonModuleName } from './utils.js';
+import { getName } from './utils.js';
 
 export default function commonjs(options = {}) {
 	const extensions = options.extensions || ['.js'];
@@ -50,6 +50,7 @@ export default function commonjs(options = {}) {
 	const esModulesWithoutDefaultExport = new Set();
 	const esModulesWithDefaultExport = new Set();
 	const allowDynamicRequire = !!options.ignore; // TODO maybe this should be configurable?
+	
 
 	const ignoreRequire =
 		typeof options.ignore === 'function'
@@ -61,6 +62,13 @@ export default function commonjs(options = {}) {
 	const resolveId = getResolveId(extensions);
 
 	const sourceMap = options.sourceMap !== false;
+
+	let nodeResolvePlugin = null;
+	function getPackageInfoForId(id) {
+		if (!nodeResolvePlugin) return;
+		if (!nodeResolvePlugin.getPackageInfoForId) return;
+		return nodeResolvePlugin.getPackageInfoForId(id);
+	}
 
 	function transformAndCheckExports(code, id) {
 		{
@@ -78,10 +86,19 @@ export default function commonjs(options = {}) {
 
 			let namedExports = [];
 
-			if (Object.keys(customNamedExports).length > 0) {
-				const moduleName = getPackageJsonModuleName(id);
+			const pkgInfo = getPackageInfoForId(id);
+			if (pkgInfo && pkgInfo.packageJson) {
+				const packageName = pkgInfo.packageJson.name;
+				const entry = pkgInfo.resolvedEntryPoint;
+
+				if (relative(entry, id) === '' && customNamedExports[packageName]) {
+					namedExports = customNamedExports[packageName];
+				}
+			}
+
+			if (namedExports.length === 0) {
 				const normalizedId = normalize(id);
-				namedExports = customNamedExports[moduleName] || customNamedExports[normalizedId];
+				namedExports = customNamedExports[normalizedId];
 			}
 
 			const transformed = transformCommonjs(
@@ -108,7 +125,7 @@ export default function commonjs(options = {}) {
 	return {
 		name: 'commonjs',
 
-		buildStart() {
+		buildStart(options) {
 			const [major, minor] = this.meta.rollupVersion.split('.').map(Number);
 			const minVersion = peerDependencies.rollup.slice(2);
 			const [minMajor, minMinor] = minVersion.split('.').map(Number);
@@ -117,6 +134,8 @@ export default function commonjs(options = {}) {
 					`Insufficient Rollup version: "rollup-plugin-commonjs" requires at least rollup@${minVersion} but found rollup@${this.meta.rollupVersion}.`
 				);
 			}
+
+			nodeResolvePlugin = options.plugins && options.plugins.filter(p => p.name === 'node-resolve')[0];
 		},
 
 		resolveId,

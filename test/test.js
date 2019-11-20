@@ -366,7 +366,6 @@ describe('rollup-plugin-commonjs', () => {
 				},
 				plugins: [
 					resolve({
-						preserveSymlinks: false,
 						preferBuiltins: false
 					}),
 					commonjs({
@@ -374,7 +373,8 @@ describe('rollup-plugin-commonjs', () => {
 							events: ['foo']
 						}
 					})
-				]
+				],
+				preserveSymlinks: false
 			})
 				.then(v => {
 					process.chdir(cwd);
