@@ -1,8 +1,8 @@
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { attachScopes, makeLegalIdentifier } from 'rollup-pluginutils';
-import { extractNames, flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
-import { HELPERS_ID, PROXY_PREFIX } from './helpers.js';
+import { attachScopes, extractAssignedNames, makeLegalIdentifier } from 'rollup-pluginutils';
+import { flatten, isFalsy, isReference, isTruthy } from './ast-utils.js';
+import { getProxyId, HELPERS_ID } from './helpers';
 import { getName } from './utils.js';
 
 const reserved = 'process location abstract arguments boolean break byte case catch char class const continue debugger default delete do double else enum eval export extends false final finally float for from function goto if implements import in instanceof int interface let long native new null package private protected public return short static super switch synchronized this throw throws transient true try typeof var void volatile while with yield'.split(
@@ -155,7 +155,7 @@ export function transformCommonjs(
 			if (node.type !== 'AssignmentExpression') return;
 			if (node.left.type === 'MemberExpression') return;
 
-			extractNames(node.left).forEach(name => {
+			extractAssignedNames(node.left).forEach(name => {
 				assignedTo.add(name);
 			});
 		}
@@ -372,7 +372,7 @@ export function transformCommonjs(
 				}),
 				sources.map(source => {
 					const { name, importsDefault } = required[source];
-					return `import ${importsDefault ? `${name} from ` : ``}'${PROXY_PREFIX}${source}';`;
+					return `import ${importsDefault ? `${name} from ` : ``}'${getProxyId(source)}';`;
 				})
 			)
 			.join('\n') + '\n\n';

@@ -1,14 +1,14 @@
-import buble from 'rollup-plugin-buble';
+import babel from 'rollup-plugin-babel';
+import json from 'rollup-plugin-json';
 import pkg from './package.json';
 
 export default {
 	input: 'src/index.js',
 	plugins: [
-		buble({
-			transforms: { dangerousForOf: true }
-		})
+		json(),
+		babel()
 	],
-	external: Object.keys( pkg.dependencies ).concat([ 'fs', 'path' ]),
+	external: Object.keys(pkg.dependencies).concat(['fs', 'path']),
 	output: [
 		{
 			format: 'es',

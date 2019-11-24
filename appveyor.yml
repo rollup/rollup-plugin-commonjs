@@ -6,6 +6,7 @@ clone_depth: 10
 
 init:
   - git config --global core.autocrlf false
+  - git config --global core.symlinks true
 
 environment:
   matrix:

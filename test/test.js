@@ -23,7 +23,15 @@ process.chdir(__dirname);
 function execute(code, context = {}) {
 	let fn;
 	const contextKeys = Object.keys(context);
-	const argNames = contextKeys.concat('module', 'exports', 'require', 'global', 'assert', code);
+	const argNames = contextKeys.concat(
+		'module',
+		'exports',
+		'require',
+		'global',
+		'assert',
+		'globalThis',
+		code
+	);
 
 	try {
 		fn = new Function(...argNames);
@@ -38,7 +46,7 @@ function execute(code, context = {}) {
 
 	const argValues = contextKeys
 		.map(key => context[key])
-		.concat(module, module.exports, name => relative(name, 'test/x.js'), global, assert);
+		.concat(module, module.exports, name => relative(name, 'test/x.js'), global, assert, global);
 
 	fn(...argValues);
 
@@ -62,6 +70,11 @@ async function executeBundle(bundle, { context, exports } = {}) {
 }
 
 const transformContext = {
+	getModuleInfo(id) {
+		return {
+			isEntry: id === 'main.js'
+		};
+	},
 	parse: (input, options) =>
 		acorn.parse(
 			input,
@@ -87,8 +100,7 @@ describe('rollup-plugin-commonjs', () => {
 			}
 
 			(config.solo ? it.only : it)(dir, () => {
-				const { transform, options } = commonjs(config.options);
-				options({ input: 'main.js' });
+				const { transform } = commonjs(config.options);
 
 				const input = fs.readFileSync(`form/${dir}/input.js`, 'utf-8');
 
@@ -100,11 +112,9 @@ describe('rollup-plugin-commonjs', () => {
 				}
 
 				const expected = fs.readFileSync(outputFile, 'utf-8').trim();
-
-				return transform.call(transformContext, input, 'input.js').then(transformed => {
-					const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '');
-					assert.equal(actual, expected);
-				});
+				const transformed = transform.call(transformContext, input, 'input.js');
+				const actual = (transformed ? transformed.code : input).trim().replace(/\0/g, '_');
+				assert.equal(actual, expected);
 			});
 		});
 	});
@@ -163,27 +173,25 @@ describe('rollup-plugin-commonjs', () => {
 				})
 			);
 
-			await SourceMapConsumer.with(map, null, async smc => {
-				const locator = getLocator(code, { offsetLine: 1 });
+			const smc = new SourceMapConsumer(map);
+			const locator = getLocator(code, { offsetLine: 1 });
 
-				let generatedLoc = locator('42');
-				let loc = smc.originalPositionFor(generatedLoc); // 42
-				assert.equal(loc.source, 'samples/sourcemap/foo.js');
-				assert.equal(loc.line, 1);
-				assert.equal(loc.column, 15);
+			let generatedLoc = locator('42');
+			let loc = smc.originalPositionFor(generatedLoc); // 42
+			assert.equal(loc.source, 'samples/sourcemap/foo.js');
+			assert.equal(loc.line, 1);
+			assert.equal(loc.column, 15);
 
-				generatedLoc = locator('log');
-				loc = smc.originalPositionFor(generatedLoc); // log
-				assert.equal(loc.source, 'samples/sourcemap/main.js');
-				assert.equal(loc.line, 2);
-				assert.equal(loc.column, 8);
-			});
+			generatedLoc = locator('log');
+			loc = smc.originalPositionFor(generatedLoc); // log
+			assert.equal(loc.source, 'samples/sourcemap/main.js');
+			assert.equal(loc.line, 2);
+			assert.equal(loc.column, 8);
 		});
 
-		it('supports an array of multiple entry points for experimentalCodeSplitting', async () => {
+		it('supports an array of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: ['samples/multiple-entry-points/b.js', 'samples/multiple-entry-points/c.js'],
-				experimentalCodeSplitting: true,
 				plugins: [commonjs()]
 			});
 
@@ -202,13 +210,12 @@ describe('rollup-plugin-commonjs', () => {
 			}
 		});
 
-		it('supports an object of multiple entry points as object for experimentalCodeSplitting', async () => {
+		it('supports an object of multiple entry points', async () => {
 			const bundle = await rollup({
 				input: {
 					b: require.resolve('./samples/multiple-entry-points/b.js'),
 					c: require.resolve('./samples/multiple-entry-points/c.js')
 				},
-				experimentalCodeSplitting: true,
 				plugins: [resolve(), commonjs()]
 			});
 
@@ -240,18 +247,18 @@ describe('rollup-plugin-commonjs', () => {
 			const mockGlobal = {};
 			const mockSelf = {};
 
-			const fn = new Function('module', 'window', 'global', 'self', code);
+			const fn = new Function('module', 'globalThis', 'window', 'global', 'self', code);
 
-			fn({}, mockWindow, mockGlobal, mockSelf);
+			fn({}, undefined, mockWindow, mockGlobal, mockSelf);
 			assert.equal(mockWindow.foo, 'bar', code);
 			assert.equal(mockGlobal.foo, undefined, code);
 			assert.equal(mockSelf.foo, undefined, code);
 
-			fn({}, undefined, mockGlobal, mockSelf);
+			fn({}, undefined, undefined, mockGlobal, mockSelf);
 			assert.equal(mockGlobal.foo, 'bar', code);
 			assert.equal(mockSelf.foo, undefined, code);
 
-			fn({}, undefined, undefined, mockSelf);
+			fn({}, undefined, undefined, undefined, mockSelf);
 			assert.equal(mockSelf.foo, 'bar', code);
 		});
 
@@ -262,15 +269,15 @@ describe('rollup-plugin-commonjs', () => {
 			});
 
 			const code = await getCodeFromBundle(bundle);
-			const fn = new Function('module', 'exports', 'window', code);
+			const fn = new Function('module', 'exports', 'globalThis', code);
 			const module = { exports: {} };
-			const window = {};
+			const globalThis = {};
 
-			fn(module, module.exports, window);
-			assert.equal(window.count, 1);
+			fn(module, module.exports, globalThis);
+			assert.equal(globalThis.count, 1);
 
-			fn(module, module.exports, window);
-			assert.equal(window.count, 2);
+			fn(module, module.exports, globalThis);
+			assert.equal(globalThis.count, 2);
 		});
 
 		it('handles transpiled CommonJS modules', async () => {
@@ -316,7 +323,7 @@ describe('rollup-plugin-commonjs', () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							'samples/custom-named-exports/secret-named-exporter.js': ['named'],
@@ -329,11 +336,79 @@ describe('rollup-plugin-commonjs', () => {
 			await executeBundle(bundle);
 		});
 
+		it('handles warnings without error when resolving named exports', () => {
+			return rollup({
+				input: 'samples/custom-named-exports-warn-builtins/main.js',
+				plugins: [
+					resolve(),
+					commonjs({
+						namedExports: {
+							events: ['message']
+						}
+					})
+				]
+			});
+		});
+
+		it('handles symlinked node_modules with preserveSymlinks: false', () => {
+			const cwd = process.cwd();
+
+			// ensure we resolve starting from a directory with
+			// symlinks in node_modules.
+
+			process.chdir('samples/symlinked-node-modules');
+
+			return rollup({
+				input: './index.js',
+				onwarn(warning) {
+					// should not get a warning about unknown export 'foo'
+					throw new Error(`Unexpected warning: ${warning.message}`);
+				},
+				plugins: [
+					resolve({
+						preserveSymlinks: false,
+						preferBuiltins: false
+					}),
+					commonjs({
+						namedExports: {
+							events: ['foo']
+						}
+					})
+				]
+			})
+				.then(v => {
+					process.chdir(cwd);
+					return v;
+				})
+				.catch(err => {
+					process.chdir(cwd);
+					throw err;
+				});
+		});
+
+		it('handles named exports for built-in shims', async () => {
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports-browser-shims/main.js',
+				plugins: [
+					resolve({
+						preferBuiltins: false
+					}),
+					commonjs({
+						namedExports: {
+							events: ['foo']
+						}
+					})
+				]
+			});
+
+			await executeBundle(bundle);
+		});
+
 		it('ignores false positives with namedExports (#36)', async () => {
 			const bundle = await rollup({
 				input: 'samples/custom-named-exports-false-positive/main.js',
 				plugins: [
-					resolve({ main: true }),
+					resolve(),
 					commonjs({
 						namedExports: {
 							irrelevant: ['lol']
@@ -601,8 +676,13 @@ describe('rollup-plugin-commonjs', () => {
 				plugins: [
 					commonjs(),
 					{
+						resolveId(id) {
+							if (id === '\0virtual' || id === '\0resolved-virtual') {
+								return '\0resolved-virtual';
+							}
+						},
 						load(id) {
-							if (id === '\0virtual') {
+							if (id === '\0resolved-virtual') {
 								return 'export default "Virtual export"';
 							}
 						}
@@ -717,6 +797,72 @@ var main = esm;
 module.exports = main;
 `
 			);
+		});
+
+		it('handles array destructuring assignment', async () => {
+			const bundle = await rollup({
+				input: 'samples/array-destructuring-assignment/main.js',
+				plugins: [commonjs({ sourceMap: true })]
+			});
+
+			const code = await getCodeFromBundle(bundle);
+			assert.equal(
+				code,
+				`'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+var shuffleArray_1 = shuffleArray;
+
+var main = {
+	shuffleArray: shuffleArray_1
+};
+
+exports.default = main;
+exports.shuffleArray = shuffleArray_1;
+`
+			);
+		});
+
+		it('normalizes paths used in the named export map', async () => {
+			// Deliberately denormalizes file paths and ensures named exports
+			// continue to work.
+			function hookedResolve() {
+				const resolvePlugin = resolve();
+				const oldResolve = resolvePlugin.resolveId;
+				resolvePlugin.resolveId = async function() {
+					const result = await oldResolve.apply(resolvePlugin, arguments);
+					if (result) {
+						result.id = result.id.replace(/\/|\\/, path.sep);
+					}
+
+					return result;
+				};
+
+				return resolvePlugin;
+			}
+
+			const bundle = await rollup({
+				input: 'samples/custom-named-exports/main.js',
+				plugins: [
+					hookedResolve(),
+					commonjs({
+						namedExports: {
+							'samples/custom-named-exports/secret-named-exporter.js': ['named'],
+							external: ['message']
+						}
+					})
+				]
+			});
+
+			await executeBundle(bundle);
 		});
 	});
 });

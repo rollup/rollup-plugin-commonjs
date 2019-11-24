@@ -1,5 +1,58 @@
 # rollup-plugin-commonjs changelog
 
+## 10.1.0
+*2019-08-27*
+* Normalize ids before looking up in named export map ([#406](https://github.com/rollup/rollup-plugin-commonjs/issues/406))
+* Update README.md with note on symlinks ([#405](https://github.com/rollup/rollup-plugin-commonjs/issues/405))
+
+## 10.0.2
+*2019-08-03*
+* Support preserveSymlinks: false ([#401](https://github.com/rollup/rollup-plugin-commonjs/issues/401))
+
+## 10.0.1
+*2019-06-27*
+* Make tests run with Node 6 again and update dependencies ([#389](https://github.com/rollup/rollup-plugin-commonjs/issues/389))
+* Handle builtins appropriately for resolve 1.11.0 ([#395](https://github.com/rollup/rollup-plugin-commonjs/issues/395))
+
+## 10.0.0
+*2019-05-15*
+* Use new Rollup@1.12 context functions, fix issue when resolveId returns an object ([#387](https://github.com/rollup/rollup-plugin-commonjs/issues/387))
+
+## 9.3.4
+*2019-04-04*
+* Make "extensions" optional ([#384](https://github.com/rollup/rollup-plugin-commonjs/issues/384))
+* Use same typing for include and exclude properties ([#385](https://github.com/rollup/rollup-plugin-commonjs/issues/385))
+
+## 9.3.3
+*2019-04-04*
+* Remove colon from module prefixes ([#371](https://github.com/rollup/rollup-plugin-commonjs/issues/371))
+
+## 9.3.2
+*2019-04-04*
+* Use shared extractAssignedNames, fix destructuring issue ([#303](https://github.com/rollup/rollup-plugin-commonjs/issues/303))
+
+## 9.3.1
+*2019-04-04*
+* Include typings in release ([#382](https://github.com/rollup/rollup-plugin-commonjs/issues/382))
+
+## 9.3.0
+*2019-04-03*
+* Add TypeScript types ([#363](https://github.com/rollup/rollup-plugin-commonjs/issues/363))
+
+## 9.2.3
+*2019-04-02*
+* Improve support for ES3 browsers ([#364](https://github.com/rollup/rollup-plugin-commonjs/issues/364))
+* Add note about monorepo usage to readme ([#372](https://github.com/rollup/rollup-plugin-commonjs/issues/372))
+* Add .js extension to generated helper file ([#373](https://github.com/rollup/rollup-plugin-commonjs/issues/373))
+
+## 9.2.2
+*2019-03-25*
+* Handle array destructuring assignment ([#379](https://github.com/rollup/rollup-plugin-commonjs/issues/379))
+
+## 9.2.1
+*2019-02-23*
+* Use correct context when manually resolving ids ([#370](https://github.com/rollup/rollup-plugin-commonjs/issues/370))
+
 ## 9.2.0
 *2018-10-10*
 * Fix missing default warning, produce better code when importing known ESM default exports ([#349](https://github.com/rollup/rollup-plugin-commonjs/issues/349))
