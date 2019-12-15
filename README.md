@@ -1,3 +1,7 @@
+# Moving
+
+We're moving this repo to a new home. Please stand by...
+
 # rollup-plugin-commonjs [![Build Status][travis-img]][travis]
 
 [travis-img]: https://travis-ci.org/rollup/rollup-plugin-commonjs.svg
